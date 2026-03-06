@@ -4,6 +4,11 @@
   "description": "Figma MCP + AI Agent code generation for VSCode",
   "version": "0.1.0",
   "publisher": "bd-creative",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/birdea/vscode-figmalab.git"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -13,7 +18,7 @@
   "activationEvents": [
     "onView:figmalab.figma"
   ],
-  "icon": "resources/icon.svg",
+  "icon": "resources/icon.png",
   "main": "./dist/extension.js",
   "contributes": {
     "viewsContainers": {
@@ -21,7 +26,7 @@
         {
           "id": "figmalab",
           "title": "FigmaLab",
-          "icon": "resources/icon-activity.svg"
+          "icon": "resources/icon-activity.png"
         }
       ]
     },

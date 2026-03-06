@@ -40,7 +40,17 @@ function copyStyle() {
   fs.copyFileSync(path.join(codiconsDir, 'codicon.ttf'), 'dist/codicon.ttf');
 }
 
+function cleanupProductionArtifacts() {
+  if (!isProduction || !fs.existsSync('dist')) return;
+  for (const file of fs.readdirSync('dist')) {
+    if (file.endsWith('.map')) {
+      fs.unlinkSync(path.join('dist', file));
+    }
+  }
+}
+
 async function main() {
+  cleanupProductionArtifacts();
   copyStyle();
   if (isWatch) {
     const [extCtx, webCtx] = await Promise.all([
