@@ -136,8 +136,7 @@
           "type": "string",
           "enum": [
             "gemini",
-            "claude",
-            "codex"
+            "claude"
           ],
           "default": "gemini",
           "description": "Default AI agent to use"

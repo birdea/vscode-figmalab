@@ -183,7 +183,6 @@ export class WebviewMessageHandler {
     let url = '';
     if (agent === 'gemini') url = 'https://aistudio.google.com/app/apikey';
     else if (agent === 'claude') url = 'https://console.anthropic.com/settings/keys';
-    else if (agent === 'codex') url = 'https://platform.openai.com/api-keys';
 
     if (url) {
       await vscode.env.openExternal(vscode.Uri.parse(url));

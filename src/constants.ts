@@ -20,7 +20,6 @@ export const CONFIG_KEYS = {
 export const SECRET_KEYS = {
   GEMINI_API_KEY: 'figmalab.geminiApiKey',
   CLAUDE_API_KEY: 'figmalab.claudeApiKey',
-  CODEX_API_KEY: 'figmalab.codexApiKey',
 } as const;
 
 export const DEFAULT_MCP_ENDPOINT = 'http://localhost:3845';

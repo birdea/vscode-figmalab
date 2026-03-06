@@ -1,5 +1,5 @@
 // Agent types
-export type AgentType = 'gemini' | 'claude' | 'codex';
+export type AgentType = 'gemini' | 'claude';
 export type OutputFormat = 'html' | 'tsx' | 'scss' | 'tailwind' | 'kotlin';
 export type LogLevel = 'info' | 'warn' | 'error' | 'success';
 export type LayerType = 'figma' | 'agent' | 'prompt' | 'editor' | 'system';

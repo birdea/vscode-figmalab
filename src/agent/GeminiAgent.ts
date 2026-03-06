@@ -17,9 +17,17 @@ export class GeminiAgent extends BaseAgent {
   async listModels(): Promise<ModelInfo[]> {
     this.ensureApiKey();
     return new Promise((resolve, reject) => {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${this.apiKey}`;
+      const options: https.RequestOptions = {
+        hostname: 'generativelanguage.googleapis.com',
+        path: '/v1beta/models',
+        method: 'GET',
+        headers: {
+          'x-goog-api-key': this.apiKey,
+        },
+      };
+
       https
-        .get(url, (res) => {
+        .get(options, (res) => {
           let data = '';
           res.on('data', (chunk) => (data += chunk));
           res.on('end', () => {
