@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { WebviewToHostMessage, HostToWebviewMessage, AgentType } from '../types';
+import { WebviewToHostMessage, HostToWebviewMessage, AgentType, LayerType } from '../types';
 import { McpClient } from '../figma/McpClient';
 import { parseMcpData } from '../figma/McpParser';
 import { ScreenshotService } from '../figma/ScreenshotService';
@@ -33,6 +33,7 @@ export class WebviewMessageHandler {
   }
 
   async handle(msg: WebviewToHostMessage) {
+    const source = this.getSourceFromCommand(msg.command);
     try {
       switch (msg.command) {
         case 'figma.connect':
@@ -66,8 +67,8 @@ export class WebviewMessageHandler {
         case 'prompt.generate':
           await this.handleGenerate(msg.payload);
           break;
-        case 'editor.insert':
-          await this.editorIntegration.insertAtCursor(msg.code);
+        case 'editor.open':
+          await this.editorIntegration.openInEditor(msg.code, msg.language);
           break;
         case 'editor.saveFile':
           await this.editorIntegration.saveAsNewFile(msg.code, msg.filename);
@@ -75,8 +76,16 @@ export class WebviewMessageHandler {
       }
     } catch (e) {
       const err = e as Error;
+      this.post({ event: 'error', source, message: err.message });
       Logger.error('system', err.message);
     }
+  }
+
+  private getSourceFromCommand(command: WebviewToHostMessage['command']): LayerType {
+    if (command.startsWith('figma.')) return 'figma';
+    if (command.startsWith('agent.') || command.startsWith('state.')) return 'agent';
+    if (command.startsWith('prompt.') || command.startsWith('editor.')) return 'prompt';
+    return 'system';
   }
 
   private async handleFigmaConnect(endpoint: string) {
@@ -207,12 +216,17 @@ export class WebviewMessageHandler {
 
     try {
       let fullCode = '';
+      let progress = 5;
+      this.post({ event: 'prompt.generating', progress });
       const gen = AgentFactory.getAgent(agent).generateCode(resolvedPayload);
       for await (const chunk of gen) {
         fullCode += chunk;
+        progress = Math.min(95, progress + 5);
+        this.post({ event: 'prompt.generating', progress });
         this.post({ event: 'prompt.chunk', text: chunk });
       }
 
+      this.post({ event: 'prompt.generating', progress: 100 });
       this.post({ event: 'prompt.result', code: fullCode, format: resolvedPayload.outputFormat });
     } catch (e) {
       const err = e as Error;

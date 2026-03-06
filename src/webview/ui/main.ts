@@ -20,6 +20,7 @@ function init() {
         if (msg.event === 'figma.status') layer.onStatus(msg.connected, msg.methods, msg.error);
         else if (msg.event === 'figma.dataResult') layer.onDataResult(msg.data);
         else if (msg.event === 'figma.screenshotResult') layer.onScreenshotResult(msg.base64);
+        else if (msg.event === 'error' && msg.source === 'figma') layer.onError(msg.message);
       });
       break;
     }
@@ -30,6 +31,9 @@ function init() {
       window.addEventListener('message', (event) => {
         const msg = event.data as HostToWebviewMessage;
         if (msg.event === 'agent.modelsResult') layer.onModelsResult(msg.models);
+        else if (msg.event === 'error' && (msg.source === 'agent' || msg.source === 'system')) {
+          layer.onError(msg.message);
+        }
       });
       break;
     }
@@ -39,9 +43,13 @@ function init() {
       layer.mount();
       window.addEventListener('message', (event) => {
         const msg = event.data as HostToWebviewMessage;
-        if (msg.event === 'prompt.chunk') layer.onChunk(msg.text);
+        if (msg.event === 'prompt.generating') layer.onGenerating(msg.progress);
+        else if (msg.event === 'prompt.chunk') layer.onChunk(msg.text);
         else if (msg.event === 'prompt.result') layer.onResult(msg.code);
         else if (msg.event === 'prompt.error') layer.onError(msg.message);
+        else if (msg.event === 'error' && (msg.source === 'prompt' || msg.source === 'system')) {
+          layer.onHostError(msg.message);
+        }
       });
       break;
     }
@@ -52,6 +60,7 @@ function init() {
       window.addEventListener('message', (event) => {
         const msg = event.data as HostToWebviewMessage;
         if (msg.event === 'log.append') layer.appendEntry(msg.entry);
+        else if (msg.event === 'log.clear') layer.clear();
       });
       break;
     }

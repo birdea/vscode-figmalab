@@ -2,20 +2,13 @@ import * as vscode from 'vscode';
 import { Logger } from '../logger/Logger';
 
 export class EditorIntegration {
-  async insertAtCursor(code: string): Promise<void> {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-      vscode.window.showWarningMessage('No active editor. Please open a file first.');
-      Logger.warn('editor', 'Insert failed: no active editor');
-      return;
-    }
-
-    await editor.edit((editBuilder) => {
-      const position = editor.selection.active;
-      editBuilder.insert(position, code);
+  async openInEditor(code: string, language = 'plaintext'): Promise<void> {
+    const doc = await vscode.workspace.openTextDocument({
+      language,
+      content: code,
     });
-
-    Logger.success('editor', `Code inserted at cursor (${code.length} chars)`);
+    await vscode.window.showTextDocument(doc, { preview: false });
+    Logger.success('editor', `Generated code opened in editor (${code.length} chars)`);
   }
 
   async saveAsNewFile(code: string, defaultName: string = 'generated'): Promise<void> {

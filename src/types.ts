@@ -51,7 +51,7 @@ export type WebviewToHostMessage =
   | { command: 'state.setAgent'; agent: AgentType }
   | { command: 'state.setModel'; model: string }
   | { command: 'prompt.generate'; payload: PromptPayload }
-  | { command: 'editor.insert'; code: string }
+  | { command: 'editor.open'; code: string; language?: string }
   | { command: 'editor.saveFile'; code: string; filename: string };
 
 // Host → Webview messages
@@ -66,4 +66,5 @@ export type HostToWebviewMessage =
   | { event: 'prompt.result'; code: string; format: OutputFormat }
   | { event: 'prompt.error'; message: string }
   | { event: 'log.append'; entry: LogEntry }
+  | { event: 'log.clear' }
   | { event: 'error'; source: LayerType; message: string };

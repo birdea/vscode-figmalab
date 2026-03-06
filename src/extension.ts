@@ -54,7 +54,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand('figmalab.log.clear', () => {
       Logger.clear();
-      logProvider.postMessage({ command: 'log.clear' });
+      logProvider.postMessage({ event: 'log.clear' });
     }),
     vscode.commands.registerCommand('figmalab.log.copy', async () => {
       await vscode.env.clipboard.writeText(Logger.toText());
