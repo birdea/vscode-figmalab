@@ -70,6 +70,38 @@ suite('WebviewMessageHandler Comprehensive', () => {
     assert.ok(postMessageSpy.calledWithMatch({ event: 'prompt.result' }));
   });
 
+  test('handle prompt.generate blocks concurrent generation at host level', async () => {
+    let releaseChunk: (() => void) | undefined;
+    const waitForRelease = new Promise<void>((resolve) => {
+      releaseChunk = resolve;
+    });
+    const mockAgent = {
+      setApiKey: sandbox.stub().resolves(),
+      generateCode: async function*() {
+        await waitForRelease;
+        yield 'chunk';
+      },
+    };
+    sandbox.stub(AgentFactory, 'getAgent').returns(mockAgent as any);
+
+    const first = handler.handle({
+      command: 'prompt.generate',
+      payload: { userPrompt: 'one', outputFormat: 'html' },
+    });
+    for (let i = 0; i < 20; i++) {
+      if ((handler as any).isGenerating) break;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    await handler.handle({
+      command: 'prompt.generate',
+      payload: { userPrompt: 'two', outputFormat: 'html' },
+    });
+
+    assert.ok(postMessageSpy.calledWithMatch({ event: 'prompt.error', message: 'Generation already in progress' }));
+    releaseChunk?.();
+    await first;
+  });
+
   test('handle editor.open', async () => {
     const vscode = require('vscode');
     vscode.workspace.openTextDocument.resolves({ show: sandbox.stub() });
