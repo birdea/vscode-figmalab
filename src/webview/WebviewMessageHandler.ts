@@ -18,6 +18,7 @@ export class WebviewMessageHandler {
   private mcpClient: McpClient;
   private screenshotService: ScreenshotService;
   private editorIntegration: EditorIntegration;
+  private isGenerating = false;
 
   constructor(
     private webview: vscode.Webview,
@@ -298,6 +299,11 @@ export class WebviewMessageHandler {
   }
 
   private async handleGenerate(payload: import('../types').PromptPayload) {
+    if (this.isGenerating) {
+      this.post({ event: 'prompt.error', message: 'Generation already in progress' });
+      return;
+    }
+
     const agent = payload.agent ?? WebviewMessageHandler.currentAgent;
     const model = payload.model ?? WebviewMessageHandler.currentModel;
 
@@ -316,6 +322,7 @@ export class WebviewMessageHandler {
 
     Logger.info('prompt', `Generating ${resolvedPayload.outputFormat} code with ${agent}:${model}`);
     this.post({ event: 'prompt.generating', progress: 0 });
+    this.isGenerating = true;
 
     try {
       let fullCode = '';
@@ -335,6 +342,8 @@ export class WebviewMessageHandler {
       const err = e as Error;
       this.post({ event: 'prompt.error', message: err.message });
       throw e;
+    } finally {
+      this.isGenerating = false;
     }
   }
 
