@@ -41,7 +41,7 @@ export interface ParsedMcpData {
 
 // Webview → Host messages
 export type WebviewToHostMessage =
-  | { command: 'figma.connect'; endpoint: string }
+  | { command: 'figma.connect' }
   | { command: 'figma.fetchData'; mcpData: string }
   | { command: 'figma.screenshot'; mcpData: string }
   | { command: 'agent.getApiKeyHelp'; agent: AgentType }

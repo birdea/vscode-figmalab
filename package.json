@@ -80,11 +80,6 @@
     "configuration": {
       "title": "FigmaLab",
       "properties": {
-        "figmalab.mcpEndpoint": {
-          "type": "string",
-          "default": "http://localhost:3845",
-          "description": "Figma MCP server endpoint"
-        },
         "figmalab.defaultAgent": {
           "type": "string",
           "enum": [

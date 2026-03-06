@@ -6,7 +6,7 @@ import { ScreenshotService } from '../figma/ScreenshotService';
 import { AgentFactory } from '../agent/AgentFactory';
 import { EditorIntegration } from '../editor/EditorIntegration';
 import { Logger } from '../logger/Logger';
-import { SECRET_KEYS } from '../constants';
+import { DEFAULT_MCP_ENDPOINT, SECRET_KEYS } from '../constants';
 
 export class WebviewMessageHandler {
   // Shared state across all handler instances (agent/model/mcpData)
@@ -37,7 +37,7 @@ export class WebviewMessageHandler {
     try {
       switch (msg.command) {
         case 'figma.connect':
-          await this.handleFigmaConnect(msg.endpoint);
+          await this.handleFigmaConnect();
           break;
         case 'figma.fetchData':
           await this.handleFigmaFetch(msg.mcpData);
@@ -88,8 +88,8 @@ export class WebviewMessageHandler {
     return 'system';
   }
 
-  private async handleFigmaConnect(endpoint: string) {
-    this.mcpClient.setEndpoint(endpoint);
+  private async handleFigmaConnect() {
+    this.mcpClient.setEndpoint(DEFAULT_MCP_ENDPOINT);
     try {
       const connected = await this.mcpClient.initialize();
       const methods = connected ? await this.mcpClient.listTools() : [];

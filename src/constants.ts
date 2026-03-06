@@ -13,7 +13,6 @@ export const COMMANDS = {
 } as const;
 
 export const CONFIG_KEYS = {
-  MCP_ENDPOINT: 'figmalab.mcpEndpoint',
   DEFAULT_AGENT: 'figmalab.defaultAgent',
 } as const;
 

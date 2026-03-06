@@ -11,11 +11,11 @@ export class FigmaLayer {
     <span class="status-dot" id="figma-status-dot"></span>
     <span id="figma-status-text" class="status-text">연결되지 않음</span>
   </div>
+  <div class="tool-list hidden" id="figma-tool-list" style="margin-top: 8px;"></div>
   <div class="row" style="margin-top: 8px;">
-    <input type="text" id="mcp-endpoint" value="http://localhost:3845" placeholder="MCP Endpoint (예: http://localhost:3845)" />
     <button class="primary" id="btn-connect"><i class="codicon codicon-plug"></i>Connect</button>
   </div>
-  <div class="description-text" style="margin-top: 6px;">Figma MCP 서버를 수동 연결하면 데이터 조회와 스크린샷 기능이 활성화됩니다.</div>
+  <div class="description-text" style="margin-top: 6px;">고정된 MCP 서버(localhost:3845)에 연결하면 데이터 조회와 스크린샷 기능이 활성화됩니다.</div>
 </div>
 <div class="panel">
   <div class="panel-title">Figma Source</div>
@@ -24,8 +24,8 @@ export class FigmaLayer {
     <textarea id="mcp-data" placeholder="https://figma.com/file/... 또는 JSON"></textarea>
   </div>
   <div class="btn-row" style="margin-top: 8px;">
-    <button class="secondary" id="btn-fetch"><i class="codicon codicon-cloud-download"></i>Fetch Data</button>
-    <button class="primary" id="btn-screenshot"><i class="codicon codicon-device-camera"></i>Capture Screenshot</button>
+    <button class="primary" id="btn-fetch"><i class="codicon codicon-cloud-download"></i>Fetch Data</button>
+    <button class="primary" id="btn-screenshot"><i class="codicon codicon-device-camera"></i>Screenshot</button>
   </div>
   <div class="notice hidden" id="figma-notice" style="margin-top: 8px;"></div>
   <pre class="code-output" id="figma-data-preview"></pre>
@@ -35,19 +35,13 @@ export class FigmaLayer {
   }
 
   mount() {
-    const endpointInput = document.getElementById('mcp-endpoint') as HTMLInputElement | null;
     const dataInput = document.getElementById('mcp-data') as HTMLTextAreaElement | null;
 
     dataInput?.addEventListener('input', () => this.updateActionState());
 
     document.getElementById('btn-connect')?.addEventListener('click', () => {
-      const endpoint = endpointInput?.value.trim() ?? '';
-      if (!endpoint) {
-        this.setNotice('warn', 'MCP Endpoint를 입력하세요.');
-        return;
-      }
       this.setNotice('info', 'MCP 서버 연결을 시도하고 있습니다...');
-      vscode.postMessage({ command: 'figma.connect', endpoint });
+      vscode.postMessage({ command: 'figma.connect' });
     });
 
     document.getElementById('btn-fetch')?.addEventListener('click', () => {
@@ -87,7 +81,6 @@ export class FigmaLayer {
       if (connected) {
         text.textContent = `연결됨 (${methods.length} tools available)`;
         text.style.color = '';
-        this.setNotice('success', 'MCP 연결이 완료되었습니다.');
       } else {
         text.textContent = '연결되지 않음';
         text.style.color = 'var(--vscode-errorForeground)';
@@ -99,6 +92,7 @@ export class FigmaLayer {
       }
     }
 
+    this.renderToolList(methods, connected);
     this.updateActionState();
   }
 
@@ -141,6 +135,31 @@ export class FigmaLayer {
     if (!notice) return;
     notice.className = `notice ${level}`;
     notice.textContent = message;
+  }
+
+  private renderToolList(methods: string[], connected: boolean) {
+    const list = document.getElementById('figma-tool-list');
+    if (!list) return;
+
+    if (!connected || methods.length === 0) {
+      list.className = 'tool-list hidden';
+      list.innerHTML = '';
+      return;
+    }
+
+    list.className = 'tool-list';
+    list.innerHTML = methods
+      .map((method) => `<span class="tool-chip">${this.escapeHtml(method)}</span>`)
+      .join('');
+  }
+
+  private escapeHtml(text: string): string {
+    return text
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
   }
 
   private stringifyForPreview(data: unknown): string {
