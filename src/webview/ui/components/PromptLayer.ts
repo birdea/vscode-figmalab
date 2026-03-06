@@ -4,49 +4,66 @@ import { OutputFormat, PromptPayload } from '../../../types';
 export class PromptLayer {
   private generatedCode = '';
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private isGenerating = false;
 
   render(): string {
     return `
-<div class="field-group">
-  <div class="checkbox-row">
-    <input type="checkbox" id="use-user-prompt" checked />
-    <label for="use-user-prompt" style="margin:0">사용자 프롬프트</label>
+<div class="panel">
+  <div class="panel-title">Prompt Builder</div>
+  <div class="field-group">
+    <div class="checkbox-row">
+      <input type="checkbox" id="use-user-prompt" checked />
+      <label for="use-user-prompt" style="margin:0">사용자 프롬프트 포함</label>
+    </div>
+    <textarea id="user-prompt" placeholder="추가 지시사항 입력..."></textarea>
   </div>
-  <textarea id="user-prompt" placeholder="추가 지시사항 입력..."></textarea>
+  <div class="checkbox-row" style="margin-top: 8px;">
+    <input type="checkbox" id="use-mcp-data" checked />
+    <label for="use-mcp-data" style="margin:0">MCP 데이터 포함</label>
+  </div>
+  <div class="field-group" style="margin-top: 8px;">
+    <label for="output-format">출력 포맷</label>
+    <select id="output-format">
+      <option value="tsx">TSX (React)</option>
+      <option value="html">HTML</option>
+      <option value="scss">SCSS</option>
+      <option value="tailwind">Tailwind CSS</option>
+      <option value="kotlin">Kotlin (Compose)</option>
+    </select>
+  </div>
+  <div class="token-estimate" id="token-estimate" style="margin-top: 6px;">0.0KB / ~0 tok</div>
+  <div class="progress-row" style="margin-top: 8px;">
+    <span class="progress-text" id="prompt-progress-text">준비됨</span>
+    <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="prompt-progress-fill"></div></div>
+  </div>
+  <button class="primary" id="btn-generate" style="width:100%; margin-top: 8px;"><i class="codicon codicon-play"></i>Generate</button>
+  <div class="notice hidden" id="prompt-notice" style="margin-top: 8px;"></div>
 </div>
-<div class="checkbox-row">
-  <input type="checkbox" id="use-mcp-data" checked />
-  <label for="use-mcp-data" style="margin:0">MCP 데이터 포함</label>
+<div class="panel">
+  <div class="panel-title">Generated Code</div>
+  <pre class="code-output" id="code-output"></pre>
+  <div class="btn-row" id="code-actions" style="display:none; margin-top: 8px;">
+    <button class="primary" id="btn-open-editor"><i class="codicon codicon-go-to-file"></i>에디터에서 열기</button>
+    <button class="secondary" id="btn-save-file"><i class="codicon codicon-save"></i>파일로 저장</button>
+  </div>
 </div>
-<div class="field-group">
-  <label>출력 포맷</label>
-  <select id="output-format">
-    <option value="tsx">TSX (React)</option>
-    <option value="html">HTML</option>
-    <option value="scss">SCSS</option>
-    <option value="tailwind">Tailwind CSS</option>
-    <option value="kotlin">Kotlin (Compose)</option>
-  </select>
-</div>
-<div class="token-estimate" id="token-estimate">0.0KB / ~0 tok</div>
-<button class="primary" id="btn-generate" style="width:100%"><i class="codicon codicon-play"></i>Generate</button>
-<pre class="code-output" id="code-output"></pre>
-<div class="btn-row" id="code-actions" style="display:none">
-  <button class="primary" id="btn-insert"><i class="codicon codicon-insert"></i>에디터에 삽입</button>
-  <button class="secondary" id="btn-save-file"><i class="codicon codicon-save"></i>파일로 저장</button>
-</div>`;
+`;
   }
 
   mount() {
     const userPromptEl = document.getElementById('user-prompt') as HTMLTextAreaElement;
     const outputFormatEl = document.getElementById('output-format') as HTMLSelectElement;
+    const useUserPromptEl = document.getElementById('use-user-prompt') as HTMLInputElement;
+    const useMcpDataEl = document.getElementById('use-mcp-data') as HTMLInputElement;
 
     userPromptEl?.addEventListener('input', () => this.updateEstimate());
+    useUserPromptEl?.addEventListener('change', () => this.updateEstimate());
+    useMcpDataEl?.addEventListener('change', () => this.updateEstimate());
     outputFormatEl?.addEventListener('change', () => this.updateEstimate());
 
     document.getElementById('btn-generate')?.addEventListener('click', () => {
-      const useUserPrompt = (document.getElementById('use-user-prompt') as HTMLInputElement).checked;
-      const useMcpData = (document.getElementById('use-mcp-data') as HTMLInputElement).checked;
+      const useUserPrompt = useUserPromptEl.checked;
+      const useMcpData = useMcpDataEl.checked;
       const outputFormat = outputFormatEl.value as OutputFormat;
 
       const payload: PromptPayload = {
@@ -63,14 +80,21 @@ export class PromptLayer {
         codeActions.style.display = 'none';
       }
       this.generatedCode = '';
+      this.setNotice('info', '코드 생성을 시작합니다...');
+      this.setGeneratingState(true);
+      this.onGenerating(0);
 
       vscode.postMessage({ command: 'prompt.generate', payload });
-      (document.getElementById('btn-generate') as HTMLButtonElement).disabled = true;
     });
 
-    document.getElementById('btn-insert')?.addEventListener('click', () => {
+    document.getElementById('btn-open-editor')?.addEventListener('click', () => {
       if (this.generatedCode) {
-        vscode.postMessage({ command: 'editor.insert', code: this.generatedCode });
+        const format = outputFormatEl.value as OutputFormat;
+        vscode.postMessage({
+          command: 'editor.open',
+          code: this.generatedCode,
+          language: this.toVsCodeLanguage(format),
+        });
       }
     });
 
@@ -85,18 +109,35 @@ export class PromptLayer {
         });
       }
     });
+
+    this.updateEstimate();
   }
 
   private updateEstimate() {
     if (this.debounceTimer) clearTimeout(this.debounceTimer);
     this.debounceTimer = setTimeout(() => {
-      const userPrompt = (document.getElementById('user-prompt') as HTMLTextAreaElement).value;
+      const useUserPrompt = (document.getElementById('use-user-prompt') as HTMLInputElement).checked;
+      const useMcpData = (document.getElementById('use-mcp-data') as HTMLInputElement).checked;
+      const userPrompt = useUserPrompt ? (document.getElementById('user-prompt') as HTMLTextAreaElement).value : '';
       const bytes = new TextEncoder().encode(userPrompt).length;
       const kb = (bytes / 1024).toFixed(1);
       const tokens = Math.ceil(userPrompt.length / 4).toLocaleString();
       const el = document.getElementById('token-estimate');
-      if (el) el.textContent = `${kb}KB / ~${tokens} tok`;
+      if (el) el.textContent = `${kb}KB / ~${tokens} tok${useMcpData ? ' + MCP' : ''}`;
     }, 300);
+  }
+
+  onGenerating(progress: number) {
+    const safeProgress = Math.max(0, Math.min(100, progress));
+    const progressFill = document.getElementById('prompt-progress-fill') as HTMLDivElement | null;
+    const progressText = document.getElementById('prompt-progress-text');
+
+    if (progressFill) {
+      progressFill.style.width = `${safeProgress}%`;
+    }
+    if (progressText) {
+      progressText.textContent = safeProgress >= 100 ? '완료됨' : `생성 중... ${safeProgress}%`;
+    }
   }
 
   onChunk(text: string) {
@@ -117,31 +158,65 @@ export class PromptLayer {
     }
     const actions = document.getElementById('code-actions');
     if (actions) actions.style.display = 'flex';
-    (document.getElementById('btn-generate') as HTMLButtonElement).disabled = false;
+    this.onGenerating(100);
+    this.setGeneratingState(false);
+    this.setNotice('success', '코드 생성이 완료되었습니다.');
   }
 
   onError(message: string) {
     const codeOutput = document.getElementById('code-output') as HTMLPreElement;
     if (codeOutput) {
-      codeOutput.innerHTML = `<span style="color:var(--vscode-errorForeground)">Error: ${this.escapeHTML(message)}</span>`;
+      codeOutput.textContent = `Error: ${message}`;
       codeOutput.classList.add('visible');
     }
     
     const actions = document.getElementById('code-actions');
     if (actions) actions.style.display = 'none';
-      
-    (document.getElementById('btn-generate') as HTMLButtonElement).disabled = false;
+
+    this.setGeneratingState(false);
+    this.onGenerating(0);
+    this.setNotice('error', message);
   }
 
-  private escapeHTML(str: string): string {
-    return str.replace(/[&<>'"]/g, 
-        tag => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            "'": '&#39;',
-            '"': '&quot;'
-        }[tag] || tag)
-    );
+  onHostError(message: string) {
+    if (this.isGenerating) {
+      this.onError(message);
+      return;
+    }
+    this.setNotice('error', message);
   }
+
+  private setGeneratingState(generating: boolean) {
+    this.isGenerating = generating;
+    const button = document.getElementById('btn-generate') as HTMLButtonElement | null;
+    if (!button) return;
+    button.disabled = generating;
+    button.innerHTML = generating
+      ? '<i class="codicon codicon-loading codicon-modifier-spin"></i>Generating...'
+      : '<i class="codicon codicon-play"></i>Generate';
+  }
+
+  private setNotice(level: 'info' | 'success' | 'warn' | 'error', message: string) {
+    const notice = document.getElementById('prompt-notice');
+    if (!notice) return;
+    notice.className = `notice ${level}`;
+    notice.textContent = message;
+  }
+
+  private toVsCodeLanguage(format: OutputFormat): string {
+    switch (format) {
+      case 'tsx':
+        return 'typescriptreact';
+      case 'html':
+      case 'tailwind':
+        return 'html';
+      case 'scss':
+        return 'scss';
+      case 'kotlin':
+        return 'kotlin';
+      default:
+        return 'plaintext';
+    }
+  }
+
 }

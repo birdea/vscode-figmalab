@@ -2,7 +2,12 @@ import { LogEntry } from '../../../types';
 
 export class LogLayer {
   render(): string {
-    return `<div class="log-area" id="log-area"></div>`;
+    return `
+<div class="panel">
+  <div class="panel-title">Runtime Log</div>
+  <div class="description-text" id="log-empty">아직 로그가 없습니다.</div>
+  <div class="log-area" id="log-area"></div>
+</div>`;
   }
 
   mount() {
@@ -11,7 +16,9 @@ export class LogLayer {
 
   appendEntry(entry: LogEntry) {
     const area = document.getElementById('log-area');
+    const empty = document.getElementById('log-empty');
     if (!area) return;
+    if (empty) empty.style.display = 'none';
 
     const el = document.createElement('div');
     el.className = `log-entry ${entry.level}`;
@@ -30,6 +37,13 @@ export class LogLayer {
     }
 
     area.scrollTop = area.scrollHeight;
+  }
+
+  clear() {
+    const area = document.getElementById('log-area');
+    const empty = document.getElementById('log-empty');
+    if (area) area.innerHTML = '';
+    if (empty) empty.style.display = '';
   }
 
   private escape(text: string): string {
