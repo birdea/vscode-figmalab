@@ -10,7 +10,7 @@ suite('Logger', () => {
 
   setup(() => {
     Logger.initialize(mockOutputChannel as any);
-    (Logger as any).onLogCallback = undefined;
+    (Logger as any).subscribers = new Set();
     mockOutputChannel.appendLine.reset();
     mockOutputChannel.clear.reset();
     Logger.clear();
@@ -56,10 +56,27 @@ suite('Logger', () => {
 
   test('onLog callback', () => {
     const callback = sinon.spy();
-    Logger.onLog(callback);
+    const disposable = Logger.onLog(callback);
     Logger.info('system', 'test');
     assert.ok(callback.calledOnce);
     assert.strictEqual(callback.firstCall.args[0].message, 'test');
+    disposable.dispose();
+  });
+
+  test('supports multiple log subscribers', () => {
+    const cb1 = sinon.spy();
+    const cb2 = sinon.spy();
+    const d1 = Logger.onLog(cb1);
+    Logger.onLog(cb2);
+
+    Logger.info('system', 'fanout');
+    assert.ok(cb1.calledOnce);
+    assert.ok(cb2.calledOnce);
+
+    d1.dispose();
+    Logger.info('system', 'after-dispose');
+    assert.ok(cb1.calledOnce);
+    assert.strictEqual(cb2.callCount, 2);
   });
 
   test('max entries limit', () => {
