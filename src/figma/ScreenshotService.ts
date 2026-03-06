@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as os from 'os';
 import * as path from 'path';
 import { McpClient } from './McpClient';
 import { Logger } from '../logger/Logger';
@@ -21,7 +22,7 @@ export class ScreenshotService {
   async openInEditor(base64: string, fileId: string): Promise<void> {
     const buffer = Buffer.from(base64, 'base64');
     const tmpPath = path.join(
-      require('os').tmpdir(),
+      os.tmpdir(),
       `figmalab-${fileId}-${Date.now()}.png`
     );
     const uri = vscode.Uri.file(tmpPath);

@@ -53,7 +53,7 @@ export class McpClient {
             } else {
               resolve(response.result);
             }
-          } catch (e) {
+          } catch {
             reject(new Error(`Failed to parse MCP response: ${data}`));
           }
         });
