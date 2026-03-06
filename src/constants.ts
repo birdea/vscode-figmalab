@@ -16,6 +16,7 @@ export const CONFIG_KEYS = {
   DEFAULT_AGENT: 'figmalab.defaultAgent',
   DEFAULT_MODEL: 'figmalab.defaultModel',
   MCP_ENDPOINT: 'figmalab.mcpEndpoint',
+  CLAUDE_MODELS: 'figmalab.claudeModels',
 } as const;
 
 export const SECRET_KEYS = {

@@ -1,10 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
+import * as vscode from 'vscode';
 import { PromptBuilder } from '../prompt/PromptBuilder';
 import { AgentType, ModelInfo, PromptPayload } from '../types';
 import { BaseAgent } from './BaseAgent';
 import { Logger } from '../logger/Logger';
+import { CONFIG_KEYS } from '../constants';
 
-const CLAUDE_MODELS: ModelInfo[] = [
+const DEFAULT_CLAUDE_MODELS: ModelInfo[] = [
   {
     id: 'claude-opus-4-6',
     name: 'Claude Opus 4.6',
@@ -39,11 +41,42 @@ export class ClaudeAgent extends BaseAgent {
   }
 
   async listModels(): Promise<ModelInfo[]> {
-    return CLAUDE_MODELS;
+    const configuredModels = vscode.workspace
+      .getConfiguration()
+      .get<unknown>(CONFIG_KEYS.CLAUDE_MODELS);
+
+    if (!Array.isArray(configuredModels) || configuredModels.length === 0) {
+      return DEFAULT_CLAUDE_MODELS;
+    }
+
+    const validModels = configuredModels
+      .map((entry): ModelInfo | null => {
+        if (!entry || typeof entry !== 'object') return null;
+        const model = entry as Record<string, unknown>;
+        if (typeof model.id !== 'string' || !model.id.trim()) return null;
+        return {
+          id: model.id.trim(),
+          name: typeof model.name === 'string' && model.name.trim() ? model.name.trim() : model.id,
+          description: typeof model.description === 'string' ? model.description : undefined,
+          inputTokenLimit:
+            typeof model.inputTokenLimit === 'number' ? model.inputTokenLimit : undefined,
+          outputTokenLimit:
+            typeof model.outputTokenLimit === 'number' ? model.outputTokenLimit : undefined,
+        };
+      })
+      .filter((model): model is ModelInfo => model !== null);
+
+    if (validModels.length === 0) {
+      Logger.warn('agent', 'Invalid figmalab.claudeModels config, using defaults');
+      return DEFAULT_CLAUDE_MODELS;
+    }
+
+    return validModels;
   }
 
   async getModelInfo(modelId: string): Promise<ModelInfo> {
-    return CLAUDE_MODELS.find((m) => m.id === modelId) ?? { id: modelId, name: modelId };
+    const models = await this.listModels();
+    return models.find((m) => m.id === modelId) ?? { id: modelId, name: modelId };
   }
 
   async *generateCode(payload: PromptPayload): AsyncGenerator<string> {

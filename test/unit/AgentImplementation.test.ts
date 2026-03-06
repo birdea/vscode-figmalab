@@ -71,6 +71,19 @@ suite('Agent Implementations', () => {
       assert.strictEqual(info.id, 'claude-sonnet-4-6');
     });
 
+    test('listModels uses configured catalog when provided', async () => {
+      const vscode = require('vscode');
+      const getStub = vscode.workspace.getConfiguration().get;
+      getStub.withArgs('figmalab.claudeModels').returns([
+        { id: 'claude-custom', name: 'Claude Custom', outputTokenLimit: 4096 },
+      ]);
+
+      const models = await agent.listModels();
+      assert.strictEqual(models.length, 1);
+      assert.strictEqual(models[0].id, 'claude-custom');
+      assert.strictEqual(models[0].name, 'Claude Custom');
+    });
+
     test('generateCode handles errors', async () => {
       await agent.setApiKey('test-key');
       nock('https://api.anthropic.com')
