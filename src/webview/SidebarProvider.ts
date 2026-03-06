@@ -49,7 +49,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     webviewView.webview.html = this.getHtml(webviewView.webview);
 
     webviewView.webview.onDidReceiveMessage(async (msg: WebviewToHostMessage) => {
-      await this.handler!.handle(msg);
+      if (!this.handler) {
+        Logger.error('system', `Handler not initialized for ${this.viewId}`);
+        return;
+      }
+      await this.handler.handle(msg);
     });
 
     Logger.info('system', `FigmaLab [${this.section}] view initialized`);

@@ -7,10 +7,14 @@ export class AgentFactory {
   private static instances: Map<AgentType, IAgent> = new Map();
 
   static getAgent(type: AgentType): IAgent {
-    if (!this.instances.has(type)) {
-      this.instances.set(type, this.createAgent(type));
+    const existing = this.instances.get(type);
+    if (existing) {
+      return existing;
     }
-    return this.instances.get(type)!;
+
+    const created = this.createAgent(type);
+    this.instances.set(type, created);
+    return created;
   }
 
   private static createAgent(type: AgentType): IAgent {

@@ -58,7 +58,10 @@ export class PromptLayer {
       const codeOutput = document.getElementById('code-output') as HTMLPreElement;
       codeOutput.textContent = '';
       codeOutput.classList.add('visible');
-      document.getElementById('code-actions')!.style.display = 'none';
+      const codeActions = document.getElementById('code-actions');
+      if (codeActions) {
+        codeActions.style.display = 'none';
+      }
       this.generatedCode = '';
 
       vscode.postMessage({ command: 'prompt.generate', payload });
