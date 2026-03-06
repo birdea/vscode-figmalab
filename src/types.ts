@@ -63,6 +63,7 @@ export type HostToWebviewMessage =
   | { event: 'figma.status'; connected: boolean; methods: string[]; error?: string }
   | { event: 'figma.connectRequested' }
   | { event: 'figma.dataResult'; data: unknown }
+  | { event: 'figma.dataFetchError'; message: string; fallbackData: unknown }
   | { event: 'figma.screenshotResult'; base64: string }
   | { event: 'agent.saveRequested' }
   | { event: 'agent.clearRequested' }

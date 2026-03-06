@@ -160,6 +160,7 @@ suite('WebviewMessageHandler Comprehensive', () => {
       sandbox.stub((handler as any).mcpClient, 'callTool').rejects(new Error('Fetch failed'));
       
       await handler.handle({ command: 'figma.fetchData', mcpData: 'https://figma.com/file/F' });
+      assert.ok(postMessageSpy.calledWithMatch({ event: 'figma.dataFetchError', message: 'MCP fetch failed: Fetch failed' }));
       assert.ok(postMessageSpy.calledWithMatch({ event: 'figma.dataResult' }));
   });
 

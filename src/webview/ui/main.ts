@@ -21,6 +21,10 @@ function init() {
         else if (msg.event === 'figma.status')
           layer.onStatus(msg.connected, msg.methods, msg.error);
         else if (msg.event === 'figma.dataResult') layer.onDataResult(msg.data);
+        else if (msg.event === 'figma.dataFetchError') {
+          layer.onError(msg.message);
+          layer.onDataResult(msg.fallbackData);
+        }
         else if (msg.event === 'figma.screenshotResult') layer.onScreenshotResult(msg.base64);
         else if (msg.event === 'error' && msg.source === 'figma') layer.onError(msg.message);
       });

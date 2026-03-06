@@ -161,7 +161,17 @@ export class WebviewMessageHandler {
         }
 
         this.post({ event: 'figma.dataResult', data });
-      } catch {
+      } catch (e) {
+        const err = e as Error;
+        Logger.error(
+          'figma',
+          `MCP get_file failed for fileId=${parsed.fileId}, nodeId=${parsed.nodeId}: ${err.message}`,
+        );
+        this.post({
+          event: 'figma.dataFetchError',
+          message: `MCP fetch failed: ${err.message}`,
+          fallbackData: parsed,
+        });
         this.post({ event: 'figma.dataResult', data: parsed });
       }
     } else {
