@@ -1,0 +1,125 @@
+{
+  "name": "vscode-figmalab",
+  "displayName": "FigmaLab",
+  "description": "Figma MCP + AI Agent code generation for VSCode",
+  "version": "0.1.0",
+  "publisher": "figmalab",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:figmalab.figma"
+  ],
+  "icon": "resources/icon.svg",
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "figmalab",
+          "title": "FigmaLab",
+          "icon": "resources/icon-activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "figmalab": [
+        { "type": "webview", "id": "figmalab.figma", "name": "Figma" },
+        { "type": "webview", "id": "figmalab.agent", "name": "Agent" },
+        { "type": "webview", "id": "figmalab.prompt", "name": "Prompt" },
+        { "type": "webview", "id": "figmalab.log", "name": "Log" }
+      ]
+    },
+    "commands": [
+      {
+        "command": "figmalab.connect",
+        "title": "FigmaLab: Connect to Figma MCP"
+      },
+      {
+        "command": "figmalab.generate",
+        "title": "FigmaLab: Generate Code"
+      },
+      {
+        "command": "figmalab.log.clear",
+        "title": "Clear Logs",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "figmalab.log.copy",
+        "title": "Copy Logs",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "figmalab.log.save",
+        "title": "Save Logs",
+        "icon": "$(save)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "figmalab.log.clear",
+          "when": "view == figmalab.log",
+          "group": "navigation@1"
+        },
+        {
+          "command": "figmalab.log.copy",
+          "when": "view == figmalab.log",
+          "group": "navigation@2"
+        },
+        {
+          "command": "figmalab.log.save",
+          "when": "view == figmalab.log",
+          "group": "navigation@3"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "FigmaLab",
+      "properties": {
+        "figmalab.mcpEndpoint": {
+          "type": "string",
+          "default": "http://localhost:3845",
+          "description": "Figma MCP server endpoint"
+        },
+        "figmalab.defaultAgent": {
+          "type": "string",
+          "enum": [
+            "gemini",
+            "claude",
+            "codex"
+          ],
+          "default": "gemini",
+          "description": "Default AI agent to use"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.config.js --production",
+    "watch": "node esbuild.config.js --watch",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "@vscode/test-electron": "^2.3.0",
+    "@vscode/vsce": "^2.22.0",
+    "esbuild": "^0.20.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.20.0",
+    "@google/generative-ai": "^0.3.0",
+    "@vscode/codicons": "^0.0.44"
+  }
+}
