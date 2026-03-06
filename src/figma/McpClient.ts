@@ -32,13 +32,17 @@ export class McpClient {
 
     return new Promise((resolve, reject) => {
       const url = new URL(this.endpoint);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        reject(new Error(`Unsupported MCP protocol: ${url.protocol}`));
+        return;
+      }
       const isHttps = url.protocol === 'https:';
       const requestModule = isHttps ? https : http;
-      
+
       const options: http.RequestOptions = {
         hostname: url.hostname,
-        port: url.port || (isHttps ? 443 : 3845),
-        path: url.pathname || '/',
+        port: url.port ? Number(url.port) : undefined,
+        path: `${url.pathname || '/'}${url.search || ''}`,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -50,8 +54,21 @@ export class McpClient {
         let data = '';
         res.on('data', (chunk) => (data += chunk));
         res.on('end', () => {
+          if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
+            reject(new Error(`MCP HTTP ${res.statusCode ?? 0}: ${data || 'No response body'}`));
+            return;
+          }
+
           try {
             const response: JsonRpcResponse = JSON.parse(data);
+            if (response.jsonrpc !== '2.0') {
+              reject(new Error(`Invalid MCP JSON-RPC version: ${String(response.jsonrpc)}`));
+              return;
+            }
+            if (response.id !== id) {
+              reject(new Error(`MCP response id mismatch: expected ${id}, got ${response.id}`));
+              return;
+            }
             if (response.error) {
               reject(new Error(`MCP Error ${response.error.code}: ${response.error.message}`));
             } else {
