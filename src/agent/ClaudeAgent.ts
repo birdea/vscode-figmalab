@@ -4,9 +4,27 @@ import { BaseAgent } from './BaseAgent';
 import { Logger } from '../logger/Logger';
 
 const CLAUDE_MODELS: ModelInfo[] = [
-  { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', description: 'Most capable Claude', inputTokenLimit: 200000, outputTokenLimit: 8192 },
-  { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', description: 'Latest Claude Sonnet', inputTokenLimit: 200000, outputTokenLimit: 8192 },
-  { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', description: 'Fast and efficient', inputTokenLimit: 200000, outputTokenLimit: 8192 },
+  {
+    id: 'claude-opus-4-6',
+    name: 'Claude Opus 4.6',
+    description: 'Most capable Claude',
+    inputTokenLimit: 200000,
+    outputTokenLimit: 8192,
+  },
+  {
+    id: 'claude-sonnet-4-6',
+    name: 'Claude Sonnet 4.6',
+    description: 'Latest Claude Sonnet',
+    inputTokenLimit: 200000,
+    outputTokenLimit: 8192,
+  },
+  {
+    id: 'claude-haiku-4-5-20251001',
+    name: 'Claude Haiku 4.5',
+    description: 'Fast and efficient',
+    inputTokenLimit: 200000,
+    outputTokenLimit: 8192,
+  },
 ];
 
 export class ClaudeAgent extends BaseAgent {

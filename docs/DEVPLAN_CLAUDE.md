@@ -8,22 +8,23 @@
 ## 0. DEVPLAN_GEMINI.md 비교 평가
 
 ### 잘 된 점
+
 - 4개 레이어(Figma / Agent / Prompt / Log)를 INSTRUCTION.md 요구사항에 충실히 반영함
 - 5단계 Phase 구조로 개발 순서를 논리적으로 제시함
 - TypeScript 권장, ESLint 적용, SecretStorage 활용 등 VSCode 생태계에 맞는 기술 선택
 
 ### 보완이 필요한 부분
 
-| 항목 | DEVPLAN_GEMINI의 한계 | DEVPLAN_CLAUDE의 접근 |
-|---|---|---|
-| **아키텍처** | Extension Host ↔ Webview 통신 구조 미명시 | Message Passing 프로토콜 명세 추가 |
-| **MCP 연동** | "접속 및 통신 프로토콜 구현"으로 추상화만 함 | Figma MCP stdio/HTTP 방식 및 포트 설정 구체화 |
-| **상태 관리** | 레이어 간 상태 공유 방법 미제시 | ExtensionContext 기반 상태 관리 전략 제시 |
-| **보안** | SecretStorage 언급만 있음 | API Key 처리 흐름 및 Webview 보안 정책 명세 |
-| **파일 구조** | 디렉토리 구조 미제시 | 구체적인 프로젝트 트리 제시 |
-| **에러 처리** | 언급 없음 | 레이어별 에러 핸들링 전략 포함 |
-| **테스트** | 언급 없음 | Unit/E2E 테스트 전략 포함 |
-| **빌드/패키징** | 언급 없음 | esbuild 번들링 및 vsce 패키징 포함 |
+| 항목            | DEVPLAN_GEMINI의 한계                        | DEVPLAN_CLAUDE의 접근                         |
+| --------------- | -------------------------------------------- | --------------------------------------------- |
+| **아키텍처**    | Extension Host ↔ Webview 통신 구조 미명시    | Message Passing 프로토콜 명세 추가            |
+| **MCP 연동**    | "접속 및 통신 프로토콜 구현"으로 추상화만 함 | Figma MCP stdio/HTTP 방식 및 포트 설정 구체화 |
+| **상태 관리**   | 레이어 간 상태 공유 방법 미제시              | ExtensionContext 기반 상태 관리 전략 제시     |
+| **보안**        | SecretStorage 언급만 있음                    | API Key 처리 흐름 및 Webview 보안 정책 명세   |
+| **파일 구조**   | 디렉토리 구조 미제시                         | 구체적인 프로젝트 트리 제시                   |
+| **에러 처리**   | 언급 없음                                    | 레이어별 에러 핸들링 전략 포함                |
+| **테스트**      | 언급 없음                                    | Unit/E2E 테스트 전략 포함                     |
+| **빌드/패키징** | 언급 없음                                    | esbuild 번들링 및 vsce 패키징 포함            |
 
 ---
 
@@ -160,22 +161,26 @@ type HostToWebviewMessage =
 ### 4.1 Figma Layer
 
 **MCP 연결 방식**
+
 - Figma Desktop App은 로컬에 MCP 서버를 stdio 또는 HTTP(기본 포트 `3845`)로 노출함
 - `McpClient.ts`: JSON-RPC 2.0 기반으로 `initialize`, `tools/list`, `tools/call` 메서드 구현
 - 연결 상태는 `vscode.workspace.getConfiguration('figmalab')` 에 저장
 
 **MCP 데이터 파서 (`McpParser.ts`)**
+
 ```typescript
 interface ParsedMcpData {
   fileId: string;
   nodeId: string;
   raw: unknown;
 }
-function parseMcpData(input: string): ParsedMcpData
+function parseMcpData(input: string): ParsedMcpData;
 ```
+
 - Figma URL 패턴(`figma.com/file/{fileId}/...?node-id={nodeId}`) 및 JSON 구조 양쪽 파싱 지원
 
 **스크린샷 서비스**
+
 - MCP `get_image` 도구 호출 → base64 → Webview 전달
 - "에디터에서 보기": `vscode.commands.executeCommand('vscode.open', uri)`
 - "저장하기": `vscode.workspace.fs.writeFile()`
@@ -183,6 +188,7 @@ function parseMcpData(input: string): ParsedMcpData
 ### 4.2 Agent Layer
 
 **추상 인터페이스 (`BaseAgent.ts`)**
+
 ```typescript
 interface IAgent {
   readonly type: AgentType;
@@ -194,31 +200,36 @@ interface IAgent {
 ```
 
 **API Key 보안 관리**
+
 - `vscode.ExtensionContext.secrets` (SecretStorage) 사용 — 절대 `globalState`에 평문 저장 금지
 - Webview에서 key 입력 후 Host로 전달 → SecretStorage 저장 → Webview에는 마스킹된 상태만 반환
 
 **Gemini 연동 (`GeminiAgent.ts`)**
+
 - SDK: `@google/generative-ai`
 - 모델 목록: `GET https://generativelanguage.googleapis.com/v1beta/models`
 - 코드 생성: streaming 방식으로 `generateContentStream()` 사용 → 실시간 Webview 출력
 
 **향후 지원 예정**
+
 - `ClaudeAgent.ts`: `@anthropic-ai/sdk` 활용
 - `CodexAgent.ts`: OpenAI SDK 활용
 
 ### 4.3 Prompt Layer
 
 **PromptBuilder.ts**
+
 ```typescript
 interface PromptPayload {
-  userPrompt?: string;       // 사용자 입력 (체크박스 on/off)
-  mcpData?: unknown;         // Figma MCP 데이터 (체크박스 on/off)
+  userPrompt?: string; // 사용자 입력 (체크박스 on/off)
+  mcpData?: unknown; // Figma MCP 데이터 (체크박스 on/off)
   outputFormat: OutputFormat; // 'html' | 'tsx' | 'scss' | 'tailwind' | 'kotlin'
   model: string;
 }
 ```
 
 시스템 프롬프트 예시:
+
 ```
 You are an expert UI developer. Based on the provided Figma design data,
 generate {format} code that faithfully reproduces the layout.
@@ -226,33 +237,36 @@ Output ONLY valid code. No explanation.
 ```
 
 **TokenEstimator.ts**
+
 - 근사치 계산: `totalChars / 4` (GPT 기준 근사)
 - KB 계산: `new TextEncoder().encode(text).length / 1024`
 - Webview에 실시간 업데이트 (입력 디바운싱 300ms)
 
 **에디터 연동 (`EditorIntegration.ts`)**
+
 ```typescript
 // 활성 에디터에 커서 위치 삽입
-async function insertAtCursor(code: string): Promise<void>
+async function insertAtCursor(code: string): Promise<void>;
 
 // 새 파일로 저장 (파일명 입력 다이얼로그 포함)
-async function saveAsNewFile(code: string, defaultName: string): Promise<void>
+async function saveAsNewFile(code: string, defaultName: string): Promise<void>;
 ```
 
 ### 4.4 Log Layer
 
 **Logger.ts**
+
 ```typescript
 type LogLevel = 'info' | 'warn' | 'error' | 'success';
 type LayerType = 'figma' | 'agent' | 'prompt' | 'editor' | 'system';
 
 interface LogEntry {
   id: string;
-  timestamp: string;    // ISO 8601
+  timestamp: string; // ISO 8601
   level: LogLevel;
   layer: LayerType;
   message: string;
-  detail?: string;      // 확장 가능한 상세 정보
+  detail?: string; // 확장 가능한 상세 정보
 }
 ```
 
@@ -284,7 +298,8 @@ button.primary {
   color: var(--vscode-button-foreground);
 }
 
-input, textarea {
+input,
+textarea {
   background: var(--vscode-input-background);
   border: 1px solid var(--vscode-input-border);
   color: var(--vscode-input-foreground);
@@ -332,19 +347,20 @@ input, textarea {
 
 ## 6. 보안 고려사항
 
-| 항목 | 정책 |
-|---|---|
-| API Key 저장 | `vscode.ExtensionContext.secrets` (OS Keychain 연동) |
-| Webview CSP | `Content-Security-Policy` 헤더로 외부 스크립트 차단 |
-| nonce | 매 Webview 로드마다 고유 nonce 생성하여 인라인 스크립트 허용 |
-| MCP 통신 | localhost 루프백만 허용, 외부 네트워크 노출 차단 |
-| 생성된 코드 | Webview에서 직접 eval 금지, 에디터 삽입만 허용 |
+| 항목         | 정책                                                         |
+| ------------ | ------------------------------------------------------------ |
+| API Key 저장 | `vscode.ExtensionContext.secrets` (OS Keychain 연동)         |
+| Webview CSP  | `Content-Security-Policy` 헤더로 외부 스크립트 차단          |
+| nonce        | 매 Webview 로드마다 고유 nonce 생성하여 인라인 스크립트 허용 |
+| MCP 통신     | localhost 루프백만 허용, 외부 네트워크 노출 차단             |
+| 생성된 코드  | Webview에서 직접 eval 금지, 에디터 삽입만 허용               |
 
 ---
 
 ## 7. 단계별 개발 계획 (Phase)
 
 ### Phase 1: 프로젝트 초기화 및 기본 구조 (1-2일)
+
 - [ ] `yo code` 기반 TypeScript Extension 프로젝트 생성
 - [ ] `eslint.config.js` (flat config v9), `tsconfig.json` 설정
 - [ ] `esbuild` 번들러 설정 (Extension Host + Webview 분리 번들)
@@ -353,6 +369,7 @@ input, textarea {
 - [ ] Message Passing 기본 통신 채널 구현
 
 ### Phase 2: Figma MCP 통합 (2-3일)
+
 - [ ] `McpClient.ts`: JSON-RPC stdio/HTTP 클라이언트 구현
 - [ ] 연결 상태 확인 및 설정 UI 연동
 - [ ] `McpParser.ts`: fileId/nodeId 파서 구현 및 단위 테스트
@@ -360,18 +377,21 @@ input, textarea {
 - [ ] `ScreenshotService.ts`: 스크린샷 조회, 크게보기, 저장 기능
 
 ### Phase 3: Agent (Gemini) 연동 (2-3일)
+
 - [ ] `BaseAgent.ts` 인터페이스 정의
 - [ ] `GeminiAgent.ts`: API Key 관리, 모델 목록, 모델 정보
 - [ ] SecretStorage 기반 API Key 보안 저장/로드
 - [ ] 스트리밍 응답 Webview 실시간 출력
 
 ### Phase 4: Prompt 및 에디터 연동 (2-3일)
+
 - [ ] `PromptBuilder.ts`: 프롬프트 + MCP 데이터 조합 로직
 - [ ] `TokenEstimator.ts`: 크기/토큰 계산 및 실시간 표시
 - [ ] 출력 포맷 선택 (HTML/TSX/SCSS/Tailwind/Kotlin)
 - [ ] `EditorIntegration.ts`: 커서 삽입 및 파일 저장 구현
 
 ### Phase 5: 로깅, 아이콘, 마무리 (1-2일)
+
 - [ ] `Logger.ts` 중앙 집중식 로거 구현 및 전 레이어 연동
 - [ ] Log UI: 레벨별 색상, Clear/Copy/Save 버튼
 - [ ] `resources/icon.png` 제작 (원형, "Figma/MCP" 2줄)
@@ -393,18 +413,22 @@ input, textarea {
   "activationEvents": ["onView:figmalab.sidebar"],
   "contributes": {
     "viewsContainers": {
-      "activitybar": [{
-        "id": "figmalab",
-        "title": "FigmaLab",
-        "icon": "resources/icon.png"
-      }]
+      "activitybar": [
+        {
+          "id": "figmalab",
+          "title": "FigmaLab",
+          "icon": "resources/icon.png",
+        },
+      ],
     },
     "views": {
-      "figmalab": [{
-        "type": "webview",
-        "id": "figmalab.sidebar",
-        "name": "FigmaLab"
-      }]
+      "figmalab": [
+        {
+          "type": "webview",
+          "id": "figmalab.sidebar",
+          "name": "FigmaLab",
+        },
+      ],
     },
     "configuration": {
       "title": "FigmaLab",
@@ -412,16 +436,16 @@ input, textarea {
         "figmalab.mcpEndpoint": {
           "type": "string",
           "default": "http://localhost:3845",
-          "description": "Figma MCP server endpoint"
+          "description": "Figma MCP server endpoint",
         },
         "figmalab.defaultAgent": {
           "type": "string",
           "enum": ["gemini", "claude", "codex"],
-          "default": "gemini"
-        }
-      }
-    }
-  }
+          "default": "gemini",
+        },
+      },
+    },
+  },
 }
 ```
 
@@ -429,14 +453,14 @@ input, textarea {
 
 ## 9. 기술 스택 요약
 
-| 분류 | 기술 |
-|---|---|
-| 언어 | TypeScript 5.x |
-| 런타임 | VSCode Extension Host (Node.js) + Webview (Browser) |
-| 번들러 | esbuild |
-| Linting | ESLint v9 flat config + @typescript-eslint |
-| Figma 연동 | JSON-RPC 2.0 (MCP 표준 프로토콜) |
-| AI SDK | @google/generative-ai (Gemini), @anthropic-ai/sdk (Claude, 예정) |
-| 보안 | VSCode SecretStorage + Webview CSP + nonce |
-| 패키징 | @vscode/vsce |
-| 테스트 | @vscode/test-electron + mocha |
+| 분류       | 기술                                                             |
+| ---------- | ---------------------------------------------------------------- |
+| 언어       | TypeScript 5.x                                                   |
+| 런타임     | VSCode Extension Host (Node.js) + Webview (Browser)              |
+| 번들러     | esbuild                                                          |
+| Linting    | ESLint v9 flat config + @typescript-eslint                       |
+| Figma 연동 | JSON-RPC 2.0 (MCP 표준 프로토콜)                                 |
+| AI SDK     | @google/generative-ai (Gemini), @anthropic-ai/sdk (Claude, 예정) |
+| 보안       | VSCode SecretStorage + Webview CSP + nonce                       |
+| 패키징     | @vscode/vsce                                                     |
+| 테스트     | @vscode/test-electron + mocha                                    |

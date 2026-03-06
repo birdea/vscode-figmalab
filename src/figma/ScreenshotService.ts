@@ -21,10 +21,7 @@ export class ScreenshotService {
 
   async openInEditor(base64: string, fileId: string): Promise<void> {
     const buffer = Buffer.from(base64, 'base64');
-    const tmpPath = path.join(
-      os.tmpdir(),
-      `figmalab-${fileId}-${Date.now()}.png`
-    );
+    const tmpPath = path.join(os.tmpdir(), `figmalab-${fileId}-${Date.now()}.png`);
     const uri = vscode.Uri.file(tmpPath);
     await vscode.workspace.fs.writeFile(uri, buffer);
     await vscode.commands.executeCommand('vscode.open', uri);

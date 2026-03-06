@@ -74,7 +74,14 @@ export class PromptLayer {
     document.getElementById('btn-save-file')?.addEventListener('click', () => {
       if (this.generatedCode) {
         const format = outputFormatEl.value;
-        const ext = format === 'tsx' ? 'tsx' : format === 'scss' ? 'scss' : format === 'kotlin' ? 'kt' : 'html';
+        const ext =
+          format === 'tsx'
+            ? 'tsx'
+            : format === 'scss'
+              ? 'scss'
+              : format === 'kotlin'
+                ? 'kt'
+                : 'html';
         vscode.postMessage({
           command: 'editor.saveFile',
           code: this.generatedCode,
@@ -126,9 +133,12 @@ export class PromptLayer {
   private updateEstimate() {
     if (this.debounceTimer) clearTimeout(this.debounceTimer);
     this.debounceTimer = setTimeout(() => {
-      const useUserPrompt = (document.getElementById('use-user-prompt') as HTMLInputElement).checked;
+      const useUserPrompt = (document.getElementById('use-user-prompt') as HTMLInputElement)
+        .checked;
       const useMcpData = (document.getElementById('use-mcp-data') as HTMLInputElement).checked;
-      const userPrompt = useUserPrompt ? (document.getElementById('user-prompt') as HTMLTextAreaElement).value : '';
+      const userPrompt = useUserPrompt
+        ? (document.getElementById('user-prompt') as HTMLTextAreaElement).value
+        : '';
       const bytes = new TextEncoder().encode(userPrompt).length;
       const kb = (bytes / 1024).toFixed(1);
       const tokens = Math.ceil(userPrompt.length / 4).toLocaleString();
@@ -179,7 +189,7 @@ export class PromptLayer {
       codeOutput.textContent = `Error: ${message}`;
       codeOutput.classList.add('visible');
     }
-    
+
     const actions = document.getElementById('code-actions');
     if (actions) actions.style.display = 'none';
 
@@ -222,5 +232,4 @@ export class PromptLayer {
         return 'plaintext';
     }
   }
-
 }

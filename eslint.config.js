@@ -1,5 +1,6 @@
 const tseslint = require('@typescript-eslint/eslint-plugin');
 const tsparser = require('@typescript-eslint/parser');
+const eslintConfigPrettier = require('eslint-config-prettier');
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 module.exports = [
@@ -25,6 +26,7 @@ module.exports = [
       'no-console': 'off',
     },
   },
+  eslintConfigPrettier,
   {
     ignores: ['dist/**', 'out/**', 'node_modules/**', '*.config.js'],
   },

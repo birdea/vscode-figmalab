@@ -87,7 +87,7 @@ export class McpClient {
 
   async listTools(): Promise<string[]> {
     try {
-      const result = await this.sendRequest('tools/list') as { tools: Array<{ name: string }> };
+      const result = (await this.sendRequest('tools/list')) as { tools: Array<{ name: string }> };
       return result.tools.map((t) => t.name);
     } catch (e) {
       Logger.error('figma', `Failed to list MCP tools: ${(e as Error).message}`);
@@ -106,7 +106,10 @@ export class McpClient {
   }
 
   async getImage(fileId: string, nodeId: string): Promise<string> {
-    const result = await this.callTool('get_image', { fileId, nodeId }) as { base64?: string; data?: string };
+    const result = (await this.callTool('get_image', { fileId, nodeId })) as {
+      base64?: string;
+      data?: string;
+    };
     return result.base64 || result.data || '';
   }
 

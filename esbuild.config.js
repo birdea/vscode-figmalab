@@ -50,10 +50,7 @@ async function main() {
     await Promise.all([extCtx.watch(), webCtx.watch()]);
     console.log('Watching for changes...');
   } else {
-    await Promise.all([
-      esbuild.build(extensionConfig),
-      esbuild.build(webviewConfig),
-    ]);
+    await Promise.all([esbuild.build(extensionConfig), esbuild.build(webviewConfig)]);
     console.log('Build complete.');
   }
 }

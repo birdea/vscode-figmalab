@@ -21,13 +21,18 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const figmaProvider = new SidebarProvider(VIEW_IDS.FIGMA, 'figma', context.extensionUri, context);
   const agentProvider = new SidebarProvider(VIEW_IDS.AGENT, 'agent', context.extensionUri, context);
-  const promptProvider = new SidebarProvider(VIEW_IDS.PROMPT, 'prompt', context.extensionUri, context);
+  const promptProvider = new SidebarProvider(
+    VIEW_IDS.PROMPT,
+    'prompt',
+    context.extensionUri,
+    context,
+  );
   const logProvider = new SidebarProvider(
     VIEW_IDS.LOG,
     'log',
     context.extensionUri,
     context,
-    (entry) => logProvider.postMessage({ event: 'log.append', entry })
+    (entry) => logProvider.postMessage({ event: 'log.append', entry }),
   );
 
   context.subscriptions.push(
@@ -42,7 +47,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
     vscode.window.registerWebviewViewProvider(VIEW_IDS.LOG, logProvider, {
       webviewOptions: { retainContextWhenHidden: true },
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -81,7 +86,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage(`Log saved: ${uri.fsPath}`);
       }
     }),
-    outputChannel
+    outputChannel,
   );
 
   Logger.info('system', `FigmaLab v${context.extension.packageJSON.version} activated`);

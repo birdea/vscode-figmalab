@@ -27,10 +27,26 @@
     },
     "views": {
       "figmalab": [
-        { "type": "webview", "id": "figmalab.figma", "name": "Figma" },
-        { "type": "webview", "id": "figmalab.agent", "name": "Agent" },
-        { "type": "webview", "id": "figmalab.prompt", "name": "Prompt" },
-        { "type": "webview", "id": "figmalab.log", "name": "Log" }
+        {
+          "type": "webview",
+          "id": "figmalab.figma",
+          "name": "Figma"
+        },
+        {
+          "type": "webview",
+          "id": "figmalab.agent",
+          "name": "Agent"
+        },
+        {
+          "type": "webview",
+          "id": "figmalab.prompt",
+          "name": "Prompt"
+        },
+        {
+          "type": "webview",
+          "id": "figmalab.log",
+          "name": "Log"
+        }
       ]
     },
     "commands": [
@@ -134,7 +150,12 @@
     "build": "node esbuild.config.js --production",
     "watch": "node esbuild.config.js --watch",
     "lint": "eslint src --ext ts",
+    "lint:fix": "eslint src --ext ts --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
     "test": "node ./out/test/runTest.js",
+    "test:unit": "mocha --ui tdd --require tsx \"test/unit/**/*.test.ts\"",
+    "test:coverage": "c8 --all --src \"src\" --reporter text --reporter html npm run test:unit",
     "package": "vsce package"
   },
   "devDependencies": {
@@ -144,8 +165,13 @@
     "@typescript-eslint/parser": "^8.0.0",
     "@vscode/test-electron": "^2.3.0",
     "@vscode/vsce": "^2.22.0",
+    "c8": "^11.0.0",
     "esbuild": "^0.20.0",
     "eslint": "^9.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "mocha": "^11.7.5",
+    "prettier": "^3.8.1",
+    "tsx": "^4.21.0",
     "typescript": "^5.3.0"
   },
   "dependencies": {

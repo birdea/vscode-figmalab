@@ -21,7 +21,7 @@ export class WebviewMessageHandler {
   constructor(
     private webview: vscode.Webview,
     private context: vscode.ExtensionContext,
-    mcpEndpoint: string
+    mcpEndpoint: string,
   ) {
     this.mcpClient = new McpClient(mcpEndpoint);
     this.screenshotService = new ScreenshotService(this.mcpClient);
@@ -102,9 +102,19 @@ export class WebviewMessageHandler {
     try {
       const connected = await this.mcpClient.initialize();
       const methods = connected ? await this.mcpClient.listTools() : [];
-      this.post({ event: 'figma.status', connected, methods, error: connected ? undefined : 'Connection failed. Is the server running?' });
+      this.post({
+        event: 'figma.status',
+        connected,
+        methods,
+        error: connected ? undefined : 'Connection failed. Is the server running?',
+      });
     } catch (e) {
-      this.post({ event: 'figma.status', connected: false, methods: [], error: (e as Error).message });
+      this.post({
+        event: 'figma.status',
+        connected: false,
+        methods: [],
+        error: (e as Error).message,
+      });
     }
   }
 
@@ -114,18 +124,24 @@ export class WebviewMessageHandler {
 
     if (this.mcpClient.isConnected() && parsed.fileId) {
       try {
-        const data = await this.mcpClient.callTool('get_file', { fileId: parsed.fileId, nodeId: parsed.nodeId });
+        const data = await this.mcpClient.callTool('get_file', {
+          fileId: parsed.fileId,
+          nodeId: parsed.nodeId,
+        });
         WebviewMessageHandler.lastMcpData = data;
-        
+
         // Output to VSCode Editor
         try {
           const doc = await vscode.workspace.openTextDocument({
             language: 'json',
-            content: JSON.stringify(data, null, 2)
+            content: JSON.stringify(data, null, 2),
           });
           await vscode.window.showTextDocument(doc, { preview: false });
         } catch (editorError) {
-          Logger.error('editor', `Failed to open fetched data in editor: ${(editorError as Error).message}`);
+          Logger.error(
+            'editor',
+            `Failed to open fetched data in editor: ${(editorError as Error).message}`,
+          );
         }
 
         this.post({ event: 'figma.dataResult', data });
@@ -140,18 +156,26 @@ export class WebviewMessageHandler {
   private async handleScreenshot(input: string) {
     const parsed = parseMcpData(input);
     if (!parsed.fileId) {
-      this.post({ event: 'error', source: 'figma', message: 'Figma URL 또는 JSON에서 fileId를 찾을 수 없습니다.' });
+      this.post({
+        event: 'error',
+        source: 'figma',
+        message: 'Figma URL 또는 JSON에서 fileId를 찾을 수 없습니다.',
+      });
       return;
     }
     try {
       const base64 = await this.screenshotService.fetchScreenshot(parsed.fileId, parsed.nodeId);
-      
+
       // Output to VSCode Editor
       await this.screenshotService.openInEditor(base64, parsed.fileId);
 
       this.post({ event: 'figma.screenshotResult', base64 });
     } catch (e) {
-      this.post({ event: 'error', source: 'figma', message: `Screenshot fetch failed: ${(e as Error).message}` });
+      this.post({
+        event: 'error',
+        source: 'figma',
+        message: `Screenshot fetch failed: ${(e as Error).message}`,
+      });
     }
   }
 
@@ -169,7 +193,8 @@ export class WebviewMessageHandler {
   private async handleGetAgentState() {
     const savedAgent = this.context.globalState.get<AgentType>(CONFIG_KEYS.DEFAULT_AGENT, 'gemini');
     const savedModel = this.context.globalState.get<string>(CONFIG_KEYS.DEFAULT_MODEL, '');
-    const secretKey = SECRET_KEYS[`${savedAgent.toUpperCase()}_API_KEY` as keyof typeof SECRET_KEYS];
+    const secretKey =
+      SECRET_KEYS[`${savedAgent.toUpperCase()}_API_KEY` as keyof typeof SECRET_KEYS];
     const key = await this.context.secrets.get(secretKey);
 
     WebviewMessageHandler.currentAgent = savedAgent;
@@ -190,12 +215,12 @@ export class WebviewMessageHandler {
       if (key) {
         await AgentFactory.getAgent(agent).setApiKey(key);
       }
-      
+
       const modelInfo = await AgentFactory.getAgent(agent).getModelInfo(modelId);
-      
+
       const doc = await vscode.workspace.openTextDocument({
         language: 'json',
-        content: JSON.stringify(modelInfo, null, 2)
+        content: JSON.stringify(modelInfo, null, 2),
       });
       await vscode.window.showTextDocument(doc, { preview: false });
     } catch (e) {

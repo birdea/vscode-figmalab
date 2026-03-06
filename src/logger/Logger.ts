@@ -67,7 +67,10 @@ export class Logger {
 
   static toText(): string {
     return this.entries
-      .map((e) => `[${e.timestamp}] [${e.level.toUpperCase()}] [${e.layer}] ${e.message}${e.detail ? '\n  ' + e.detail : ''}`)
+      .map(
+        (e) =>
+          `[${e.timestamp}] [${e.level.toUpperCase()}] [${e.layer}] ${e.message}${e.detail ? '\n  ' + e.detail : ''}`,
+      )
       .join('\n');
   }
 

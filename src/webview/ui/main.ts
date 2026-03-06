@@ -18,7 +18,8 @@ function init() {
       window.addEventListener('message', (event) => {
         const msg = event.data as HostToWebviewMessage;
         if (msg.event === 'figma.connectRequested') layer.requestConnect();
-        else if (msg.event === 'figma.status') layer.onStatus(msg.connected, msg.methods, msg.error);
+        else if (msg.event === 'figma.status')
+          layer.onStatus(msg.connected, msg.methods, msg.error);
         else if (msg.event === 'figma.dataResult') layer.onDataResult(msg.data);
         else if (msg.event === 'figma.screenshotResult') layer.onScreenshotResult(msg.base64);
         else if (msg.event === 'error' && msg.source === 'figma') layer.onError(msg.message);
@@ -35,7 +36,8 @@ function init() {
         else if (msg.event === 'agent.saveRequested') layer.onSaveRequested();
         else if (msg.event === 'agent.clearRequested') layer.onClearRequested();
         else if (msg.event === 'agent.state') layer.onState(msg.agent, msg.model, msg.hasApiKey);
-        else if (msg.event === 'agent.settingsSaved') layer.onSettingsSaved(msg.agent, msg.model, msg.hasApiKey);
+        else if (msg.event === 'agent.settingsSaved')
+          layer.onSettingsSaved(msg.agent, msg.model, msg.hasApiKey);
         else if (msg.event === 'agent.settingsCleared') layer.onSettingsCleared(msg.agent);
         else if (msg.event === 'error' && (msg.source === 'agent' || msg.source === 'system')) {
           layer.onError(msg.message);

@@ -128,8 +128,8 @@ body {
 }
 
 /* Inputs */
-input[type="text"],
-input[type="password"],
+input[type='text'],
+input[type='password'],
 textarea,
 select {
   width: 100%;
@@ -227,7 +227,7 @@ button:focus-visible {
   font-size: var(--vscode-font-size);
 }
 
-.checkbox-row input[type="checkbox"] {
+.checkbox-row input[type='checkbox'] {
   width: auto;
   cursor: pointer;
 }

@@ -18,33 +18,43 @@ export class GeminiAgent extends BaseAgent {
     this.ensureApiKey();
     return new Promise((resolve, reject) => {
       const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${this.apiKey}`;
-      https.get(url, (res) => {
-        let data = '';
-        res.on('data', (chunk) => (data += chunk));
-        res.on('end', () => {
-          try {
-            const json = JSON.parse(data) as { models?: Array<{ name: string; displayName: string; description: string; inputTokenLimit: number; outputTokenLimit: number }> };
-            const models: ModelInfo[] = (json.models || [])
-              .filter((m) => m.name.includes('gemini'))
-              .map((m) => ({
-                id: m.name.replace('models/', ''),
-                name: m.displayName || m.name,
-                description: m.description,
-                inputTokenLimit: m.inputTokenLimit,
-                outputTokenLimit: m.outputTokenLimit,
-              }))
-              .sort((a, b) => b.id.localeCompare(a.id)); // sort descending by id (e.g., gemini-2.0 > gemini-1.5)
-              
-            Logger.info('agent', `Gemini models loaded: ${models.length}`);
-            resolve(models);
-          } catch {
-            reject(new Error(`Failed to parse models response: ${data}`));
-          }
+      https
+        .get(url, (res) => {
+          let data = '';
+          res.on('data', (chunk) => (data += chunk));
+          res.on('end', () => {
+            try {
+              const json = JSON.parse(data) as {
+                models?: Array<{
+                  name: string;
+                  displayName: string;
+                  description: string;
+                  inputTokenLimit: number;
+                  outputTokenLimit: number;
+                }>;
+              };
+              const models: ModelInfo[] = (json.models || [])
+                .filter((m) => m.name.includes('gemini'))
+                .map((m) => ({
+                  id: m.name.replace('models/', ''),
+                  name: m.displayName || m.name,
+                  description: m.description,
+                  inputTokenLimit: m.inputTokenLimit,
+                  outputTokenLimit: m.outputTokenLimit,
+                }))
+                .sort((a, b) => b.id.localeCompare(a.id)); // sort descending by id (e.g., gemini-2.0 > gemini-1.5)
+
+              Logger.info('agent', `Gemini models loaded: ${models.length}`);
+              resolve(models);
+            } catch {
+              reject(new Error(`Failed to parse models response: ${data}`));
+            }
+          });
+        })
+        .on('error', (e) => {
+          Logger.error('agent', `Failed to list Gemini models: ${e.message}`);
+          reject(e);
         });
-      }).on('error', (e) => {
-        Logger.error('agent', `Failed to list Gemini models: ${e.message}`);
-        reject(e);
-      });
     });
   }
 

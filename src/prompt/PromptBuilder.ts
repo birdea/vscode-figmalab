@@ -29,7 +29,7 @@ export class PromptBuilder {
       lines.push(
         typeof payload.mcpData === 'string'
           ? payload.mcpData
-          : JSON.stringify(payload.mcpData, null, 2)
+          : JSON.stringify(payload.mcpData, null, 2),
       );
       lines.push('');
     }

@@ -1,6 +1,7 @@
 import { ParsedMcpData } from '../types';
 
-const FIGMA_URL_PATTERN = /figma\.com\/(?:file|design)\/([A-Za-z0-9]+)[^?]*(?:\?.*node-id=([^&\s]+))?/;
+const FIGMA_URL_PATTERN =
+  /figma\.com\/(?:file|design)\/([A-Za-z0-9]+)[^?]*(?:\?.*node-id=([^&\s]+))?/;
 
 export function parseMcpData(input: string): ParsedMcpData {
   const trimmed = input.trim();

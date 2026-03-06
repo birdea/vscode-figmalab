@@ -14,13 +14,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private readonly section: string,
     private readonly extensionUri: vscode.Uri,
     private readonly context: vscode.ExtensionContext,
-    private readonly onLog?: (entry: import('../types').LogEntry) => void
+    private readonly onLog?: (entry: import('../types').LogEntry) => void,
   ) {}
 
   resolveWebviewView(
     webviewView: vscode.WebviewView,
     _context: vscode.WebviewViewResolveContext,
-    _token: vscode.CancellationToken
+    _token: vscode.CancellationToken,
   ) {
     this.view = webviewView;
 
@@ -35,7 +35,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     this.handler = new WebviewMessageHandler(
       webviewView.webview,
       this.context,
-      DEFAULT_MCP_ENDPOINT
+      DEFAULT_MCP_ENDPOINT,
     );
 
     if (this.onLog) {
@@ -58,13 +58,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   private getHtml(webview: vscode.Webview): string {
     const nonce = crypto.randomBytes(16).toString('hex');
     const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview.js')
+      vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview.js'),
     );
     const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, 'dist', 'style.css')
+      vscode.Uri.joinPath(this.extensionUri, 'dist', 'style.css'),
     );
     const codiconUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, 'dist', 'codicon.css')
+      vscode.Uri.joinPath(this.extensionUri, 'dist', 'codicon.css'),
     );
 
     const csp = [

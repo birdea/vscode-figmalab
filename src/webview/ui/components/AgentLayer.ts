@@ -56,12 +56,14 @@ export class AgentLayer {
 
     document.getElementById('link-get-api-key')?.addEventListener('click', (e) => {
       e.preventDefault();
-      const agent = (document.getElementById('agent-select') as HTMLSelectElement).value as AgentType;
+      const agent = (document.getElementById('agent-select') as HTMLSelectElement)
+        .value as AgentType;
       vscode.postMessage({ command: 'agent.getApiKeyHelp', agent });
     });
 
     document.getElementById('btn-load-models')?.addEventListener('click', () => {
-      const agent = (document.getElementById('agent-select') as HTMLSelectElement).value as AgentType;
+      const agent = (document.getElementById('agent-select') as HTMLSelectElement)
+        .value as AgentType;
       this.setNotice('info', `${agent} 모델 목록을 불러오는 중입니다...`);
       vscode.postMessage({ command: 'agent.listModels', agent });
     });
@@ -72,7 +74,8 @@ export class AgentLayer {
 
     document.getElementById('link-get-model-info')?.addEventListener('click', (e) => {
       e.preventDefault();
-      const agent = (document.getElementById('agent-select') as HTMLSelectElement).value as AgentType;
+      const agent = (document.getElementById('agent-select') as HTMLSelectElement)
+        .value as AgentType;
       const modelId = (document.getElementById('model-select') as HTMLSelectElement).value;
       if (!modelId) {
         this.setNotice('warn', '모델을 먼저 선택하세요.');
@@ -157,9 +160,13 @@ export class AgentLayer {
   }
 
   onSaveRequested() {
-    const agent = (document.getElementById('agent-select') as HTMLSelectElement | null)?.value as AgentType | undefined;
-    const key = (document.getElementById('api-key-input') as HTMLInputElement | null)?.value.trim() ?? '';
-    const model = (document.getElementById('model-select') as HTMLSelectElement | null)?.value ?? '';
+    const agent = (document.getElementById('agent-select') as HTMLSelectElement | null)?.value as
+      | AgentType
+      | undefined;
+    const key =
+      (document.getElementById('api-key-input') as HTMLInputElement | null)?.value.trim() ?? '';
+    const model =
+      (document.getElementById('model-select') as HTMLSelectElement | null)?.value ?? '';
     if (!agent) return;
     if (!model) {
       this.setNotice('warn', '저장할 모델을 먼저 선택하세요.');
@@ -169,7 +176,9 @@ export class AgentLayer {
   }
 
   onClearRequested() {
-    const agent = (document.getElementById('agent-select') as HTMLSelectElement | null)?.value as AgentType | undefined;
+    const agent = (document.getElementById('agent-select') as HTMLSelectElement | null)?.value as
+      | AgentType
+      | undefined;
     if (!agent) return;
     vscode.postMessage({ command: 'agent.clearSettings', agent });
   }
@@ -190,7 +199,9 @@ export class AgentLayer {
       select.appendChild(opt);
     });
     const selectedModel =
-      (preferredModel && models.some((m) => m.id === preferredModel) ? preferredModel : models[0].id) ?? '';
+      (preferredModel && models.some((m) => m.id === preferredModel)
+        ? preferredModel
+        : models[0].id) ?? '';
     select.value = selectedModel;
     delete select.dataset.preferredModel;
     vscode.postMessage({ command: 'state.setModel', model: selectedModel });
@@ -206,8 +217,11 @@ export class AgentLayer {
       clearTimeout(this.autoLoadTimer);
     }
 
-    const agent = (document.getElementById('agent-select') as HTMLSelectElement | null)?.value as AgentType | undefined;
-    const key = (document.getElementById('api-key-input') as HTMLInputElement | null)?.value.trim() ?? '';
+    const agent = (document.getElementById('agent-select') as HTMLSelectElement | null)?.value as
+      | AgentType
+      | undefined;
+    const key =
+      (document.getElementById('api-key-input') as HTMLInputElement | null)?.value.trim() ?? '';
     if (!agent || !key) return;
     if (key.length < 16) return;
 
