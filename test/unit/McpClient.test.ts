@@ -92,16 +92,24 @@ suite('McpClient', () => {
     assert.strictEqual(success, false);
   });
 
+  test('initialize failure on non-2xx HTTP status', async () => {
+    nock('http://localhost:3845')
+      .post('/')
+      .reply(500, { error: 'server failure' });
+
+    const success = await client.initialize();
+    assert.strictEqual(success, false);
+    assert.strictEqual(client.isConnected(), false);
+  });
+
   test('parse error handling', async () => {
     nock('http://localhost:3845')
       .post('/')
       .reply(200, 'invalid json');
 
-    try {
-      await client.initialize();
-    } catch (e) {
-      assert.ok(e);
-    }
+    const success = await client.initialize();
+    assert.strictEqual(success, false);
+    assert.strictEqual(client.isConnected(), false);
   });
 
   test('callTool throws if not initialized', async () => {
@@ -117,5 +125,38 @@ suite('McpClient', () => {
   test('setEndpoint resets initialization', () => {
       client.setEndpoint('http://new:3000');
       assert.strictEqual(client.isConnected(), false);
+  });
+
+  test('callTool rejects JSON-RPC id mismatch', async () => {
+    nock('http://localhost:3845')
+      .post('/')
+      .reply(200, { jsonrpc: '2.0', id: 1, result: {} });
+    await client.initialize();
+
+    nock('http://localhost:3845')
+      .post('/')
+      .reply(200, {
+        jsonrpc: '2.0',
+        id: 999,
+        result: { data: 'bad-id' }
+      });
+
+    await assert.rejects(
+      async () => client.callTool('get_file', { fileId: '123' }),
+      /response id mismatch/,
+    );
+  });
+
+  test('setEndpoint preserves path and query', async () => {
+    client.setEndpoint('http://localhost:3845/mcp?channel=figma');
+
+    nock('http://localhost:3845')
+      .post('/mcp')
+      .query({ channel: 'figma' })
+      .reply(200, { jsonrpc: '2.0', id: 1, result: { protocolVersion: '2024-11-05' } });
+
+    const success = await client.initialize();
+    assert.strictEqual(success, true);
+    assert.strictEqual(client.isConnected(), true);
   });
 });
