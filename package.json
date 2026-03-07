@@ -1,8 +1,8 @@
 {
-  "name": "vscode-figmalab",
+  "name": "figmalab",
   "displayName": "FigmaLab",
   "description": "Figma MCP + AI Agent code generation for VSCode",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "bd-creative",
   "license": "MIT",
   "repository": {
