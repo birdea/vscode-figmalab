@@ -21,16 +21,9 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   }
 
-  const figmaProvider = new SidebarProvider(
-    VIEW_IDS.FIGMA,
-    'figma',
-    context.extensionUri,
-    context,
-    stateManager,
-  );
-  const agentProvider = new SidebarProvider(
-    VIEW_IDS.AGENT,
-    'agent',
+  const setupProvider = new SidebarProvider(
+    VIEW_IDS.SETUP,
+    'setup',
     context.extensionUri,
     context,
     stateManager,
@@ -52,10 +45,7 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(VIEW_IDS.FIGMA, figmaProvider, {
-      webviewOptions: { retainContextWhenHidden: true },
-    }),
-    vscode.window.registerWebviewViewProvider(VIEW_IDS.AGENT, agentProvider, {
+    vscode.window.registerWebviewViewProvider(VIEW_IDS.SETUP, setupProvider, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
     vscode.window.registerWebviewViewProvider(VIEW_IDS.PROMPT, promptProvider, {
@@ -69,16 +59,10 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(COMMANDS.CONNECT, async () => {
       await vscode.commands.executeCommand('workbench.view.extension.figma-mcp-helper');
-      figmaProvider.postMessage({ event: 'figma.connectRequested' });
+      setupProvider.postMessage({ event: 'figma.connectRequested' });
     }),
     vscode.commands.registerCommand(COMMANDS.GENERATE, () => {
       vscode.commands.executeCommand('workbench.view.extension.figma-mcp-helper');
-    }),
-    vscode.commands.registerCommand('figma-mcp-helper.agent.save', () => {
-      agentProvider.postMessage({ event: 'agent.saveRequested' });
-    }),
-    vscode.commands.registerCommand('figma-mcp-helper.agent.clear', () => {
-      agentProvider.postMessage({ event: 'agent.clearRequested' });
     }),
     vscode.commands.registerCommand('figma-mcp-helper.prompt.generate', () => {
       promptProvider.postMessage({ event: 'prompt.generateRequested' });

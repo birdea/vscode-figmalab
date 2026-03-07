@@ -11,40 +11,33 @@ export function init() {
   const section = document.body.dataset.section;
 
   switch (section) {
-    case 'figma': {
-      const layer = new FigmaLayer();
-      app.innerHTML = layer.render();
-      layer.mount();
+    case 'setup': {
+      const figma = new FigmaLayer();
+      const agent = new AgentLayer();
+      app.innerHTML = figma.render() + agent.render();
+      figma.mount();
+      agent.mount();
       window.addEventListener('message', (event) => {
         const msg = event.data as HostToWebviewMessage;
-        if (msg.event === 'figma.connectRequested') layer.requestConnect();
+        if (msg.event === 'figma.connectRequested') figma.requestConnect();
         else if (msg.event === 'figma.status')
-          layer.onStatus(msg.connected, msg.methods, msg.error);
-        else if (msg.event === 'figma.dataResult') layer.onDataResult(msg.data);
+          figma.onStatus(msg.connected, msg.methods, msg.error);
+        else if (msg.event === 'figma.dataResult') figma.onDataResult(msg.data);
         else if (msg.event === 'figma.dataFetchError') {
-          layer.onError(msg.message);
-          layer.onDataResult(msg.fallbackData);
+          figma.onError(msg.message);
+          figma.onDataResult(msg.fallbackData);
         }
-        else if (msg.event === 'figma.screenshotResult') layer.onScreenshotResult(msg.base64);
-        else if (msg.event === 'error' && msg.source === 'figma') layer.onError(msg.message);
-      });
-      break;
-    }
-    case 'agent': {
-      const layer = new AgentLayer();
-      app.innerHTML = layer.render();
-      layer.mount();
-      window.addEventListener('message', (event) => {
-        const msg = event.data as HostToWebviewMessage;
-        if (msg.event === 'agent.modelsResult') layer.onModelsResult(msg.models);
-        else if (msg.event === 'agent.saveRequested') layer.onSaveRequested();
-        else if (msg.event === 'agent.clearRequested') layer.onClearRequested();
-        else if (msg.event === 'agent.state') layer.onState(msg.agent, msg.model, msg.hasApiKey);
+        else if (msg.event === 'figma.screenshotResult') figma.onScreenshotResult(msg.base64);
+        else if (msg.event === 'error' && msg.source === 'figma') figma.onError(msg.message);
+        else if (msg.event === 'agent.modelsResult') agent.onModelsResult(msg.models);
+        else if (msg.event === 'agent.saveRequested') agent.onSaveRequested();
+        else if (msg.event === 'agent.clearRequested') agent.onClearRequested();
+        else if (msg.event === 'agent.state') agent.onState(msg.agent, msg.model, msg.hasApiKey);
         else if (msg.event === 'agent.settingsSaved')
-          layer.onSettingsSaved(msg.agent, msg.model, msg.hasApiKey);
-        else if (msg.event === 'agent.settingsCleared') layer.onSettingsCleared(msg.agent);
+          agent.onSettingsSaved(msg.agent, msg.model, msg.hasApiKey);
+        else if (msg.event === 'agent.settingsCleared') agent.onSettingsCleared(msg.agent);
         else if (msg.event === 'error' && (msg.source === 'agent' || msg.source === 'system')) {
-          layer.onError(msg.message);
+          agent.onError(msg.message);
         }
       });
       break;

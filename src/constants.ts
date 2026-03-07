@@ -1,8 +1,7 @@
 export const EXTENSION_ID = 'figma-mcp-helper';
 
 export const VIEW_IDS = {
-  FIGMA: 'figma-mcp-helper.figma',
-  AGENT: 'figma-mcp-helper.agent',
+  SETUP: 'figma-mcp-helper.setup',
   PROMPT: 'figma-mcp-helper.prompt',
   LOG: 'figma-mcp-helper.log',
 } as const;

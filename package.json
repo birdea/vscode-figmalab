@@ -16,7 +16,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onView:figma-mcp-helper.figma"
+    "onView:figma-mcp-helper.setup"
   ],
   "icon": "resources/icon.png",
   "main": "./dist/extension.js",
@@ -34,13 +34,8 @@
       "figma-mcp-helper": [
         {
           "type": "webview",
-          "id": "figma-mcp-helper.figma",
-          "name": "Figma"
-        },
-        {
-          "type": "webview",
-          "id": "figma-mcp-helper.agent",
-          "name": "Agent"
+          "id": "figma-mcp-helper.setup",
+          "name": "Setup"
         },
         {
           "type": "webview",
@@ -63,16 +58,6 @@
       {
         "command": "figma-mcp-helper.generate",
         "title": "Figma MCP Helper: Generate Code"
-      },
-      {
-        "command": "figma-mcp-helper.agent.save",
-        "title": "Agent 설정 저장",
-        "icon": "$(save)"
-      },
-      {
-        "command": "figma-mcp-helper.agent.clear",
-        "title": "Agent 설정 초기화",
-        "icon": "$(trash)"
       },
       {
         "command": "figma-mcp-helper.prompt.generate",
@@ -99,18 +84,8 @@
       "view/title": [
         {
           "command": "figma-mcp-helper.connect",
-          "when": "view == figma-mcp-helper.figma",
+          "when": "view == figma-mcp-helper.setup",
           "group": "navigation@1"
-        },
-        {
-          "command": "figma-mcp-helper.agent.save",
-          "when": "view == figma-mcp-helper.agent",
-          "group": "navigation@1"
-        },
-        {
-          "command": "figma-mcp-helper.agent.clear",
-          "when": "view == figma-mcp-helper.agent",
-          "group": "navigation@2"
         },
         {
           "command": "figma-mcp-helper.prompt.generate",
