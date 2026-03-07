@@ -20,9 +20,8 @@ What works today:
 
 Current gaps:
 
-- Codex is not implemented yet
-- Some settings are declared but not fully wired into runtime behavior
-- Automated test coverage is still incomplete
+- Codex is not implemented
+- `figmalab.defaultAgent` setting is declared in the extension manifest but runtime agent selection uses `globalState` (saved via the Agent panel), not the VS Code setting
 
 ## Main Workflow
 
@@ -94,7 +93,9 @@ Available extension settings:
   - Default: `http://localhost:3845`
   - Figma MCP server endpoint
 - `figmalab.defaultAgent`
-  - Declared in configuration, but not fully applied across the current runtime flow
+  - Declared in the extension manifest. Runtime selection is managed via the Agent panel and stored in `globalState`; this setting is not read at runtime.
+- `figmalab.claudeModels`
+  - Array of Claude model definitions shown in the Agent panel. Editable to add or override available models.
 
 ## Local Development
 
@@ -162,4 +163,4 @@ src/
 
 - This project is currently optimized for local experimentation and extension development.
 - If you are evaluating the codebase, start with `src/extension.ts` and `src/webview/WebviewMessageHandler.ts`.
-- For a deeper assessment of architecture, UX, bugs, and technical debt, see `CODE_REVIEW.md`.
+- For a deeper assessment of architecture, UX, bugs, and technical debt, see `NEW_CODE_REVIEW.md`.

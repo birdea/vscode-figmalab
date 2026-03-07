@@ -10,7 +10,18 @@ import { Logger } from '../logger/Logger';
 import { CONFIG_KEYS, DEFAULT_MCP_ENDPOINT, SECRET_KEYS } from '../constants';
 
 export class WebviewMessageHandler {
-  // Shared state across all handler instances (agent/model/mcpData)
+  /**
+   * Shared state across all handler instances.
+   *
+   * Source-of-truth per field:
+   *  - currentAgent / currentModel: persisted to `context.globalState` (CONFIG_KEYS.DEFAULT_AGENT /
+   *    DEFAULT_MODEL) on `agent.saveSettings`. Loaded back into these fields by `handleGetAgentState`.
+   *    The VS Code setting `figmalab.defaultAgent` is NOT read at runtime — globalState is the
+   *    authoritative store for the active agent/model selection.
+   *  - lastMcpData: in-memory only. Set on `figma.fetchData` (MCP result or local parse fallback).
+   *    Used by `prompt.generate` / `prompt.estimate` when the payload omits `mcpData`.
+   *    Not persisted across extension restarts.
+   */
   private static currentAgent: AgentType = 'gemini';
   private static currentModel: string = '';
   private static lastMcpData: unknown = null;
@@ -175,6 +186,10 @@ export class WebviewMessageHandler {
         this.post({ event: 'figma.dataResult', data: parsed });
       }
     } else {
+      Logger.info(
+        'figma',
+        'MCP not connected — returning local URL parse result only. Connect to MCP for full Figma data.',
+      );
       this.post({ event: 'figma.dataResult', data: parsed });
     }
   }

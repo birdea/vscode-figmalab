@@ -8,6 +8,7 @@ import { WebviewToHostMessage } from '../types';
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
   private handler?: WebviewMessageHandler;
+  private logSubscription?: vscode.Disposable;
 
   constructor(
     private readonly viewId: string,
@@ -42,10 +43,16 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     );
 
     if (this.onLog) {
-      Logger.onLog(this.onLog);
+      this.logSubscription?.dispose();
+      this.logSubscription = Logger.onLog(this.onLog);
       const entries = Logger.getEntries();
       entries.forEach((entry) => this.onLog?.(entry));
     }
+
+    webviewView.onDidDispose(() => {
+      this.logSubscription?.dispose();
+      this.logSubscription = undefined;
+    });
 
     webviewView.webview.html = this.getHtml(webviewView.webview);
 

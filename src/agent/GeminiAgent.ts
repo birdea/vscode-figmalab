@@ -27,22 +27,29 @@ export class GeminiAgent extends BaseAgent {
         },
       };
 
-      https
+      const req = https
         .get(options, (res) => {
+          if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
+            res.resume();
+            reject(new Error(`Gemini models API returned HTTP ${res.statusCode}`));
+            return;
+          }
           let data = '';
           res.on('data', (chunk) => (data += chunk));
           res.on('end', () => {
             try {
-              const json = JSON.parse(data) as {
-                models?: Array<{
-                  name: string;
-                  displayName: string;
-                  description: string;
-                  inputTokenLimit: number;
-                  outputTokenLimit: number;
-                }>;
-              };
-              const models: ModelInfo[] = (json.models || [])
+              const json = JSON.parse(data) as unknown;
+              if (
+                typeof json !== 'object' ||
+                json === null ||
+                !Array.isArray((json as Record<string, unknown>).models)
+              ) {
+                reject(new Error('Unexpected response shape from Gemini models API'));
+                return;
+              }
+              const models: ModelInfo[] = (
+                (json as { models: Array<{ name: string; displayName: string; description: string; inputTokenLimit: number; outputTokenLimit: number }> }).models
+              )
                 .filter((m) => m.name.includes('gemini'))
                 .map((m) => ({
                   id: m.name.replace('models/', ''),
@@ -64,6 +71,10 @@ export class GeminiAgent extends BaseAgent {
           Logger.error('agent', `Failed to list Gemini models: ${e.message}`);
           reject(e);
         });
+
+      req.setTimeout(10000, () => {
+        req.destroy(new Error('Gemini models API request timed out'));
+      });
     });
   }
 

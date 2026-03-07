@@ -22,6 +22,7 @@ suite('SidebarProvider', () => {
         asWebviewUri: (u: any) => u,
         cspSource: 'csp',
       },
+      onDidDispose: sandbox.stub(),
     };
     mockContext = {
       extensionUri: mockUri,
