@@ -25,7 +25,7 @@
       "activitybar": [
         {
           "id": "figma-mcp-helper",
-          "title": "Figma MCP Helper",
+          "title": "%viewsContainer.title%",
           "icon": "resources/icon-activity.png"
         }
       ]
@@ -35,48 +35,48 @@
         {
           "type": "webview",
           "id": "figma-mcp-helper.setup",
-          "name": "Setup"
+          "name": "%view.setup.name%"
         },
         {
           "type": "webview",
           "id": "figma-mcp-helper.prompt",
-          "name": "Prompt"
+          "name": "%view.prompt.name%"
         },
         {
           "type": "webview",
           "id": "figma-mcp-helper.log",
-          "name": "Log"
+          "name": "%view.log.name%"
         }
       ]
     },
     "commands": [
       {
         "command": "figma-mcp-helper.connect",
-        "title": "MCP 연결",
+        "title": "%command.connect.title%",
         "icon": "$(plug)"
       },
       {
         "command": "figma-mcp-helper.generate",
-        "title": "Figma MCP Helper: Generate Code"
+        "title": "%command.generate.title%"
       },
       {
         "command": "figma-mcp-helper.prompt.generate",
-        "title": "코드 생성",
+        "title": "%command.promptGenerate.title%",
         "icon": "$(play)"
       },
       {
         "command": "figma-mcp-helper.log.clear",
-        "title": "Clear Logs",
+        "title": "%command.logClear.title%",
         "icon": "$(clear-all)"
       },
       {
         "command": "figma-mcp-helper.log.copy",
-        "title": "Copy Logs",
+        "title": "%command.logCopy.title%",
         "icon": "$(copy)"
       },
       {
         "command": "figma-mcp-helper.log.save",
-        "title": "Save Logs",
+        "title": "%command.logSave.title%",
         "icon": "$(save)"
       }
     ],
@@ -110,7 +110,7 @@
       ]
     },
     "configuration": {
-      "title": "Figma MCP Helper",
+      "title": "%configuration.title%",
       "properties": {
         "figma-mcp-helper.defaultAgent": {
           "type": "string",
@@ -119,17 +119,17 @@
             "claude"
           ],
           "default": "gemini",
-          "description": "Default AI agent to use"
+          "description": "%configuration.defaultAgent.description%"
         },
         "figma-mcp-helper.mcpEndpoint": {
           "type": "string",
           "default": "http://localhost:3845",
-          "description": "Figma MCP server endpoint"
+          "description": "%configuration.mcpEndpoint.description%"
         },
         "figma-mcp-helper.openFetchedDataInEditor": {
           "type": "boolean",
           "default": false,
-          "description": "Open fetched MCP JSON in a VS Code editor automatically after a successful fetch"
+          "description": "%configuration.openFetchedDataInEditor.description%"
         },
         "figma-mcp-helper.claudeModels": {
           "type": "array",
@@ -156,7 +156,7 @@
               "outputTokenLimit": 8192
             }
           ],
-          "description": "Claude model catalog used in the Agent panel",
+          "description": "%configuration.claudeModels.description%",
           "items": {
             "type": "object",
             "required": ["id", "name"],

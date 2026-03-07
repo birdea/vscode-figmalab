@@ -5,6 +5,7 @@ import { Logger } from '../logger/Logger';
 import { DEFAULT_MCP_ENDPOINT, CONFIG_KEYS } from '../constants';
 import { WebviewToHostMessage } from '../types';
 import { StateManager } from '../state/StateManager';
+import { resolveLocale } from '../i18n';
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
@@ -37,6 +38,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
     const config = vscode.workspace.getConfiguration();
     const mcpEndpoint = config.get<string>(CONFIG_KEYS.MCP_ENDPOINT) || DEFAULT_MCP_ENDPOINT;
+    const locale = resolveLocale(vscode.env.language);
 
     this.handler = new WebviewMessageHandler(
       webviewView.webview,
@@ -44,6 +46,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       mcpEndpoint,
       this.stateManager,
       this.context.extension.packageJSON.version,
+      locale,
     );
 
     if (this.onLog) {
@@ -92,8 +95,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       `font-src ${webview.cspSource}`,
     ].join('; ');
 
+    const locale = resolveLocale(vscode.env.language);
+
     return `<!DOCTYPE html>
-<html lang="ko">
+<html lang="${locale}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -102,7 +107,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   <link rel="stylesheet" href="${codiconUri}" />
   <link rel="stylesheet" href="${styleUri}" />
 </head>
-<body data-section="${this.section}">
+<body data-section="${this.section}" data-locale="${locale}">
   <div id="app"></div>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>

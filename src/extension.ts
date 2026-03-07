@@ -5,8 +5,10 @@ import { AgentFactory } from './agent/AgentFactory';
 import { COMMANDS, VIEW_IDS, SECRET_KEYS } from './constants';
 import { AgentType } from './types';
 import { StateManager } from './state/StateManager';
+import { resolveLocale, t } from './i18n';
 
 export async function activate(context: vscode.ExtensionContext) {
+  const locale = resolveLocale(vscode.env.language);
   const outputChannel = vscode.window.createOutputChannel('Figma MCP Helper');
   Logger.initialize(outputChannel);
   const stateManager = new StateManager();
@@ -73,17 +75,17 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand('figma-mcp-helper.log.copy', async () => {
       await vscode.env.clipboard.writeText(Logger.toText());
-      vscode.window.showInformationMessage('Log copied to clipboard');
+      vscode.window.showInformationMessage(t(locale, 'system.logCopied'));
     }),
     vscode.commands.registerCommand('figma-mcp-helper.log.save', async () => {
       const uri = await vscode.window.showSaveDialog({
         filters: { JSON: ['json'], Text: ['txt'] },
-        saveLabel: 'Save Log',
+        saveLabel: t(locale, 'system.saveLog'),
       });
       if (uri) {
         const content = uri.fsPath.endsWith('.json') ? Logger.toJson() : Logger.toText();
         await vscode.workspace.fs.writeFile(uri, Buffer.from(content));
-        vscode.window.showInformationMessage(`Log saved: ${uri.fsPath}`);
+        vscode.window.showInformationMessage(t(locale, 'system.logSaved', { path: uri.fsPath }));
       }
     }),
     outputChannel,

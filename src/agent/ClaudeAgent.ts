@@ -5,6 +5,7 @@ import { AgentType, ModelInfo, PromptPayload } from '../types';
 import { BaseAgent } from './BaseAgent';
 import { Logger } from '../logger/Logger';
 import { CONFIG_KEYS } from '../constants';
+import { USER_CANCELLED_CODE_GENERATION } from '../i18n';
 
 const DEFAULT_CLAUDE_MODELS: ModelInfo[] = [
   {
@@ -100,7 +101,7 @@ export class ClaudeAgent extends BaseAgent {
         if (signal?.aborted) {
           const abort = (stream as { abort?: () => void }).abort;
           abort?.call(stream);
-          throw new Error('사용자가 코드 생성을 취소했습니다.');
+          throw new Error(USER_CANCELLED_CODE_GENERATION);
         }
         if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
           yield event.delta.text;

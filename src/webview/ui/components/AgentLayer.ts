@@ -1,18 +1,20 @@
 import { vscode } from '../vscodeApi';
 import { AgentType, ModelInfo } from '../../../types';
+import { getDocumentLocale, t, UiLocale } from '../../../i18n';
 
 export class AgentLayer {
   private models: ModelInfo[] = [];
   private autoLoadTimer: ReturnType<typeof setTimeout> | null = null;
   private lastLoadSignature = '';
+  private readonly locale: UiLocale = getDocumentLocale();
 
   render(): string {
     return `
 <section class="panel panel-compact">
   <div class="section-heading">
-    <div>
-      <div class="panel-title">에이전트 설정</div>
-      <div class="section-status" id="agent-status">저장된 API 키가 없으면 먼저 입력하세요.</div>
+      <div>
+      <div class="panel-title">${this.msg('agent.settingsTitle')}</div>
+      <div class="section-status" id="agent-status">${this.msg('agent.status.noSavedKey')}</div>
     </div>
   </div>
   <div class="field-group">
@@ -25,27 +27,27 @@ export class AgentLayer {
   <div class="field-group stack-gap-sm">
     <div class="row row-space-between">
       <label for="api-key-input">API Key</label>
-      <a href="#" id="link-get-api-key" class="link-meta">안내</a>
+      <a href="#" id="link-get-api-key" class="link-meta">${this.msg('agent.apiKeyHelp')}</a>
     </div>
     <div class="row">
-      <input type="password" id="api-key-input" placeholder="API Key 입력..." />
+      <input type="password" id="api-key-input" placeholder="${this.msg('agent.apiKeyPlaceholder')}" />
     </div>
   </div>
   <div class="field-group stack-gap-sm">
     <div class="row row-space-between">
-      <label for="model-select">모델 선택</label>
-      <a href="#" id="link-get-model-info" class="link-meta">정보</a>
+      <label for="model-select">${this.msg('agent.modelSelect')}</label>
+      <a href="#" id="link-get-model-info" class="link-meta">${this.msg('agent.modelInfo')}</a>
     </div>
     <div class="row">
       <select id="model-select">
-        <option value="">모델을 불러오세요</option>
+        <option value="">${this.msg('agent.modelLoadPrompt')}</option>
       </select>
-      <button class="secondary icon-btn" id="btn-load-models" title="모델 목록 새로고침"><i class="codicon codicon-refresh"></i></button>
+      <button class="secondary icon-btn" id="btn-load-models" title="${this.msg('agent.refreshModels')}"><i class="codicon codicon-refresh"></i></button>
     </div>
   </div>
   <div class="btn-row stack-gap-sm">
-    <button class="primary" id="btn-save-settings"><i class="codicon codicon-save"></i>저장</button>
-    <button class="text-btn" id="btn-clear-settings">초기화</button>
+    <button class="primary" id="btn-save-settings"><i class="codicon codicon-save"></i>${this.msg('agent.save')}</button>
+    <button class="text-btn" id="btn-clear-settings">${this.msg('agent.clear')}</button>
   </div>
   <div class="notice hidden" id="agent-notice"></div>
 </section>
@@ -60,7 +62,7 @@ export class AgentLayer {
       vscode.postMessage({ command: 'state.setAgent', agent });
       this.updateModelList([]);
       this.updateStatus();
-      this.setNotice('info', `${agent}로 전환했습니다.`);
+      this.setNotice('info', this.msg('agent.notice.switched', { agent }));
       this.scheduleModelLoad();
     });
 
@@ -81,7 +83,7 @@ export class AgentLayer {
         .value as AgentType;
       const modelId = (document.getElementById('model-select') as HTMLSelectElement).value;
       if (!modelId) {
-        this.setNotice('warn', '모델을 먼저 선택하세요.');
+        this.setNotice('warn', this.msg('agent.notice.selectModelFirst'));
         return;
       }
       vscode.postMessage({ command: 'agent.getModelInfoHelp', agent, modelId });
@@ -114,9 +116,9 @@ export class AgentLayer {
     this.models = models;
     this.updateModelList(models);
     if (models.length > 0) {
-      this.setNotice('success', `${models.length}개 모델을 불러왔습니다.`);
+      this.setNotice('success', this.msg('agent.notice.modelsLoaded', { count: models.length }));
     } else {
-      this.setNotice('warn', '사용 가능한 모델이 없습니다.');
+      this.setNotice('warn', this.msg('agent.notice.noModels'));
     }
     this.updateStatus();
   }
@@ -129,16 +131,18 @@ export class AgentLayer {
     }
     if (keyInput) {
       keyInput.value = '';
-      keyInput.placeholder = hasApiKey ? '저장된 API Key 있음 ✓' : 'API Key 입력...';
+      keyInput.placeholder = hasApiKey
+        ? this.msg('agent.apiKeyPlaceholderSaved')
+        : this.msg('agent.apiKeyPlaceholder');
     }
     this.lastLoadSignature = '';
     this.updateModelList([]);
     this.updateStatus();
     if (!hasApiKey) {
-      this.setNotice('info', 'API 키를 입력하면 모델을 불러옵니다.');
+      this.setNotice('info', this.msg('agent.notice.enterApiKeyToLoad'));
       return;
     }
-    this.setNotice('info', '저장된 설정을 불러오는 중입니다.');
+    this.setNotice('info', this.msg('agent.notice.loadingSavedSettings'));
     vscode.postMessage({ command: 'agent.listModels', agent });
     if (model) {
       // Keep preferred model until list result arrives, then restore selection.
@@ -149,17 +153,19 @@ export class AgentLayer {
     }
   }
 
-  onSettingsSaved(agent: AgentType, model: string, hasApiKey: boolean) {
+  onSettingsSaved(_agent: AgentType, model: string, hasApiKey: boolean) {
     const keyInput = document.getElementById('api-key-input') as HTMLInputElement | null;
     if (keyInput) {
       keyInput.value = '';
-      keyInput.placeholder = hasApiKey ? '저장된 API Key 있음 ✓' : 'API Key 입력...';
+      keyInput.placeholder = hasApiKey
+        ? this.msg('agent.apiKeyPlaceholderSaved')
+        : this.msg('agent.apiKeyPlaceholder');
     }
-    this.setNotice('success', '설정을 저장했습니다.');
+    this.setNotice('success', this.msg('agent.notice.settingsSaved'));
     this.updateStatus();
   }
 
-  onSettingsCleared(agent: AgentType) {
+  onSettingsCleared(_agent: AgentType) {
     const agentSelect = document.getElementById('agent-select') as HTMLSelectElement | null;
     const keyInput = document.getElementById('api-key-input') as HTMLInputElement | null;
     if (agentSelect) {
@@ -167,12 +173,12 @@ export class AgentLayer {
     }
     if (keyInput) {
       keyInput.value = '';
-      keyInput.placeholder = 'API Key 입력...';
+      keyInput.placeholder = this.msg('agent.apiKeyPlaceholder');
     }
     this.lastLoadSignature = '';
     this.updateModelList([]);
     this.updateStatus();
-    this.setNotice('info', '저장값을 삭제했습니다.');
+    this.setNotice('info', this.msg('agent.notice.settingsCleared'));
   }
 
   onSaveRequested() {
@@ -185,7 +191,7 @@ export class AgentLayer {
       (document.getElementById('model-select') as HTMLSelectElement | null)?.value ?? '';
     if (!agent) return;
     if (!model) {
-      this.setNotice('warn', '저장하기 전에 모델을 먼저 선택하세요.');
+      this.setNotice('warn', this.msg('agent.notice.selectModelBeforeSave'));
       return;
     }
     vscode.postMessage({ command: 'agent.saveSettings', agent, model, key: key || undefined });
@@ -205,7 +211,7 @@ export class AgentLayer {
     const preferredModel = select.dataset.preferredModel ?? '';
     select.innerHTML = '';
     if (models.length === 0) {
-      select.innerHTML = '<option value="">모델을 불러오세요</option>';
+      select.innerHTML = `<option value="">${this.msg('agent.modelLoadPrompt')}</option>`;
       vscode.postMessage({ command: 'state.setModel', model: '' });
       return;
     }
@@ -237,14 +243,14 @@ export class AgentLayer {
     if (!status || !agent) return;
 
     if (apiKey) {
-      status.textContent = 'API 키가 입력되었습니다. 모델을 확인하고 저장하세요.';
+      status.textContent = this.msg('agent.status.apiKeyEntered');
       return;
     }
     if (!model) {
-      status.textContent = '모델을 아직 선택하지 않았습니다.';
+      status.textContent = this.msg('agent.status.modelNotSelected');
       return;
     }
-    status.textContent = `${model} 모델이 선택되었습니다.`;
+    status.textContent = this.msg('agent.status.modelSelected', { model });
   }
 
   private setNotice(level: 'info' | 'success' | 'warn' | 'error', message: string) {
@@ -280,19 +286,23 @@ export class AgentLayer {
     this.setNotice(
       'info',
       key
-        ? '모델 목록을 불러오는 중입니다.'
-        : '저장된 API 키로 모델 목록을 불러오는 중입니다.',
+        ? this.msg('agent.notice.loadingModelsWithKey')
+        : this.msg('agent.notice.loadingModelsWithSavedKey'),
     );
     vscode.postMessage({ command: 'agent.listModels', agent, key: key || undefined });
   }
 
   private toFriendlyError(message: string): string {
     if (message.includes('No API key')) {
-      return 'API 키가 없어 모델을 불러올 수 없습니다. API 키를 입력하거나 저장된 키를 확인하세요.';
+      return this.msg('agent.error.noApiKey');
     }
     if (message.includes('HTTP 401') || message.includes('permission')) {
-      return 'API 키 인증에 실패했습니다. 올바른 키인지 확인하세요.';
+      return this.msg('agent.error.auth');
     }
-    return '에이전트 설정을 처리하지 못했습니다. API 키와 모델 정보를 다시 확인하세요.';
+    return this.msg('agent.error.generic');
+  }
+
+  private msg(key: string, params?: Record<string, string | number>) {
+    return t(this.locale, key, params);
   }
 }

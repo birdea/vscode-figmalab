@@ -8,6 +8,7 @@ import { FigmaCommandHandler } from './handlers/FigmaCommandHandler';
 import { AgentCommandHandler } from './handlers/AgentCommandHandler';
 import { PromptCommandHandler } from './handlers/PromptCommandHandler';
 import { StateManager } from '../state/StateManager';
+import { UiLocale } from '../i18n';
 
 export class WebviewMessageHandler {
   private mcpClient: McpClient;
@@ -23,6 +24,7 @@ export class WebviewMessageHandler {
     mcpEndpoint: string,
     private stateManager: StateManager,
     extensionVersion: string,
+    locale: UiLocale,
   ) {
     this.mcpClient = new McpClient(mcpEndpoint, {
       name: 'vscode-figmalab',
@@ -36,6 +38,7 @@ export class WebviewMessageHandler {
       this.screenshotService,
       this.editorIntegration,
       stateManager,
+      locale,
     );
     this.agentHandler = new AgentCommandHandler(webview, context, stateManager);
     this.promptHandler = new PromptCommandHandler(
@@ -43,6 +46,7 @@ export class WebviewMessageHandler {
       context,
       this.editorIntegration,
       stateManager,
+      locale,
     );
   }
 

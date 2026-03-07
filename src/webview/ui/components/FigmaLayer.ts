@@ -1,41 +1,43 @@
 import { vscode } from '../vscodeApi';
+import { getDocumentLocale, t, UiLocale } from '../../../i18n';
 
 export class FigmaLayer {
   private connected = false;
   private connecting = false;
+  private readonly locale: UiLocale = getDocumentLocale();
 
   render(): string {
     return `
 <section class="panel panel-compact">
   <div class="section-heading">
-    <div>
-      <div class="panel-title">Figma 연결</div>
+      <div>
+      <div class="panel-title">${this.msg('figma.connectionTitle')}</div>
       <div class="status-row section-status" id="figma-status-row">
         <span class="status-dot" id="figma-status-dot"></span>
-        <span id="figma-status-text" class="status-text">연결되지 않음</span>
+        <span id="figma-status-text" class="status-text">${this.msg('figma.statusDisconnected')}</span>
       </div>
     </div>
-    <button class="text-btn" id="btn-open-settings">설정</button>
+    <button class="text-btn" id="btn-open-settings">${this.msg('figma.settings')}</button>
   </div>
   <div class="btn-row">
-    <button class="primary" id="btn-connect"><i class="codicon codicon-plug"></i>연결하기</button>
+    <button class="primary" id="btn-connect"><i class="codicon codicon-plug"></i>${this.msg('figma.connect')}</button>
   </div>
   <div class="notice info hidden" id="figma-guide"></div>
 </section>
 <section class="panel panel-compact">
   <div class="section-heading">
-    <div class="panel-title">디자인 데이터</div>
+    <div class="panel-title">${this.msg('figma.designDataTitle')}</div>
   </div>
   <div class="field-group">
-    <textarea id="mcp-data" placeholder="https://figma.com/file/... 또는 JSON"></textarea>
+    <textarea id="mcp-data" placeholder="${this.msg('figma.mcpPlaceholder')}"></textarea>
   </div>
   <div class="btn-row">
-    <button class="primary" id="btn-fetch"><i class="codicon codicon-cloud-download"></i>데이터 가져오기</button>
-    <button class="secondary" id="btn-screenshot"><i class="codicon codicon-device-camera"></i>스크린샷</button>
+    <button class="primary" id="btn-fetch"><i class="codicon codicon-cloud-download"></i>${this.msg('figma.fetchData')}</button>
+    <button class="secondary" id="btn-screenshot"><i class="codicon codicon-device-camera"></i>${this.msg('figma.screenshot')}</button>
   </div>
   <div class="notice hidden" id="figma-notice"></div>
   <pre class="code-output" id="figma-data-preview"></pre>
-  <img class="screenshot-preview" id="figma-screenshot-preview" alt="Figma screenshot preview" />
+  <img class="screenshot-preview" id="figma-screenshot-preview" alt="${this.msg('figma.screenshotAlt')}" />
 </section>
 `;
   }
@@ -48,10 +50,10 @@ export class FigmaLayer {
     document.getElementById('btn-fetch')?.addEventListener('click', () => {
       const mcpData = dataInput?.value.trim() ?? '';
       if (!mcpData) {
-        this.setNotice('warn', 'Figma URL 또는 JSON 데이터를 먼저 입력하세요.');
+        this.setNotice('warn', this.msg('figma.warn.enterData'));
         return;
       }
-      this.setNotice('info', 'MCP 데이터를 불러오는 중입니다...');
+      this.setNotice('info', this.msg('figma.info.loadingData'));
       vscode.postMessage({ command: 'figma.fetchData', mcpData });
     });
 
@@ -66,14 +68,14 @@ export class FigmaLayer {
     document.getElementById('btn-screenshot')?.addEventListener('click', () => {
       const mcpData = dataInput?.value.trim() ?? '';
       if (!mcpData) {
-        this.setNotice('warn', '스크린샷을 위해 MCP 데이터를 먼저 입력하세요.');
+        this.setNotice('warn', this.msg('figma.warn.enterDataForScreenshot'));
         return;
       }
       if (!this.connected) {
-        this.setNotice('warn', '스크린샷은 MCP 연결 후에만 가능합니다.');
+        this.setNotice('warn', this.msg('figma.warn.connectBeforeScreenshot'));
         return;
       }
-      this.setNotice('info', '스크린샷을 생성하는 중입니다...');
+      this.setNotice('info', this.msg('figma.info.generatingScreenshot'));
       vscode.postMessage({ command: 'figma.screenshot', mcpData });
     });
 
@@ -83,7 +85,7 @@ export class FigmaLayer {
   requestConnect() {
     this.connecting = true;
     this.syncConnectButton();
-    this.setGuideMessage('연결을 시도하는 중입니다.');
+    this.setGuideMessage(this.msg('figma.info.connecting'));
     vscode.postMessage({ command: 'figma.connect' });
   }
 
@@ -97,13 +99,15 @@ export class FigmaLayer {
     if (text) {
       text.classList.toggle('status-text-error', !connected);
       if (connected) {
-        text.textContent = '연결됨';
-        this.setGuideMessage(methods.length > 0 ? `사용 가능 도구 ${methods.length}개` : '');
+        text.textContent = this.msg('figma.statusConnected');
+        this.setGuideMessage(
+          methods.length > 0 ? this.msg('figma.guide.availableTools', { count: methods.length }) : '',
+        );
       } else {
-        text.textContent = '연결되지 않음';
+        text.textContent = this.msg('figma.statusDisconnected');
         if (error) {
           this.setNotice('error', error);
-          this.setGuideMessage('서버 실행 여부와 엔드포인트를 확인하세요.');
+          this.setGuideMessage(this.msg('figma.guide.checkServer'));
         } else {
           this.clearNotice();
           this.setGuideMessage('');
@@ -123,7 +127,7 @@ export class FigmaLayer {
     const text = this.stringifyForPreview(data);
     preview.textContent = text;
     preview.classList.add('visible');
-    this.setNotice('success', '데이터를 불러왔습니다.');
+    this.setNotice('success', this.msg('figma.success.dataLoaded'));
   }
 
   onScreenshotResult(base64: string) {
@@ -132,7 +136,7 @@ export class FigmaLayer {
 
     img.src = `data:image/png;base64,${base64}`;
     img.classList.add('visible');
-    this.setNotice('success', '스크린샷을 가져왔습니다.');
+    this.setNotice('success', this.msg('figma.success.screenshotLoaded'));
   }
 
   onError(message: string) {
@@ -148,14 +152,14 @@ export class FigmaLayer {
 
     if (fetchBtn) fetchBtn.disabled = !hasData;
     if (fetchBtn) {
-      fetchBtn.title = hasData ? '' : 'Figma URL 또는 JSON을 입력하면 사용할 수 있습니다.';
+      fetchBtn.title = hasData ? '' : this.msg('figma.title.fetchDisabled');
     }
     if (screenshotBtn) {
       screenshotBtn.disabled = !hasData || !this.connected;
       screenshotBtn.title = !hasData
-        ? 'Figma URL 또는 JSON을 먼저 입력하세요.'
+        ? this.msg('figma.title.screenshotNeedsData')
         : !this.connected
-          ? 'MCP 서버에 연결한 뒤 사용할 수 있습니다.'
+          ? this.msg('figma.title.screenshotNeedsConnection')
           : '';
     }
   }
@@ -188,13 +192,15 @@ export class FigmaLayer {
     if (!connectBtn) return;
     connectBtn.disabled = this.connecting;
     connectBtn.innerHTML = this.connecting
-      ? '<i class="codicon codicon-loading codicon-modifier-spin"></i>연결 중...'
-      : '<i class="codicon codicon-plug"></i>연결하기';
+      ? `<i class="codicon codicon-loading codicon-modifier-spin"></i>${this.msg('figma.connecting')}`
+      : `<i class="codicon codicon-plug"></i>${this.msg('figma.connect')}`;
   }
 
   private renderToolList(methods: string[], connected: boolean) {
     const hasExtraTools = connected && methods.length > 2;
-    this.setGuideMessage(hasExtraTools ? `도구 ${methods.length}개 사용 가능` : '');
+    this.setGuideMessage(
+      hasExtraTools ? this.msg('figma.guide.availableTools', { count: methods.length }) : '',
+    );
   }
 
   private stringifyForPreview(data: unknown): string {
@@ -202,7 +208,11 @@ export class FigmaLayer {
     try {
       return JSON.stringify(data, null, 2);
     } catch {
-      return '[Unable to render data preview]';
+      return this.msg('figma.preview.unable');
     }
+  }
+
+  private msg(key: string, params?: Record<string, string | number>) {
+    return t(this.locale, key, params);
   }
 }

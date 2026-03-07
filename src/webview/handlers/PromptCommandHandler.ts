@@ -6,6 +6,7 @@ import { PromptBuilder } from '../../prompt/PromptBuilder';
 import { PromptPayload, HostToWebviewMessage } from '../../types';
 import { SECRET_KEYS } from '../../constants';
 import { StateManager } from '../../state/StateManager';
+import { UiLocale, USER_CANCELLED_CODE_GENERATION, t } from '../../i18n';
 
 export class PromptCommandHandler {
   private isGenerating = false;
@@ -17,6 +18,7 @@ export class PromptCommandHandler {
     private context: vscode.ExtensionContext,
     private editorIntegration: EditorIntegration,
     private stateManager: StateManager,
+    private locale: UiLocale,
   ) {}
 
   private post(msg: HostToWebviewMessage) {
@@ -27,7 +29,7 @@ export class PromptCommandHandler {
     if (this.isGenerating) {
       this.post({
         event: 'prompt.error',
-        message: '이미 코드 생성이 진행 중입니다.',
+        message: t(this.locale, 'host.prompt.alreadyGenerating'),
         code: 'failed',
       });
       return;
@@ -65,7 +67,7 @@ export class PromptCommandHandler {
       );
       for await (const chunk of gen) {
         if (this.abortController.signal.aborted) {
-          throw new Error('사용자가 코드 생성을 취소했습니다.');
+          throw new Error(USER_CANCELLED_CODE_GENERATION);
         }
         fullCode += chunk;
         progress = Math.min(95, progress + 5);
@@ -78,10 +80,10 @@ export class PromptCommandHandler {
     } catch (e) {
       const err = e as Error;
       const isCancelled =
-        this.abortController?.signal.aborted || err.message === '사용자가 코드 생성을 취소했습니다.';
+        this.abortController?.signal.aborted || err.message === USER_CANCELLED_CODE_GENERATION;
       this.post({
         event: 'prompt.error',
-        message: isCancelled ? '코드 생성을 취소했습니다.' : err.message,
+        message: isCancelled ? t(this.locale, 'host.prompt.cancelled') : err.message,
         code: isCancelled ? 'cancelled' : 'failed',
       });
     } finally {

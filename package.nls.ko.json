@@ -1,0 +1,17 @@
+{
+  "viewsContainer.title": "Figma MCP Helper",
+  "view.setup.name": "설정",
+  "view.prompt.name": "프롬프트",
+  "view.log.name": "로그",
+  "command.connect.title": "MCP 연결",
+  "command.generate.title": "Figma MCP Helper: 코드 생성",
+  "command.promptGenerate.title": "코드 생성",
+  "command.logClear.title": "로그 비우기",
+  "command.logCopy.title": "로그 복사",
+  "command.logSave.title": "로그 저장",
+  "configuration.title": "Figma MCP Helper",
+  "configuration.defaultAgent.description": "기본으로 사용할 AI 에이전트",
+  "configuration.mcpEndpoint.description": "Figma MCP 서버 엔드포인트",
+  "configuration.openFetchedDataInEditor.description": "데이터를 성공적으로 가져온 뒤 MCP JSON을 VS Code 에디터에 자동으로 엽니다",
+  "configuration.claudeModels.description": "Agent 패널에서 사용하는 Claude 모델 카탈로그"
+}

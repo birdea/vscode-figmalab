@@ -7,6 +7,7 @@ import { Logger } from '../../logger/Logger';
 import { HostToWebviewMessage } from '../../types';
 import { CONFIG_KEYS, DEFAULT_MCP_ENDPOINT } from '../../constants';
 import { StateManager } from '../../state/StateManager';
+import { UiLocale, t } from '../../i18n';
 
 export class FigmaCommandHandler {
   constructor(
@@ -15,6 +16,7 @@ export class FigmaCommandHandler {
     private screenshotService: ScreenshotService,
     private editorIntegration: EditorIntegration,
     private stateManager: StateManager,
+    private locale: UiLocale,
   ) {}
 
   private post(msg: HostToWebviewMessage) {
@@ -39,9 +41,7 @@ export class FigmaCommandHandler {
         event: 'figma.status',
         connected,
         methods,
-        error: connected
-          ? undefined
-          : `MCP 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인하세요. (${endpoint})`,
+        error: connected ? undefined : t(this.locale, 'host.figma.connectRefused', { endpoint }),
       });
     } catch (e) {
       const errMessage = (e as Error).message;
@@ -109,7 +109,7 @@ export class FigmaCommandHandler {
       this.post({
         event: 'error',
         source: 'figma',
-        message: 'Figma URL 또는 JSON에서 fileId를 찾을 수 없습니다.',
+        message: t(this.locale, 'host.figma.fileIdMissing'),
       });
       return;
     }
@@ -117,32 +117,32 @@ export class FigmaCommandHandler {
       const base64 = await this.screenshotService.fetchScreenshot(parsed.fileId, parsed.nodeId);
       await this.screenshotService.openInEditor(base64, parsed.fileId);
       this.post({ event: 'figma.screenshotResult', base64 });
-    } catch (e) {
+    } catch {
       this.post({
         event: 'error',
         source: 'figma',
-        message: '스크린샷을 가져오지 못했습니다. MCP 연결과 입력한 Figma 데이터를 다시 확인하세요.',
+        message: t(this.locale, 'host.figma.screenshotFailed'),
       });
     }
   }
 
   private toFriendlyConnectionMessage(message: string, endpoint: string): string {
     if (message.includes('ECONNREFUSED')) {
-      return `MCP 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인하세요. (${endpoint})`;
+      return t(this.locale, 'host.figma.connectRefused', { endpoint });
     }
     if (message.toLowerCase().includes('timeout')) {
-      return `MCP 서버 응답이 지연되고 있습니다. 서버 상태와 엔드포인트를 확인하세요. (${endpoint})`;
+      return t(this.locale, 'host.figma.connectTimeout', { endpoint });
     }
-    return `MCP 연결 중 문제가 발생했습니다. 설정과 서버 상태를 확인하세요. (${endpoint})`;
+    return t(this.locale, 'host.figma.connectGeneric', { endpoint });
   }
 
   private toFriendlyFetchMessage(message: string): string {
     if (message.includes('ECONNREFUSED')) {
-      return 'MCP 서버에 연결할 수 없어 데이터를 가져오지 못했습니다. 서버 실행 상태를 확인하세요.';
+      return t(this.locale, 'host.figma.fetchRefused');
     }
     if (message.toLowerCase().includes('timeout')) {
-      return 'MCP 서버 응답 시간이 초과되었습니다. 잠시 후 다시 시도하세요.';
+      return t(this.locale, 'host.figma.fetchTimeout');
     }
-    return 'Figma 데이터를 가져오지 못했습니다. 입력한 URL/JSON과 MCP 서버 상태를 확인하세요.';
+    return t(this.locale, 'host.figma.fetchGeneric');
   }
 }

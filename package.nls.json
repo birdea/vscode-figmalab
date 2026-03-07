@@ -1,0 +1,17 @@
+{
+  "viewsContainer.title": "Figma MCP Helper",
+  "view.setup.name": "Setup",
+  "view.prompt.name": "Prompt",
+  "view.log.name": "Log",
+  "command.connect.title": "Connect MCP",
+  "command.generate.title": "Figma MCP Helper: Generate Code",
+  "command.promptGenerate.title": "Generate Code",
+  "command.logClear.title": "Clear Logs",
+  "command.logCopy.title": "Copy Logs",
+  "command.logSave.title": "Save Logs",
+  "configuration.title": "Figma MCP Helper",
+  "configuration.defaultAgent.description": "Default AI agent to use",
+  "configuration.mcpEndpoint.description": "Figma MCP server endpoint",
+  "configuration.openFetchedDataInEditor.description": "Open fetched MCP JSON in a VS Code editor automatically after a successful fetch",
+  "configuration.claudeModels.description": "Claude model catalog used in the Agent panel"
+}

@@ -1,38 +1,40 @@
 import { vscode } from '../vscodeApi';
 import { OutputFormat, PromptPayload } from '../../../types';
+import { getDocumentLocale, t, UiLocale } from '../../../i18n';
 
 export class PromptLayer {
   private generatedCode = '';
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private isGenerating = false;
   private requestId: string | null = null;
+  private readonly locale: UiLocale = getDocumentLocale();
 
   render(): string {
     return `
 <section class="panel panel-compact">
   <div class="section-heading">
-    <div>
-      <div class="panel-title">코드 생성</div>
-      <div class="section-status" id="prompt-progress-text">준비됨</div>
+      <div>
+      <div class="panel-title">${this.msg('prompt.title')}</div>
+      <div class="section-status" id="prompt-progress-text">${this.msg('prompt.status.ready')}</div>
     </div>
   </div>
   <div class="field-group">
-    <textarea id="user-prompt" placeholder="추가 지시사항 입력..."></textarea>
+    <textarea id="user-prompt" placeholder="${this.msg('prompt.placeholder')}"></textarea>
   </div>
   <details class="minimal-options">
-    <summary>옵션</summary>
+    <summary>${this.msg('prompt.options')}</summary>
     <div class="field-group stack-gap-sm">
       <div class="checkbox-row">
         <input type="checkbox" id="use-user-prompt" checked />
-        <label for="use-user-prompt" class="label-inline">사용자 프롬프트 포함</label>
+        <label for="use-user-prompt" class="label-inline">${this.msg('prompt.includeUserPrompt')}</label>
       </div>
       <div class="checkbox-row">
         <input type="checkbox" id="use-mcp-data" checked />
-        <label for="use-mcp-data" class="label-inline">MCP 데이터 포함</label>
+        <label for="use-mcp-data" class="label-inline">${this.msg('prompt.includeMcpData')}</label>
       </div>
     </div>
     <div class="field-group stack-gap-sm">
-      <label for="output-format">출력 포맷</label>
+      <label for="output-format">${this.msg('prompt.outputFormat')}</label>
       <select id="output-format">
         <option value="tsx">TSX (React)</option>
         <option value="html">HTML</option>
@@ -44,19 +46,19 @@ export class PromptLayer {
   </details>
   <div class="progress-row stack-gap-sm">
     <span class="token-estimate" id="token-estimate">0.0KB / ~0 tok</span>
-    <progress class="progress-track" id="prompt-progress" max="100" value="0" aria-label="Prompt generation progress"></progress>
+    <progress class="progress-track" id="prompt-progress" max="100" value="0" aria-label="${this.msg('prompt.progress.aria')}"></progress>
   </div>
   <div class="btn-row">
-    <button class="primary" id="btn-generate"><i class="codicon codicon-play"></i>생성</button>
-    <button class="secondary hidden" id="btn-cancel-generate"><i class="codicon codicon-debug-stop"></i>취소</button>
+    <button class="primary" id="btn-generate"><i class="codicon codicon-play"></i>${this.msg('prompt.generate')}</button>
+    <button class="secondary hidden" id="btn-cancel-generate"><i class="codicon codicon-debug-stop"></i>${this.msg('prompt.cancel')}</button>
   </div>
   <div class="notice hidden" id="prompt-notice"></div>
 </section>
 <section class="panel panel-compact">
-  <div class="panel-title">생성 결과</div>
+  <div class="panel-title">${this.msg('prompt.resultTitle')}</div>
   <div class="btn-row hidden stack-gap-sm" id="code-actions">
-    <button class="primary" id="btn-open-editor"><i class="codicon codicon-go-to-file"></i>에디터에서 열기</button>
-    <button class="secondary" id="btn-save-file"><i class="codicon codicon-save"></i>파일로 저장</button>
+    <button class="primary" id="btn-open-editor"><i class="codicon codicon-go-to-file"></i>${this.msg('prompt.openEditor')}</button>
+    <button class="secondary" id="btn-save-file"><i class="codicon codicon-save"></i>${this.msg('prompt.saveFile')}</button>
   </div>
   <pre class="code-output" id="code-output"></pre>
 </section>
@@ -115,7 +117,7 @@ export class PromptLayer {
 
   onGenerateRequested() {
     if (this.isGenerating) {
-      this.setNotice('warn', '이미 생성 중입니다.');
+      this.setNotice('warn', this.msg('prompt.notice.alreadyGenerating'));
       return;
     }
 
@@ -145,7 +147,7 @@ export class PromptLayer {
     }
     this.generatedCode = '';
     this.requestId = payload.requestId ?? null;
-    this.setNotice('info', '코드 생성을 시작합니다...');
+    this.setNotice('info', this.msg('prompt.notice.starting'));
     this.setGeneratingState(true);
     this.onGenerating(0);
 
@@ -154,11 +156,11 @@ export class PromptLayer {
 
   onCancelRequested() {
     if (!this.isGenerating) {
-      this.setNotice('warn', '진행 중인 코드 생성이 없습니다.');
+      this.setNotice('warn', this.msg('prompt.notice.noneInProgress'));
       return;
     }
     vscode.postMessage({ command: 'prompt.cancel', requestId: this.requestId ?? undefined });
-    this.setNotice('info', '코드 생성을 취소하는 중입니다...');
+    this.setNotice('info', this.msg('prompt.notice.cancelling'));
   }
 
   private updateEstimate() {
@@ -172,7 +174,7 @@ export class PromptLayer {
 
       if (!useUserPromptEl || !useMcpDataEl || !userPromptEl || !outputFormatEl || !estimateEl) return;
 
-      estimateEl.textContent = '계산 중...';
+      estimateEl.textContent = this.msg('prompt.notice.calculating');
 
       const payload: PromptPayload = {
         userPrompt: useUserPromptEl.checked ? userPromptEl.value.trim() : undefined,
@@ -201,7 +203,10 @@ export class PromptLayer {
       progressBar.value = safeProgress;
     }
     if (progressText) {
-      progressText.textContent = safeProgress >= 100 ? '완료됨' : `생성 중... ${safeProgress}%`;
+      progressText.textContent =
+        safeProgress >= 100
+          ? this.msg('prompt.status.completed')
+          : this.msg('prompt.status.generating', { progress: safeProgress });
     }
   }
 
@@ -225,7 +230,7 @@ export class PromptLayer {
     if (actions) actions.classList.remove('hidden');
     this.onGenerating(100);
     this.setGeneratingState(false);
-    this.setNotice('success', '코드 생성이 완료되었습니다.');
+    this.setNotice('success', this.msg('prompt.notice.completed'));
   }
 
   onError(message: string, code?: 'cancelled' | 'failed') {
@@ -281,12 +286,16 @@ export class PromptLayer {
 
   private toFriendlyError(message: string): string {
     if (message.includes('No API key')) {
-      return '코드를 생성하려면 먼저 Agent 패널에서 API 키를 저장하세요.';
+      return this.msg('prompt.error.noApiKey');
     }
     if (message.includes('Generation already in progress')) {
-      return '이미 코드 생성이 진행 중입니다.';
+      return this.msg('prompt.error.alreadyInProgress');
     }
     return message;
+  }
+
+  private msg(key: string, params?: Record<string, string | number>) {
+    return t(this.locale, key, params);
   }
 
   private toVsCodeLanguage(format: OutputFormat): string {

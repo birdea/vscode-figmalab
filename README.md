@@ -17,6 +17,7 @@ What works today:
 - Generate code with Gemini or Claude
 - Save generated output to a new file or insert it at the current cursor
 - View activity logs in a dedicated sidebar panel
+- Follow the VS Code display language for Korean and English UI text
 
 Current gaps:
 
@@ -25,12 +26,18 @@ Current gaps:
 
 ## Main Workflow
 
-Figma MCP Helper is organized as four sidebar views:
+Figma MCP Helper is organized as three sidebar views:
 
-- `Agent`: choose an AI provider, save an API key, and load available models
-- `Figma`: connect to MCP, paste Figma URL/JSON, fetch design data or screenshots
-- `Prompt`: choose output format, add instructions, generate code, insert or save the result
+- `Setup`: use the `Figma` section to connect to MCP and fetch design data or screenshots, then use the `Agent` section to choose a provider, save an API key, and load models
+- `Prompt`: choose output format, add instructions, generate code, then open or save the result
 - `Log`: inspect extension activity and troubleshooting details
+
+## Language Support
+
+- The webview UI follows the VS Code display language automatically.
+- Korean (`ko`) is rendered in Korean.
+- Other languages currently fall back to English.
+- View names, command titles, and configuration descriptions are localized through VS Code `package.nls` files.
 
 ## Supported Output Formats
 
@@ -83,7 +90,7 @@ Use the extension:
 5. Fetch data or a screenshot
 6. Open the `Prompt` panel and choose an output format
 7. Generate code
-8. Insert it into the active editor or save it as a file
+8. Open it in the editor or save it as a file
 
 ## Configuration
 
@@ -92,6 +99,9 @@ Available extension settings:
 - `figma-mcp-helper.mcpEndpoint`
   - Default: `http://localhost:3845`
   - Figma MCP server endpoint
+- `figma-mcp-helper.openFetchedDataInEditor`
+  - Default: `false`
+  - Open fetched MCP JSON in a VS Code editor automatically after a successful fetch
 - `figma-mcp-helper.defaultAgent`
   - Declared in the extension manifest. Runtime selection is managed via the Agent panel and stored in `globalState`; this setting is not read at runtime.
 - `figma-mcp-helper.claudeModels`
@@ -187,4 +197,5 @@ test/
 
 - This project is currently optimized for local experimentation and extension development.
 - If you are evaluating the codebase, start with `src/extension.ts` and `src/webview/WebviewMessageHandler.ts`.
+- Runtime UI strings live in `src/i18n.ts`, and extension manifest localization lives in `package.nls.json` and `package.nls.ko.json`.
 - Development plans and architectural notes are in the `docs/` directory.

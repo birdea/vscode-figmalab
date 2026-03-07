@@ -4,6 +4,7 @@ import { AgentType, ModelInfo, PromptPayload } from '../types';
 import { BaseAgent } from './BaseAgent';
 import { Logger } from '../logger/Logger';
 import * as https from 'https';
+import { USER_CANCELLED_CODE_GENERATION } from '../i18n';
 
 export class GeminiAgent extends BaseAgent {
   readonly type: AgentType = 'gemini';
@@ -102,7 +103,7 @@ export class GeminiAgent extends BaseAgent {
       const result = await model.generateContentStream(prompt);
       for await (const chunk of result.stream) {
         if (signal?.aborted) {
-          throw new Error('사용자가 코드 생성을 취소했습니다.');
+          throw new Error(USER_CANCELLED_CODE_GENERATION);
         }
         const text = chunk.text();
         if (text) {
