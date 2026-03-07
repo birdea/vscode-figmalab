@@ -1,27 +1,27 @@
-export const EXTENSION_ID = 'figmalab';
+export const EXTENSION_ID = 'figma-mcp-helper';
 
 export const VIEW_IDS = {
-  FIGMA: 'figmalab.figma',
-  AGENT: 'figmalab.agent',
-  PROMPT: 'figmalab.prompt',
-  LOG: 'figmalab.log',
+  FIGMA: 'figma-mcp-helper.figma',
+  AGENT: 'figma-mcp-helper.agent',
+  PROMPT: 'figma-mcp-helper.prompt',
+  LOG: 'figma-mcp-helper.log',
 } as const;
 
 export const COMMANDS = {
-  CONNECT: 'figmalab.connect',
-  GENERATE: 'figmalab.generate',
+  CONNECT: 'figma-mcp-helper.connect',
+  GENERATE: 'figma-mcp-helper.generate',
 } as const;
 
 export const CONFIG_KEYS = {
-  DEFAULT_AGENT: 'figmalab.defaultAgent',
-  DEFAULT_MODEL: 'figmalab.defaultModel',
-  MCP_ENDPOINT: 'figmalab.mcpEndpoint',
-  CLAUDE_MODELS: 'figmalab.claudeModels',
+  DEFAULT_AGENT: 'figma-mcp-helper.defaultAgent',
+  DEFAULT_MODEL: 'figma-mcp-helper.defaultModel',
+  MCP_ENDPOINT: 'figma-mcp-helper.mcpEndpoint',
+  CLAUDE_MODELS: 'figma-mcp-helper.claudeModels',
 } as const;
 
 export const SECRET_KEYS = {
-  GEMINI_API_KEY: 'figmalab.geminiApiKey',
-  CLAUDE_API_KEY: 'figmalab.claudeApiKey',
+  GEMINI_API_KEY: 'figma-mcp-helper.geminiApiKey',
+  CLAUDE_API_KEY: 'figma-mcp-helper.claudeApiKey',
 } as const;
 
 export const DEFAULT_MCP_ENDPOINT = 'http://localhost:3845';

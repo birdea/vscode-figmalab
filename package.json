@@ -1,6 +1,6 @@
 {
-  "name": "figmalab",
-  "displayName": "FigmaLab",
+  "name": "figma-mcp-helper",
+  "displayName": "Figma MCP Helper",
   "description": "Figma MCP + AI Agent code generation for VSCode",
   "version": "0.1.2",
   "publisher": "bd-creative",
@@ -16,7 +16,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onView:figmalab.figma"
+    "onView:figma-mcp-helper.figma"
   ],
   "icon": "resources/icon.png",
   "main": "./dist/extension.js",
@@ -24,73 +24,73 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "figmalab",
-          "title": "FigmaLab",
+          "id": "figma-mcp-helper",
+          "title": "Figma MCP Helper",
           "icon": "resources/icon-activity.png"
         }
       ]
     },
     "views": {
-      "figmalab": [
+      "figma-mcp-helper": [
         {
           "type": "webview",
-          "id": "figmalab.agent",
+          "id": "figma-mcp-helper.agent",
           "name": "Agent"
         },
         {
           "type": "webview",
-          "id": "figmalab.figma",
+          "id": "figma-mcp-helper.figma",
           "name": "Figma"
         },
         {
           "type": "webview",
-          "id": "figmalab.prompt",
+          "id": "figma-mcp-helper.prompt",
           "name": "Prompt"
         },
         {
           "type": "webview",
-          "id": "figmalab.log",
+          "id": "figma-mcp-helper.log",
           "name": "Log"
         }
       ]
     },
     "commands": [
       {
-        "command": "figmalab.connect",
+        "command": "figma-mcp-helper.connect",
         "title": "Connect MCP",
         "icon": "$(plug)"
       },
       {
-        "command": "figmalab.generate",
-        "title": "FigmaLab: Generate Code"
+        "command": "figma-mcp-helper.generate",
+        "title": "Figma MCP Helper: Generate Code"
       },
       {
-        "command": "figmalab.agent.save",
+        "command": "figma-mcp-helper.agent.save",
         "title": "Save Agent Settings",
         "icon": "$(save)"
       },
       {
-        "command": "figmalab.agent.clear",
+        "command": "figma-mcp-helper.agent.clear",
         "title": "Clear Agent Settings",
         "icon": "$(trash)"
       },
       {
-        "command": "figmalab.prompt.generate",
+        "command": "figma-mcp-helper.prompt.generate",
         "title": "Generate",
         "icon": "$(play)"
       },
       {
-        "command": "figmalab.log.clear",
+        "command": "figma-mcp-helper.log.clear",
         "title": "Clear Logs",
         "icon": "$(clear-all)"
       },
       {
-        "command": "figmalab.log.copy",
+        "command": "figma-mcp-helper.log.copy",
         "title": "Copy Logs",
         "icon": "$(copy)"
       },
       {
-        "command": "figmalab.log.save",
+        "command": "figma-mcp-helper.log.save",
         "title": "Save Logs",
         "icon": "$(save)"
       }
@@ -98,46 +98,46 @@
     "menus": {
       "view/title": [
         {
-          "command": "figmalab.connect",
-          "when": "view == figmalab.figma",
+          "command": "figma-mcp-helper.connect",
+          "when": "view == figma-mcp-helper.figma",
           "group": "navigation@1"
         },
         {
-          "command": "figmalab.agent.save",
-          "when": "view == figmalab.agent",
+          "command": "figma-mcp-helper.agent.save",
+          "when": "view == figma-mcp-helper.agent",
           "group": "navigation@1"
         },
         {
-          "command": "figmalab.agent.clear",
-          "when": "view == figmalab.agent",
+          "command": "figma-mcp-helper.agent.clear",
+          "when": "view == figma-mcp-helper.agent",
           "group": "navigation@2"
         },
         {
-          "command": "figmalab.prompt.generate",
-          "when": "view == figmalab.prompt",
+          "command": "figma-mcp-helper.prompt.generate",
+          "when": "view == figma-mcp-helper.prompt",
           "group": "navigation@1"
         },
         {
-          "command": "figmalab.log.clear",
-          "when": "view == figmalab.log",
+          "command": "figma-mcp-helper.log.clear",
+          "when": "view == figma-mcp-helper.log",
           "group": "navigation@1"
         },
         {
-          "command": "figmalab.log.copy",
-          "when": "view == figmalab.log",
+          "command": "figma-mcp-helper.log.copy",
+          "when": "view == figma-mcp-helper.log",
           "group": "navigation@2"
         },
         {
-          "command": "figmalab.log.save",
-          "when": "view == figmalab.log",
+          "command": "figma-mcp-helper.log.save",
+          "when": "view == figma-mcp-helper.log",
           "group": "navigation@3"
         }
       ]
     },
     "configuration": {
-      "title": "FigmaLab",
+      "title": "Figma MCP Helper",
       "properties": {
-        "figmalab.defaultAgent": {
+        "figma-mcp-helper.defaultAgent": {
           "type": "string",
           "enum": [
             "gemini",
@@ -146,12 +146,12 @@
           "default": "gemini",
           "description": "Default AI agent to use"
         },
-        "figmalab.mcpEndpoint": {
+        "figma-mcp-helper.mcpEndpoint": {
           "type": "string",
           "default": "http://localhost:3845",
           "description": "Figma MCP server endpoint"
         },
-        "figmalab.claudeModels": {
+        "figma-mcp-helper.claudeModels": {
           "type": "array",
           "default": [
             {

@@ -6,7 +6,7 @@ import { COMMANDS, VIEW_IDS, SECRET_KEYS } from './constants';
 import { AgentType } from './types';
 
 export async function activate(context: vscode.ExtensionContext) {
-  const outputChannel = vscode.window.createOutputChannel('FigmaLab');
+  const outputChannel = vscode.window.createOutputChannel('Figma MCP Helper');
   Logger.initialize(outputChannel);
 
   // Load saved API keys at activation
@@ -52,30 +52,30 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(COMMANDS.CONNECT, async () => {
-      await vscode.commands.executeCommand('workbench.view.extension.figmalab');
+      await vscode.commands.executeCommand('workbench.view.extension.figma-mcp-helper');
       figmaProvider.postMessage({ event: 'figma.connectRequested' });
     }),
     vscode.commands.registerCommand(COMMANDS.GENERATE, () => {
-      vscode.commands.executeCommand('workbench.view.extension.figmalab');
+      vscode.commands.executeCommand('workbench.view.extension.figma-mcp-helper');
     }),
-    vscode.commands.registerCommand('figmalab.agent.save', () => {
+    vscode.commands.registerCommand('figma-mcp-helper.agent.save', () => {
       agentProvider.postMessage({ event: 'agent.saveRequested' });
     }),
-    vscode.commands.registerCommand('figmalab.agent.clear', () => {
+    vscode.commands.registerCommand('figma-mcp-helper.agent.clear', () => {
       agentProvider.postMessage({ event: 'agent.clearRequested' });
     }),
-    vscode.commands.registerCommand('figmalab.prompt.generate', () => {
+    vscode.commands.registerCommand('figma-mcp-helper.prompt.generate', () => {
       promptProvider.postMessage({ event: 'prompt.generateRequested' });
     }),
-    vscode.commands.registerCommand('figmalab.log.clear', () => {
+    vscode.commands.registerCommand('figma-mcp-helper.log.clear', () => {
       Logger.clear();
       logProvider.postMessage({ event: 'log.clear' });
     }),
-    vscode.commands.registerCommand('figmalab.log.copy', async () => {
+    vscode.commands.registerCommand('figma-mcp-helper.log.copy', async () => {
       await vscode.env.clipboard.writeText(Logger.toText());
       vscode.window.showInformationMessage('Log copied to clipboard');
     }),
-    vscode.commands.registerCommand('figmalab.log.save', async () => {
+    vscode.commands.registerCommand('figma-mcp-helper.log.save', async () => {
       const uri = await vscode.window.showSaveDialog({
         filters: { JSON: ['json'], Text: ['txt'] },
         saveLabel: 'Save Log',
@@ -89,9 +89,9 @@ export async function activate(context: vscode.ExtensionContext) {
     outputChannel,
   );
 
-  Logger.info('system', `FigmaLab v${context.extension.packageJSON.version} activated`);
+  Logger.info('system', `Figma MCP Helper v${context.extension.packageJSON.version} activated`);
 }
 
 export function deactivate() {
-  Logger.info('system', 'FigmaLab deactivated');
+  Logger.info('system', 'Figma MCP Helper deactivated');
 }

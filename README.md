@@ -1,6 +1,6 @@
-# FigmaLab
+# Figma MCP Helper
 
-FigmaLab is a VS Code extension prototype for turning Figma MCP context into working code inside the editor.
+Figma MCP Helper is a VS Code extension prototype for turning Figma MCP context into working code inside the editor.
 
 It connects to a Figma MCP server, pulls design data or screenshots, sends that context to an AI model, and lets you insert or save the generated result without leaving VS Code.
 
@@ -21,11 +21,11 @@ What works today:
 Current gaps:
 
 - Codex is not implemented
-- `figmalab.defaultAgent` setting is declared in the extension manifest but runtime agent selection uses `globalState` (saved via the Agent panel), not the VS Code setting
+- `figma-mcp-helper.defaultAgent` setting is declared in the extension manifest but runtime agent selection uses `globalState` (saved via the Agent panel), not the VS Code setting
 
 ## Main Workflow
 
-FigmaLab is organized as four sidebar views:
+Figma MCP Helper is organized as four sidebar views:
 
 - `Agent`: choose an AI provider, save an API key, and load available models
 - `Figma`: connect to MCP, paste Figma URL/JSON, fetch design data or screenshots
@@ -72,7 +72,7 @@ Launch it in VS Code:
 
 1. Open this repository in VS Code
 2. Run the `Run Extension` launch configuration
-3. In the Extension Development Host, open the `FigmaLab` activity bar view
+3. In the Extension Development Host, open the `Figma MCP Helper` activity bar view
 
 Use the extension:
 
@@ -89,12 +89,12 @@ Use the extension:
 
 Available extension settings:
 
-- `figmalab.mcpEndpoint`
+- `figma-mcp-helper.mcpEndpoint`
   - Default: `http://localhost:3845`
   - Figma MCP server endpoint
-- `figmalab.defaultAgent`
+- `figma-mcp-helper.defaultAgent`
   - Declared in the extension manifest. Runtime selection is managed via the Agent panel and stored in `globalState`; this setting is not read at runtime.
-- `figmalab.claudeModels`
+- `figma-mcp-helper.claudeModels`
   - Array of Claude model definitions shown in the Agent panel. Editable to add or override available models.
 
 ## Local Development

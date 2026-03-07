@@ -64,7 +64,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       await this.handler.handle(msg);
     });
 
-    Logger.info('system', `FigmaLab [${this.section}] view initialized`);
+    Logger.info('system', `Figma MCP Helper [${this.section}] view initialized`);
   }
 
   private getHtml(webview: vscode.Webview): string {
@@ -93,7 +93,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Security-Policy" content="${csp}" />
-  <title>FigmaLab</title>
+  <title>Figma MCP Helper</title>
   <link rel="stylesheet" href="${codiconUri}" />
   <link rel="stylesheet" href="${styleUri}" />
 </head>
