@@ -9,49 +9,57 @@ export class PromptLayer {
 
   render(): string {
     return `
-<div class="panel">
-  <div class="panel-title">4단계. 코드 생성</div>
-  <div class="description-text">프롬프트와 출력 형식을 정한 뒤 생성하세요.</div>
-  <div class="field-group">
-    <div class="checkbox-row">
-      <input type="checkbox" id="use-user-prompt" checked />
-      <label for="use-user-prompt" class="label-inline">사용자 프롬프트 포함</label>
+<section class="panel panel-compact">
+  <div class="section-heading">
+    <div>
+      <div class="panel-title">코드 생성</div>
+      <div class="section-status" id="prompt-progress-text">준비됨</div>
     </div>
+  </div>
+  <div class="field-group">
     <textarea id="user-prompt" placeholder="추가 지시사항 입력..."></textarea>
   </div>
-  <div class="checkbox-row stack-gap-sm">
-    <input type="checkbox" id="use-mcp-data" checked />
-    <label for="use-mcp-data" class="label-inline">MCP 데이터 포함</label>
-  </div>
-  <div class="field-group stack-gap-sm">
-    <label for="output-format">출력 포맷</label>
-    <select id="output-format">
-      <option value="tsx">TSX (React)</option>
-      <option value="html">HTML</option>
-      <option value="scss">SCSS</option>
-      <option value="tailwind">Tailwind CSS</option>
-      <option value="kotlin">Kotlin (Compose)</option>
-    </select>
-  </div>
-  <div class="token-estimate stack-gap-xs" id="token-estimate">0.0KB / ~0 tok</div>
+  <details class="minimal-options">
+    <summary>옵션</summary>
+    <div class="field-group stack-gap-sm">
+      <div class="checkbox-row">
+        <input type="checkbox" id="use-user-prompt" checked />
+        <label for="use-user-prompt" class="label-inline">사용자 프롬프트 포함</label>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="use-mcp-data" checked />
+        <label for="use-mcp-data" class="label-inline">MCP 데이터 포함</label>
+      </div>
+    </div>
+    <div class="field-group stack-gap-sm">
+      <label for="output-format">출력 포맷</label>
+      <select id="output-format">
+        <option value="tsx">TSX (React)</option>
+        <option value="html">HTML</option>
+        <option value="scss">SCSS</option>
+        <option value="tailwind">Tailwind CSS</option>
+        <option value="kotlin">Kotlin (Compose)</option>
+      </select>
+    </div>
+  </details>
   <div class="progress-row stack-gap-sm">
-    <span class="progress-text" id="prompt-progress-text">준비됨</span>
+    <span class="token-estimate" id="token-estimate">0.0KB / ~0 tok</span>
     <progress class="progress-track" id="prompt-progress" max="100" value="0" aria-label="Prompt generation progress"></progress>
   </div>
-  <div class="btn-row stack-gap-sm">
+  <div class="btn-row">
     <button class="primary" id="btn-generate"><i class="codicon codicon-play"></i>생성</button>
     <button class="secondary hidden" id="btn-cancel-generate"><i class="codicon codicon-debug-stop"></i>취소</button>
   </div>
-  <div class="notice hidden stack-gap-sm" id="prompt-notice"></div>
-</div>
-<div class="panel">
+  <div class="notice hidden" id="prompt-notice"></div>
+</section>
+<section class="panel panel-compact">
   <div class="panel-title">생성 결과</div>
   <div class="btn-row hidden stack-gap-sm" id="code-actions">
     <button class="primary" id="btn-open-editor"><i class="codicon codicon-go-to-file"></i>에디터에서 열기</button>
     <button class="secondary" id="btn-save-file"><i class="codicon codicon-save"></i>파일로 저장</button>
   </div>
   <pre class="code-output" id="code-output"></pre>
-</div>
+</section>
 `;
   }
 

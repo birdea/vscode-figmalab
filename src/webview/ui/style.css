@@ -5,8 +5,9 @@
 }
 
 :root {
-  --figmalab-radius: 2px;
-  --figmalab-gap: 8px;
+  --figmalab-radius: 6px;
+  --figmalab-gap: 10px;
+  --figmalab-gap-sm: 6px;
 }
 
 body {
@@ -16,14 +17,24 @@ body {
   font-size: var(--vscode-font-size);
   line-height: 1.5;
   overflow-x: hidden;
-  padding: 8px 12px;
+  padding: 10px 12px 16px;
 }
 
 .panel {
-  border: 1px solid var(--vscode-panel-border);
+  border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 45%, transparent);
   border-radius: var(--figmalab-radius);
-  background: var(--vscode-editorWidget-background, transparent);
-  padding: var(--figmalab-gap);
+  background: color-mix(
+    in srgb,
+    var(--vscode-editorWidget-background, var(--vscode-editor-background)) 55%,
+    transparent
+  );
+  padding: 10px;
+}
+
+.panel-compact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--figmalab-gap-sm);
 }
 
 .panel + .panel {
@@ -39,59 +50,22 @@ body {
 }
 
 .panel-title {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--vscode-foreground);
-  margin-bottom: 6px;
+  letter-spacing: 0;
 }
 
-/* Field group (label + control) */
-.field-group {
+.section-heading {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-/* Status row */
-.status-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--vscode-descriptionForeground);
-}
-
-.meta-row {
-  display: flex;
-  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 6px;
-  min-width: 0;
 }
 
-.meta-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--vscode-foreground);
-  letter-spacing: 0.1px;
-  flex-shrink: 0;
-}
-
-.meta-subtitle {
-  flex: 1;
-  min-width: 0;
-  text-align: right;
+.section-status {
   font-size: 11px;
   color: var(--vscode-descriptionForeground);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.status-row.meta-subtitle {
-  display: inline-flex;
-  justify-content: flex-end;
+  margin-top: 2px;
 }
 
 .status-dot {
@@ -115,24 +89,23 @@ body {
   color: var(--vscode-errorForeground);
 }
 
-.description-text {
-  font-size: 11px;
-  color: var(--vscode-descriptionForeground);
-}
-
-.tool-list {
+/* Field group (label + control) */
+.field-group {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 6px;
 }
 
-.tool-chip {
-  border: 1px solid var(--vscode-panel-border);
-  background: var(--vscode-badge-background, var(--vscode-editor-background));
-  color: var(--vscode-badge-foreground, var(--vscode-foreground));
-  border-radius: 999px;
+/* Status row */
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inline-note {
   font-size: 10px;
-  padding: 1px 8px;
+  color: var(--vscode-descriptionForeground);
 }
 
 .hidden {
@@ -149,8 +122,8 @@ select {
   border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
   color: var(--vscode-input-foreground);
   font-family: var(--vscode-font-family);
-  font-size: 11px;
-  padding: 3px 6px;
+  font-size: 12px;
+  padding: 5px 8px;
   border-radius: var(--figmalab-radius);
   outline: none;
 }
@@ -179,6 +152,7 @@ textarea:disabled {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .row {
@@ -194,14 +168,14 @@ textarea:disabled {
 button {
   cursor: pointer;
   font-family: var(--vscode-font-family);
-  font-size: 11px;
-  border: 1px solid transparent;
+  font-size: 12px;
+  border: 1px solid var(--vscode-button-border, transparent);
   border-radius: var(--figmalab-radius);
-  padding: 3px 8px;
+  padding: 5px 10px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 24px;
+  min-height: 30px;
 }
 
 button .codicon {
@@ -228,13 +202,26 @@ button.secondary:hover {
   background: var(--vscode-button-secondaryHoverBackground);
 }
 
+button.text-btn {
+  border: 0;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  padding: 0;
+  min-height: auto;
+}
+
+button.text-btn:hover {
+  text-decoration: underline;
+  color: var(--vscode-textLink-foreground);
+}
+
 button:disabled {
   opacity: 0.45;
   cursor: default;
 }
 
 button.icon-btn {
-  padding: 4px 6px;
+  padding: 6px 8px;
 }
 
 button.icon-btn .codicon {
@@ -271,13 +258,18 @@ label {
 }
 
 .link-meta {
-  font-size: 11px;
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
 }
 
 .notice {
-  border: 1px solid var(--vscode-panel-border);
+  border: 1px solid transparent;
   border-radius: var(--figmalab-radius);
-  background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  background: color-mix(
+    in srgb,
+    var(--vscode-editorWidget-background, var(--vscode-editor-background)) 75%,
+    transparent
+  );
   color: var(--vscode-descriptionForeground);
   font-size: 11px;
   padding: 6px 8px;
@@ -288,30 +280,32 @@ label {
 }
 
 .notice.info {
-  border-color: var(--vscode-focusBorder);
+  border-color: color-mix(in srgb, var(--vscode-focusBorder) 40%, transparent);
   color: var(--vscode-foreground);
 }
 
 .notice.success {
-  border-color: var(--vscode-testing-iconPassed, var(--vscode-charts-green, #4caf50));
-  color: var(--vscode-testing-iconPassed, var(--vscode-charts-green, #4caf50));
+  border-color: color-mix(
+    in srgb,
+    var(--vscode-testing-iconPassed, var(--vscode-charts-green, #4caf50)) 40%,
+    transparent
+  );
+  color: var(--vscode-foreground);
 }
 
 .notice.warn {
-  border-color: var(--vscode-editorWarning-foreground);
+  border-color: color-mix(in srgb, var(--vscode-editorWarning-foreground) 35%, transparent);
   color: var(--vscode-editorWarning-foreground);
 }
 
 .notice.error {
-  border-color: var(--vscode-editorError-foreground);
+  border-color: color-mix(in srgb, var(--vscode-editorError-foreground) 35%, transparent);
   color: var(--vscode-editorError-foreground);
 }
 
-/* Token estimate */
 .token-estimate {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--vscode-descriptionForeground);
-  text-align: right;
 }
 
 .progress-row {
@@ -321,16 +315,11 @@ label {
   gap: 8px;
 }
 
-.progress-text {
-  font-size: 11px;
-  color: var(--vscode-descriptionForeground);
-}
-
 .progress-track {
   appearance: none;
   flex: 1;
   min-width: 80px;
-  height: 4px;
+  height: 3px;
   border: 0;
   background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
   border-radius: var(--figmalab-radius);
@@ -355,7 +344,7 @@ label {
 .log-terminal {
   background: var(--vscode-terminal-background, var(--vscode-editor-background));
   color: var(--vscode-terminal-foreground, var(--vscode-editor-foreground));
-  border: 1px solid var(--vscode-panel-border);
+  border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 65%, transparent);
   border-radius: var(--figmalab-radius);
   margin: 0;
   padding: 6px 8px;
@@ -369,9 +358,8 @@ label {
 
 /* Code output */
 .code-output {
-  margin-top: 8px;
   background: var(--vscode-editor-background);
-  border: 1px solid var(--vscode-panel-border);
+  border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 45%, transparent);
   border-radius: var(--figmalab-radius);
   padding: 8px;
   font-family: var(--vscode-editor-font-family);
@@ -390,9 +378,29 @@ label {
 /* Screenshot preview */
 .screenshot-preview {
   max-width: 100%;
-  border: 1px solid var(--vscode-panel-border);
+  border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 45%, transparent);
   border-radius: var(--figmalab-radius);
   display: none;
+}
+
+.minimal-options {
+  border-top: 1px solid color-mix(in srgb, var(--vscode-panel-border) 35%, transparent);
+  padding-top: 6px;
+}
+
+.minimal-options summary {
+  list-style: none;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.minimal-options summary::-webkit-details-marker {
+  display: none;
+}
+
+.minimal-options[open] summary {
+  margin-bottom: 6px;
 }
 
 .screenshot-preview.visible {

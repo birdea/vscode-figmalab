@@ -8,9 +8,13 @@ export class AgentLayer {
 
   render(): string {
     return `
-<div class="panel">
-  <div class="panel-title">3단계. 에이전트 설정</div>
-  <div class="description-text">API 키를 입력하고 모델을 선택한 뒤 저장하세요.</div>
+<section class="panel panel-compact">
+  <div class="section-heading">
+    <div>
+      <div class="panel-title">에이전트 설정</div>
+      <div class="section-status" id="agent-status">저장된 API 키가 없으면 먼저 입력하세요.</div>
+    </div>
+  </div>
   <div class="field-group">
     <label for="agent-select">AI Agent</label>
     <select id="agent-select">
@@ -21,7 +25,7 @@ export class AgentLayer {
   <div class="field-group stack-gap-sm">
     <div class="row row-space-between">
       <label for="api-key-input">API Key</label>
-      <a href="#" id="link-get-api-key" class="link-meta">발급 안내</a>
+      <a href="#" id="link-get-api-key" class="link-meta">안내</a>
     </div>
     <div class="row">
       <input type="password" id="api-key-input" placeholder="API Key 입력..." />
@@ -30,7 +34,7 @@ export class AgentLayer {
   <div class="field-group stack-gap-sm">
     <div class="row row-space-between">
       <label for="model-select">모델 선택</label>
-      <a href="#" id="link-get-model-info" class="link-meta">모델 정보</a>
+      <a href="#" id="link-get-model-info" class="link-meta">정보</a>
     </div>
     <div class="row">
       <select id="model-select">
@@ -39,13 +43,12 @@ export class AgentLayer {
       <button class="secondary icon-btn" id="btn-load-models" title="모델 목록 새로고침"><i class="codicon codicon-refresh"></i></button>
     </div>
   </div>
-  <div class="description-text stack-gap-sm" id="agent-status">저장된 API 키가 없다면 먼저 입력하세요.</div>
   <div class="btn-row stack-gap-sm">
     <button class="primary" id="btn-save-settings"><i class="codicon codicon-save"></i>저장</button>
-    <button class="secondary" id="btn-clear-settings"><i class="codicon codicon-trash"></i>초기화</button>
+    <button class="text-btn" id="btn-clear-settings">초기화</button>
   </div>
-  <div class="notice hidden stack-gap-sm" id="agent-notice"></div>
-</div>
+  <div class="notice hidden" id="agent-notice"></div>
+</section>
 `;
   }
 
@@ -57,7 +60,7 @@ export class AgentLayer {
       vscode.postMessage({ command: 'state.setAgent', agent });
       this.updateModelList([]);
       this.updateStatus();
-      this.setNotice('info', `${agent} 에이전트로 전환했습니다. API 키가 있으면 모델을 자동으로 다시 불러옵니다.`);
+      this.setNotice('info', `${agent}로 전환했습니다.`);
       this.scheduleModelLoad();
     });
 
@@ -111,9 +114,9 @@ export class AgentLayer {
     this.models = models;
     this.updateModelList(models);
     if (models.length > 0) {
-      this.setNotice('success', `${models.length}개의 모델을 불러왔습니다.`);
+      this.setNotice('success', `${models.length}개 모델을 불러왔습니다.`);
     } else {
-      this.setNotice('warn', '사용 가능한 모델이 없습니다. API Key와 권한을 확인하세요.');
+      this.setNotice('warn', '사용 가능한 모델이 없습니다.');
     }
     this.updateStatus();
   }
@@ -132,10 +135,10 @@ export class AgentLayer {
     this.updateModelList([]);
     this.updateStatus();
     if (!hasApiKey) {
-      this.setNotice('info', `${agent} API Key를 입력하면 모델을 자동으로 불러옵니다.`);
+      this.setNotice('info', 'API 키를 입력하면 모델을 불러옵니다.');
       return;
     }
-    this.setNotice('info', `${agent} 설정을 불러오는 중입니다...`);
+    this.setNotice('info', '저장된 설정을 불러오는 중입니다.');
     vscode.postMessage({ command: 'agent.listModels', agent });
     if (model) {
       // Keep preferred model until list result arrives, then restore selection.
@@ -152,7 +155,7 @@ export class AgentLayer {
       keyInput.value = '';
       keyInput.placeholder = hasApiKey ? '저장된 API Key 있음 ✓' : 'API Key 입력...';
     }
-    this.setNotice('success', `${agent} / ${model} 설정을 저장했습니다.`);
+    this.setNotice('success', '설정을 저장했습니다.');
     this.updateStatus();
   }
 
@@ -169,7 +172,7 @@ export class AgentLayer {
     this.lastLoadSignature = '';
     this.updateModelList([]);
     this.updateStatus();
-    this.setNotice('info', `${agent} 저장값을 삭제했습니다.`);
+    this.setNotice('info', '저장값을 삭제했습니다.');
   }
 
   onSaveRequested() {
@@ -234,14 +237,14 @@ export class AgentLayer {
     if (!status || !agent) return;
 
     if (apiKey) {
-      status.textContent = `${agent} API 키가 입력되었습니다. 모델 목록을 확인하고 저장하세요.`;
+      status.textContent = 'API 키가 입력되었습니다. 모델을 확인하고 저장하세요.';
       return;
     }
     if (!model) {
-      status.textContent = `${agent} 모델이 아직 선택되지 않았습니다. 저장된 API 키가 있으면 목록을 불러오세요.`;
+      status.textContent = '모델을 아직 선택하지 않았습니다.';
       return;
     }
-    status.textContent = `${agent} 에서 ${model} 모델이 선택되었습니다. 저장하면 Prompt에서 바로 사용할 수 있습니다.`;
+    status.textContent = `${model} 모델이 선택되었습니다.`;
   }
 
   private setNotice(level: 'info' | 'success' | 'warn' | 'error', message: string) {
@@ -277,8 +280,8 @@ export class AgentLayer {
     this.setNotice(
       'info',
       key
-        ? `${agent} 모델 목록을 불러오는 중입니다...`
-        : `${agent} 모델 목록을 불러오는 중입니다... (저장된 API Key 사용)`,
+        ? '모델 목록을 불러오는 중입니다.'
+        : '저장된 API 키로 모델 목록을 불러오는 중입니다.',
     );
     vscode.postMessage({ command: 'agent.listModels', agent, key: key || undefined });
   }

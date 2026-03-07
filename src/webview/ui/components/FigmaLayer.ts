@@ -6,38 +6,37 @@ export class FigmaLayer {
 
   render(): string {
     return `
-<div class="panel">
-  <div class="meta-row">
-    <div class="meta-title">1단계. Figma 연결</div>
-    <div class="status-row meta-subtitle" id="figma-status-row">
-      <span class="status-dot" id="figma-status-dot"></span>
-      <span id="figma-status-text" class="status-text">연결되지 않음</span>
+<section class="panel panel-compact">
+  <div class="section-heading">
+    <div>
+      <div class="panel-title">Figma 연결</div>
+      <div class="status-row section-status" id="figma-status-row">
+        <span class="status-dot" id="figma-status-dot"></span>
+        <span id="figma-status-text" class="status-text">연결되지 않음</span>
+      </div>
     </div>
+    <button class="text-btn" id="btn-open-settings">설정</button>
   </div>
-  <div class="description-text">먼저 MCP 서버에 연결한 뒤, 디자인 URL이나 JSON을 불러오세요.</div>
-  <div class="btn-row stack-gap-sm">
+  <div class="btn-row">
     <button class="primary" id="btn-connect"><i class="codicon codicon-plug"></i>연결하기</button>
-    <button class="secondary" id="btn-open-settings"><i class="codicon codicon-settings-gear"></i>설정 열기</button>
   </div>
-  <div class="tool-list hidden stack-gap-sm" id="figma-tool-list"></div>
-  <div class="notice info stack-gap-sm" id="figma-guide">시작하려면 연결하기를 눌러 MCP 서버 상태를 확인하세요.</div>
-</div>
-<div class="panel">
-  <div class="meta-row">
-    <div class="meta-title">2단계. 디자인 데이터</div>
-    <span class="meta-subtitle" title="Figma URL 또는 MCP JSON">Figma URL 또는 MCP JSON</span>
+  <div class="notice info hidden" id="figma-guide"></div>
+</section>
+<section class="panel panel-compact">
+  <div class="section-heading">
+    <div class="panel-title">디자인 데이터</div>
   </div>
   <div class="field-group">
     <textarea id="mcp-data" placeholder="https://figma.com/file/... 또는 JSON"></textarea>
   </div>
-  <div class="btn-row stack-gap-sm">
+  <div class="btn-row">
     <button class="primary" id="btn-fetch"><i class="codicon codicon-cloud-download"></i>데이터 가져오기</button>
     <button class="secondary" id="btn-screenshot"><i class="codicon codicon-device-camera"></i>스크린샷</button>
   </div>
-  <div class="notice hidden stack-gap-sm" id="figma-notice"></div>
+  <div class="notice hidden" id="figma-notice"></div>
   <pre class="code-output" id="figma-data-preview"></pre>
   <img class="screenshot-preview" id="figma-screenshot-preview" alt="Figma screenshot preview" />
-</div>
+</section>
 `;
   }
 
@@ -84,7 +83,7 @@ export class FigmaLayer {
   requestConnect() {
     this.connecting = true;
     this.syncConnectButton();
-    this.setGuideMessage('MCP 서버 연결을 시도하는 중입니다.');
+    this.setGuideMessage('연결을 시도하는 중입니다.');
     vscode.postMessage({ command: 'figma.connect' });
   }
 
@@ -98,16 +97,16 @@ export class FigmaLayer {
     if (text) {
       text.classList.toggle('status-text-error', !connected);
       if (connected) {
-        text.textContent = `연결됨 · 사용 가능 도구 ${methods.length}개`;
-        this.setGuideMessage('이제 Figma URL 또는 JSON을 입력하고 데이터를 가져오세요.');
+        text.textContent = '연결됨';
+        this.setGuideMessage(methods.length > 0 ? `사용 가능 도구 ${methods.length}개` : '');
       } else {
         text.textContent = '연결되지 않음';
         if (error) {
           this.setNotice('error', error);
-          this.setGuideMessage('MCP 서버가 실행 중인지 확인하거나 설정 열기에서 엔드포인트를 점검하세요.');
+          this.setGuideMessage('서버 실행 여부와 엔드포인트를 확인하세요.');
         } else {
-          this.setNotice('warn', 'MCP 서버에 연결되지 않았습니다.');
-          this.setGuideMessage('시작하려면 연결하기를 눌러 MCP 서버 상태를 확인하세요.');
+          this.clearNotice();
+          this.setGuideMessage('');
         }
       }
     }
@@ -124,8 +123,7 @@ export class FigmaLayer {
     const text = this.stringifyForPreview(data);
     preview.textContent = text;
     preview.classList.add('visible');
-    this.setNotice('success', 'MCP 데이터를 불러왔습니다.');
-    this.setGuideMessage('다음 단계에서 에이전트와 모델을 설정한 뒤 코드를 생성하세요.');
+    this.setNotice('success', '데이터를 불러왔습니다.');
   }
 
   onScreenshotResult(base64: string) {
@@ -134,7 +132,7 @@ export class FigmaLayer {
 
     img.src = `data:image/png;base64,${base64}`;
     img.classList.add('visible');
-    this.setNotice('success', '스크린샷을 가져왔습니다. 에디터에도 함께 열렸습니다.');
+    this.setNotice('success', '스크린샷을 가져왔습니다.');
   }
 
   onError(message: string) {
@@ -165,6 +163,11 @@ export class FigmaLayer {
   private setNotice(level: 'info' | 'success' | 'warn' | 'error', message: string) {
     const notice = document.getElementById('figma-notice');
     if (!notice) return;
+    if (!message) {
+      notice.className = 'notice hidden';
+      notice.textContent = '';
+      return;
+    }
     notice.className = `notice ${level}`;
     notice.textContent = message;
   }
@@ -172,7 +175,12 @@ export class FigmaLayer {
   private setGuideMessage(message: string) {
     const guide = document.getElementById('figma-guide');
     if (!guide) return;
+    guide.classList.toggle('hidden', !message);
     guide.textContent = message;
+  }
+
+  private clearNotice() {
+    this.setNotice('info', '');
   }
 
   private syncConnectButton() {
@@ -185,28 +193,8 @@ export class FigmaLayer {
   }
 
   private renderToolList(methods: string[], connected: boolean) {
-    const list = document.getElementById('figma-tool-list');
-    if (!list) return;
-
-    if (!connected || methods.length === 0) {
-      list.className = 'tool-list hidden';
-      list.innerHTML = '';
-      return;
-    }
-
-    list.className = 'tool-list';
-    list.innerHTML = methods
-      .map((method) => `<span class="tool-chip">${this.escapeHtml(method)}</span>`)
-      .join('');
-  }
-
-  private escapeHtml(text: string): string {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+    const hasExtraTools = connected && methods.length > 2;
+    this.setGuideMessage(hasExtraTools ? `도구 ${methods.length}개 사용 가능` : '');
   }
 
   private stringifyForPreview(data: unknown): string {
