@@ -5,6 +5,19 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      publish_mode:
+        description: 'Choose whether to only build a VSIX artifact or publish a tagged release'
+        required: true
+        default: package-only
+        type: choice
+        options:
+          - package-only
+          - tagged-release
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -25,6 +38,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate tagged release mode
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_mode == 'tagged-release'
+        run: |
+          if [[ "${GITHUB_REF}" != refs/tags/v* ]]; then
+            echo "tagged-release mode requires selecting a v* tag ref." >&2
+            exit 1
+          fi
+
+      - name: Compute package metadata
+        id: package_meta
+        run: |
+          safe_ref_name="$(printf '%s' "${GITHUB_REF_NAME}" | tr '/:@ ' '-' | tr -cd 'A-Za-z0-9._-')"
+          if [[ -z "${safe_ref_name}" ]]; then
+            safe_ref_name="manual"
+          fi
+          echo "safe_ref_name=${safe_ref_name}" >> "${GITHUB_OUTPUT}"
+          echo "vsix_name=figma-mcp-helper-${safe_ref_name}.vsix" >> "${GITHUB_OUTPUT}"
+
       - name: Build
         run: npm run build
 
@@ -32,22 +63,22 @@ jobs:
         run: npm test
 
       - name: Build VSIX
-        run: npx vsce package --out figma-mcp-helper-${{ github.ref_name }}.vsix
+        run: npx vsce package --out "${{ steps.package_meta.outputs.vsix_name }}"
 
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v7
         with:
-          name: vsix-${{ github.ref_name }}
-          path: figma-mcp-helper-${{ github.ref_name }}.vsix
+          name: vsix-${{ steps.package_meta.outputs.safe_ref_name }}
+          path: ${{ steps.package_meta.outputs.vsix_name }}
 
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') && (github.event_name == 'push' || inputs.publish_mode == 'tagged-release')
         uses: softprops/action-gh-release@v2
         with:
-          files: figma-mcp-helper-${{ github.ref_name }}.vsix
+          files: ${{ steps.package_meta.outputs.vsix_name }}
 
       - name: Publish to VS Code Marketplace
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') && (github.event_name == 'push' || inputs.publish_mode == 'tagged-release')
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx vsce publish --packagePath figma-mcp-helper-${{ github.ref_name }}.vsix
+        run: npx vsce publish --packagePath "${{ steps.package_meta.outputs.vsix_name }}"

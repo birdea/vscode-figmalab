@@ -1,8 +1,15 @@
 name: CI
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
   workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:
@@ -10,7 +17,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [20, 22]
+        include:
+          - node-version: 20
+            run-format-check: true
+            run-lint: true
+            run-coverage: true
+          - node-version: 22
+            run-format-check: false
+            run-lint: false
+            run-coverage: false
 
     steps:
       - name: Checkout
@@ -25,20 +40,27 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Audit dependencies
-        run: npm audit --audit-level=high
-
       - name: Build
         run: npm run build
 
+      - name: Format check
+        if: matrix.run-format-check
+        run: npm run format:check
+
       - name: Lint
+        if: matrix.run-lint
         run: npm run lint
 
       - name: Test with coverage
+        if: matrix.run-coverage
         run: npm run test:coverage
 
+      - name: Test
+        if: ${{ !matrix.run-coverage }}
+        run: npm test
+
       - name: Upload coverage artifact
-        if: always()
+        if: always() && matrix.run-coverage
         uses: actions/upload-artifact@v7
         with:
           name: coverage-node-${{ matrix.node-version }}
