@@ -6,6 +6,7 @@ import { BaseAgent } from './BaseAgent';
 import { Logger } from '../logger/Logger';
 import { CONFIG_KEYS } from '../constants';
 import { USER_CANCELLED_CODE_GENERATION } from '../i18n';
+import { toErrorMessage } from '../errors';
 
 interface ModelConfig {
   id?: unknown;
@@ -119,7 +120,7 @@ export class ClaudeAgent extends BaseAgent {
       }
       Logger.success('agent', 'Claude code generation complete');
     } catch (e) {
-      Logger.error('agent', `Claude generation failed: ${(e as Error).message}`);
+      Logger.error('agent', `Claude generation failed: ${toErrorMessage(e)}`);
       throw e;
     }
   }

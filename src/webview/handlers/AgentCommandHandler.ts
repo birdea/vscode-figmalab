@@ -4,6 +4,7 @@ import { Logger } from '../../logger/Logger';
 import { AgentType, HostToWebviewMessage } from '../../types';
 import { CONFIG_KEYS, SECRET_KEYS } from '../../constants';
 import { StateManager } from '../../state/StateManager';
+import { toErrorMessage } from '../../errors';
 
 export class AgentCommandHandler {
   constructor(
@@ -59,7 +60,7 @@ export class AgentCommandHandler {
       });
       await vscode.window.showTextDocument(doc, { preview: false });
     } catch (e) {
-      Logger.error('system', `Failed to open model info: ${(e as Error).message}`);
+      Logger.error('system', `Failed to open model info: ${toErrorMessage(e)}`);
     }
   }
 

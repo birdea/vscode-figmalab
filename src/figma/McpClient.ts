@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Logger } from '../logger/Logger';
 import { MCP_DEFAULT_PORT, REQUEST_TIMEOUT_MS } from '../constants';
-import { ValidationError, TimeoutError, NetworkError } from '../errors';
+import { ValidationError, TimeoutError, NetworkError, toErrorMessage } from '../errors';
 
 function resolveDefaultClientVersion(): string {
   try {
@@ -149,7 +149,7 @@ export class McpClient {
       Logger.success('figma', `MCP server connected: ${this.endpoint}`);
       return true;
     } catch (e) {
-      Logger.error('figma', `MCP connection failed: ${(e as Error).message}`);
+      Logger.error('figma', `MCP connection failed: ${toErrorMessage(e)}`);
       return false;
     }
   }
@@ -163,7 +163,7 @@ export class McpClient {
       }
       return result.tools.map((t) => t.name);
     } catch (e) {
-      Logger.error('figma', `Failed to list MCP tools: ${(e as Error).message}`);
+      Logger.error('figma', `Failed to list MCP tools: ${toErrorMessage(e)}`);
       return [];
     }
   }

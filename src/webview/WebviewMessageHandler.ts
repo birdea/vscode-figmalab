@@ -9,6 +9,7 @@ import { AgentCommandHandler } from './handlers/AgentCommandHandler';
 import { PromptCommandHandler } from './handlers/PromptCommandHandler';
 import { StateManager } from '../state/StateManager';
 import { UiLocale } from '../i18n';
+import { toErrorMessage } from '../errors';
 
 export class WebviewMessageHandler {
   private mcpClient: McpClient;
@@ -114,9 +115,9 @@ export class WebviewMessageHandler {
           break;
       }
     } catch (e) {
-      const err = e as Error;
-      this.post({ event: 'error', source, message: err.message });
-      Logger.error('system', err.message);
+      const message = toErrorMessage(e);
+      this.post({ event: 'error', source, message });
+      Logger.error('system', message);
     }
   }
 

@@ -7,7 +7,7 @@ import { PromptPayload, HostToWebviewMessage } from '../../types';
 import { SECRET_KEYS, PROGRESS_CAP } from '../../constants';
 import { StateManager } from '../../state/StateManager';
 import { UiLocale, USER_CANCELLED_CODE_GENERATION, t } from '../../i18n';
-import { UserCancelledError } from '../../errors';
+import { UserCancelledError, toErrorMessage } from '../../errors';
 
 export class PromptCommandHandler {
   private isGenerating = false;
@@ -86,12 +86,12 @@ export class PromptCommandHandler {
         progress: 100,
       });
     } catch (e) {
-      const err = e as Error;
+      const errMessage = toErrorMessage(e);
       const isCancelled =
-        err instanceof UserCancelledError ||
+        e instanceof UserCancelledError ||
         this.abortController?.signal.aborted ||
-        err.message === USER_CANCELLED_CODE_GENERATION;
-      const errorMessage = isCancelled ? t(this.locale, 'host.prompt.cancelled') : err.message;
+        errMessage === USER_CANCELLED_CODE_GENERATION;
+      const errorMessage = isCancelled ? t(this.locale, 'host.prompt.cancelled') : errMessage;
       if (fullCode.length > 0) {
         this.post({
           event: 'prompt.result',

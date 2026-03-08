@@ -3,6 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { McpClient } from './McpClient';
 import { Logger } from '../logger/Logger';
+import { toErrorMessage } from '../errors';
 
 export class ScreenshotService {
   private tmpFiles: vscode.Uri[] = [];
@@ -16,7 +17,7 @@ export class ScreenshotService {
       Logger.success('figma', 'Screenshot fetched successfully');
       return base64;
     } catch (e) {
-      Logger.error('figma', `Screenshot fetch failed: ${(e as Error).message}`);
+      Logger.error('figma', `Screenshot fetch failed: ${toErrorMessage(e)}`);
       throw e;
     }
   }

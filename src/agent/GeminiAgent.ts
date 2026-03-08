@@ -6,6 +6,7 @@ import { Logger } from '../logger/Logger';
 import * as https from 'https';
 import { USER_CANCELLED_CODE_GENERATION } from '../i18n';
 import { REQUEST_TIMEOUT_MS, GEMINI_MODELS_CACHE_TTL_MS } from '../constants';
+import { toErrorMessage } from '../errors';
 
 interface GeminiModelEntry {
   name: string;
@@ -135,7 +136,7 @@ export class GeminiAgent extends BaseAgent {
       }
       Logger.success('agent', 'Gemini code generation complete');
     } catch (e) {
-      Logger.error('agent', `Gemini generation failed: ${(e as Error).message}`);
+      Logger.error('agent', `Gemini generation failed: ${toErrorMessage(e)}`);
       throw e;
     }
   }

@@ -8,6 +8,7 @@ import { HostToWebviewMessage } from '../../types';
 import { CONFIG_KEYS, DEFAULT_MCP_ENDPOINT } from '../../constants';
 import { StateManager } from '../../state/StateManager';
 import { UiLocale, t } from '../../i18n';
+import { toErrorMessage } from '../../errors';
 
 export class FigmaCommandHandler {
   constructor(
@@ -44,7 +45,7 @@ export class FigmaCommandHandler {
         error: connected ? undefined : t(this.locale, 'host.figma.connectRefused', { endpoint }),
       });
     } catch (e) {
-      const errMessage = (e as Error).message;
+      const errMessage = toErrorMessage(e);
       Logger.error('figma', `MCP connection error at ${endpoint}: ${errMessage}`);
       this.post({
         event: 'figma.status',
@@ -83,14 +84,14 @@ export class FigmaCommandHandler {
 
         this.post({ event: 'figma.dataResult', data });
       } catch (e) {
-        const err = e as Error;
+        const errMessage = toErrorMessage(e);
         Logger.error(
           'figma',
-          `MCP get_file failed for fileId=${parsed.fileId}, nodeId=${parsed.nodeId}: ${err.message}`,
+          `MCP get_file failed for fileId=${parsed.fileId}, nodeId=${parsed.nodeId}: ${errMessage}`,
         );
         this.post({
           event: 'figma.dataFetchError',
-          message: this.toFriendlyFetchMessage(err.message),
+          message: this.toFriendlyFetchMessage(errMessage),
           fallbackData: parsed,
         });
       }
