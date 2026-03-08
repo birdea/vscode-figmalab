@@ -2,7 +2,8 @@ export type UiLocale = 'ko' | 'en';
 
 export const USER_CANCELLED_CODE_GENERATION = 'USER_CANCELLED_CODE_GENERATION';
 
-type MessageValue = string | ((params?: Record<string, string | number>) => string);
+type MessageParams = Record<string, string | number | undefined>;
+type MessageValue = string | ((params: MessageParams) => string);
 
 const messages: Record<UiLocale, Record<string, MessageValue>> = {
   en: {
@@ -94,8 +95,10 @@ const messages: Record<UiLocale, Record<string, MessageValue>> = {
     'prompt.notice.cancelling': 'Cancelling code generation...',
     'prompt.notice.calculating': 'Calculating...',
     'prompt.status.completed': 'Completed',
+    'prompt.status.incomplete': 'Incomplete',
     'prompt.status.generating': ({ progress }) => `Generating... ${progress}%`,
     'prompt.notice.completed': 'Code generation completed.',
+    'prompt.notice.incomplete': 'Partial code is available, but the generation did not complete.',
     'prompt.error.noApiKey': 'Save an API key in the Agent panel before generating code.',
     'prompt.error.alreadyInProgress': 'Code generation is already in progress.',
     'host.prompt.alreadyGenerating': 'Generation is already in progress.',
@@ -193,8 +196,10 @@ const messages: Record<UiLocale, Record<string, MessageValue>> = {
     'prompt.notice.cancelling': '코드 생성을 취소하는 중입니다...',
     'prompt.notice.calculating': '계산 중...',
     'prompt.status.completed': '완료됨',
+    'prompt.status.incomplete': '불완전',
     'prompt.status.generating': ({ progress }) => `생성 중... ${progress}%`,
     'prompt.notice.completed': '코드 생성이 완료되었습니다.',
+    'prompt.notice.incomplete': '부분 코드는 생성되었지만 작업이 끝나지 않았습니다.',
     'prompt.error.noApiKey': '코드를 생성하려면 먼저 Agent 패널에서 API 키를 저장하세요.',
     'prompt.error.alreadyInProgress': '이미 코드 생성이 진행 중입니다.',
     'host.prompt.alreadyGenerating': '이미 코드 생성이 진행 중입니다.',
@@ -212,7 +217,7 @@ export function resolveLocale(language?: string): UiLocale {
 export function t(
   locale: UiLocale,
   key: string,
-  params?: Record<string, string | number>,
+  params: MessageParams = {},
 ): string {
   const value = messages[locale][key] ?? messages.en[key] ?? key;
   return typeof value === 'function' ? value(params) : value;

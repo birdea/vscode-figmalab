@@ -58,9 +58,10 @@ export class PromptCommandHandler {
     this.currentRequestId = payload.requestId ?? null;
     this.abortController = new AbortController();
 
+    let fullCode = '';
+    let progress = 5;
+
     try {
-      let fullCode = '';
-      let progress = 5;
       this.post({ event: 'prompt.generating', progress });
       const gen = AgentFactory.getAgent(agent).generateCode(
         resolvedPayload,
@@ -77,18 +78,36 @@ export class PromptCommandHandler {
       }
 
       this.post({ event: 'prompt.generating', progress: 100 });
-      this.post({ event: 'prompt.result', code: fullCode, format: resolvedPayload.outputFormat });
+      this.post({
+        event: 'prompt.result',
+        code: fullCode,
+        format: resolvedPayload.outputFormat,
+        complete: true,
+        progress: 100,
+      });
     } catch (e) {
       const err = e as Error;
       const isCancelled =
         err instanceof UserCancelledError ||
         this.abortController?.signal.aborted ||
         err.message === USER_CANCELLED_CODE_GENERATION;
-      this.post({
-        event: 'prompt.error',
-        message: isCancelled ? t(this.locale, 'host.prompt.cancelled') : err.message,
-        code: isCancelled ? 'cancelled' : 'failed',
-      });
+      const errorMessage = isCancelled ? t(this.locale, 'host.prompt.cancelled') : err.message;
+      if (fullCode.length > 0) {
+        this.post({
+          event: 'prompt.result',
+          code: fullCode,
+          format: resolvedPayload.outputFormat,
+          complete: false,
+          message: errorMessage,
+          progress,
+        });
+      } else {
+        this.post({
+          event: 'prompt.error',
+          message: errorMessage,
+          code: isCancelled ? 'cancelled' : 'failed',
+        });
+      }
     } finally {
       this.isGenerating = false;
       this.currentRequestId = null;

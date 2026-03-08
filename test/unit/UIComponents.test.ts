@@ -317,6 +317,16 @@ suite('UI Components Consolidated', () => {
       assert.strictEqual(area.textContent, 'const x = 1;');
     });
 
+    test('onResult preserves incomplete output with warning state', () => {
+      layer.onResult('partial', false, 'cancelled', 35);
+      const notice = document.getElementById('prompt-notice');
+      const progressText = document.getElementById('prompt-progress-text');
+      const actions = document.getElementById('code-actions');
+      assert.strictEqual(notice?.textContent, 'cancelled');
+      assert.strictEqual(progressText?.textContent, '불완전');
+      assert.ok(!actions?.classList.contains('hidden'));
+    });
+
     test('onError updates notice without polluting code output', () => {
         layer.onError('bad things');
         const area = document.getElementById('code-output');

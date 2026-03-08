@@ -198,18 +198,12 @@ export class PromptLayer {
 
   onGenerating(progress: number) {
     const safeProgress = Math.max(0, Math.min(100, progress));
-    const progressBar = document.getElementById('prompt-progress') as HTMLProgressElement | null;
-    const progressText = document.getElementById('prompt-progress-text');
-
-    if (progressBar) {
-      progressBar.value = safeProgress;
-    }
-    if (progressText) {
-      progressText.textContent =
-        safeProgress >= 100
-          ? this.msg('prompt.status.completed')
-          : this.msg('prompt.status.generating', { progress: safeProgress });
-    }
+    this.setProgressState(
+      safeProgress,
+      safeProgress >= 100
+        ? this.msg('prompt.status.completed')
+        : this.msg('prompt.status.generating', { progress: safeProgress }),
+    );
   }
 
   onChunk(text: string) {
@@ -234,7 +228,7 @@ export class PromptLayer {
     }
   }
 
-  onResult(code: string) {
+  onResult(code: string, complete = true, message?: string, progress?: number) {
     this.generatedCode = code;
     const codeOutput = document.getElementById('code-output') as HTMLPreElement;
     if (codeOutput) {
@@ -243,9 +237,16 @@ export class PromptLayer {
     }
     const actions = document.getElementById('code-actions');
     if (actions) actions.classList.remove('hidden');
-    this.onGenerating(100);
+    if (complete) {
+      this.onGenerating(100);
+    } else {
+      this.setProgressState(progress ?? 0, this.msg('prompt.status.incomplete'));
+    }
     this.setGeneratingState(false);
-    this.setNotice('success', this.msg('prompt.notice.completed'));
+    this.setNotice(
+      complete ? 'success' : 'warn',
+      message ?? (complete ? this.msg('prompt.notice.completed') : this.msg('prompt.notice.incomplete')),
+    );
   }
 
   onError(message: string, code?: 'cancelled' | 'failed') {
@@ -255,6 +256,18 @@ export class PromptLayer {
     this.setGeneratingState(false);
     this.onGenerating(0);
     this.setNotice(code === 'cancelled' ? 'warn' : 'error', message);
+  }
+
+  private setProgressState(progress: number, statusText: string) {
+    const progressBar = document.getElementById('prompt-progress') as HTMLProgressElement | null;
+    const progressText = document.getElementById('prompt-progress-text');
+
+    if (progressBar) {
+      progressBar.value = Math.max(0, Math.min(100, progress));
+    }
+    if (progressText) {
+      progressText.textContent = statusText;
+    }
   }
 
   onHostError(message: string) {

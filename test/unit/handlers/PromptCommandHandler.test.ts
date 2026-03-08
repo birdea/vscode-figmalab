@@ -135,7 +135,13 @@ suite('PromptCommandHandler', () => {
     await handler.generate({ outputFormat: 'html' });
 
     assert.ok(webview.postMessage.calledWithMatch({ event: 'prompt.chunk', text: 'hello ' }));
-    assert.ok(webview.postMessage.calledWithMatch({ event: 'prompt.result', code: 'hello world' }));
+    assert.ok(
+      webview.postMessage.calledWithMatch({
+        event: 'prompt.result',
+        code: 'hello world',
+        complete: true,
+      }),
+    );
   });
 
   test('generate posts progress updates from start to finish', async () => {
@@ -173,6 +179,7 @@ suite('PromptCommandHandler', () => {
       setApiKey: sandbox.stub().resolves(),
       generateCode: async function* (_payload: any, signal?: AbortSignal) {
         capturedSignal = signal;
+        yield 'partial';
         await new Promise((resolve) => setTimeout(resolve, 30));
         if (signal?.aborted) {
           throw new Error('USER_CANCELLED_CODE_GENERATION');
@@ -188,7 +195,35 @@ suite('PromptCommandHandler', () => {
     await promise;
 
     assert.strictEqual(capturedSignal?.aborted, true);
-    assert.ok(webview.postMessage.calledWithMatch({ event: 'prompt.error', code: 'cancelled' }));
+    assert.ok(
+      webview.postMessage.calledWithMatch({
+        event: 'prompt.result',
+        code: 'partial',
+        complete: false,
+      }),
+    );
+  });
+
+  test('generate keeps partial code visible when stream fails mid-flight', async () => {
+    const agent = {
+      setApiKey: sandbox.stub().resolves(),
+      generateCode: async function* () {
+        yield 'hello';
+        throw new Error('stream broke');
+      },
+    };
+    sandbox.stub(AgentFactory, 'getAgent').returns(agent as any);
+
+    await handler.generate({ outputFormat: 'html' });
+
+    assert.ok(
+      webview.postMessage.calledWithMatch({
+        event: 'prompt.result',
+        code: 'hello',
+        complete: false,
+        message: 'stream broke',
+      }),
+    );
   });
 
   test('cancel ignores mismatched request ids', async () => {

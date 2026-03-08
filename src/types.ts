@@ -79,7 +79,14 @@ export type HostToWebviewMessage =
   | { event: 'prompt.cancelRequested' }
   | { event: 'prompt.generating'; progress: number }
   | { event: 'prompt.chunk'; text: string }
-  | { event: 'prompt.result'; code: string; format: OutputFormat }
+  | {
+      event: 'prompt.result';
+      code: string;
+      format: OutputFormat;
+      complete?: boolean;
+      message?: string;
+      progress?: number;
+    }
   | { event: 'prompt.estimateResult'; tokens: number; kb: number }
   | { event: 'prompt.error'; message: string; code?: 'cancelled' | 'failed' }
   | { event: 'log.append'; entry: LogEntry }
