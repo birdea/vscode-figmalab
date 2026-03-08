@@ -4,32 +4,21 @@ import { PromptLayer } from './components/PromptLayer';
 import { LogLayer } from './components/LogLayer';
 import { HostToWebviewMessage } from '../../types';
 
-type HostEvent = HostToWebviewMessage['event'];
-type HostMessage<K extends HostEvent> = Extract<HostToWebviewMessage, { event: K }>;
-type MessageHandlerMap<TEvent extends HostEvent> = {
-  [K in TEvent]: (message: HostMessage<K>) => void;
-};
-
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function hasEvent<TEvent extends HostEvent>(
-  handlers: MessageHandlerMap<TEvent>,
-  event: unknown,
-): event is TEvent {
-  return typeof event === 'string' && Object.hasOwn(handlers, event);
+function isHostMessage(value: unknown): value is HostToWebviewMessage {
+  return isObject(value) && typeof value.event === 'string';
 }
 
-function bindMessageHandlers<TEvent extends HostEvent>(handlers: MessageHandlerMap<TEvent>) {
+function bindMessageHandler(handler: (message: HostToWebviewMessage) => void) {
   window.addEventListener('message', (event) => {
-    if (!isObject(event.data) || !hasEvent(handlers, event.data.event)) {
+    if (!isHostMessage(event.data)) {
       return;
     }
 
-    const msg = event.data as HostMessage<TEvent>;
-    const handler = handlers[msg.event];
-    handler(msg);
+    handler(event.data);
   });
 }
 
@@ -46,23 +35,41 @@ export function init() {
       app.innerHTML = figma.render() + agent.render();
       figma.mount();
       agent.mount();
-      bindMessageHandlers({
-        'figma.connectRequested': () => figma.requestConnect(),
-        'figma.status': (msg) => figma.onStatus(msg.connected, msg.methods, msg.error),
-        'figma.dataResult': (msg) => figma.onDataResult(msg.data),
-        'figma.dataFetchError': (msg) => {
-          figma.onError(msg.message);
-          figma.onDataResult(msg.fallbackData);
-        },
-        'figma.screenshotResult': (msg) => figma.onScreenshotResult(msg.base64),
-        'agent.modelsResult': (msg) => agent.onModelsResult(msg.models),
-        'agent.state': (msg) => agent.onState(msg.agent, msg.model, msg.hasApiKey),
-        'agent.settingsSaved': (msg) => agent.onSettingsSaved(msg.agent, msg.model, msg.hasApiKey),
-        'agent.settingsCleared': (msg) => agent.onSettingsCleared(msg.agent),
-        error: (msg) => {
-          if (msg.source === 'figma') figma.onError(msg.message);
-          if (msg.source === 'agent' || msg.source === 'system') agent.onError(msg.message);
-        },
+      bindMessageHandler((msg) => {
+        switch (msg.event) {
+          case 'figma.connectRequested':
+            figma.requestConnect();
+            break;
+          case 'figma.status':
+            figma.onStatus(msg.connected, msg.methods, msg.error);
+            break;
+          case 'figma.dataResult':
+            figma.onDataResult(msg.data);
+            break;
+          case 'figma.dataFetchError':
+            figma.onError(msg.message);
+            figma.onDataResult(msg.fallbackData);
+            break;
+          case 'figma.screenshotResult':
+            figma.onScreenshotResult(msg.base64);
+            break;
+          case 'agent.modelsResult':
+            agent.onModelsResult(msg.models);
+            break;
+          case 'agent.state':
+            agent.onState(msg.agent, msg.model, msg.hasApiKey);
+            break;
+          case 'agent.settingsSaved':
+            agent.onSettingsSaved(msg.agent, msg.model, msg.hasApiKey);
+            break;
+          case 'agent.settingsCleared':
+            agent.onSettingsCleared(msg.agent);
+            break;
+          case 'error':
+            if (msg.source === 'figma') figma.onError(msg.message);
+            if (msg.source === 'agent' || msg.source === 'system') agent.onError(msg.message);
+            break;
+        }
       });
       break;
     }
@@ -70,17 +77,29 @@ export function init() {
       const layer = new PromptLayer();
       app.innerHTML = layer.render();
       layer.mount();
-      bindMessageHandlers({
-        'prompt.generateRequested': () => layer.onGenerateRequested(),
-        'prompt.streaming': (msg) => layer.onStreaming(msg.progress, msg.text),
-        'prompt.result': (msg) => layer.onResult(msg.code, msg.complete, msg.message, msg.progress),
-        'prompt.estimateResult': (msg) => layer.onEstimateResult(msg.tokens, msg.kb),
-        'prompt.error': (msg) => layer.onError(msg.message, msg.code),
-        error: (msg) => {
-          if (msg.source === 'prompt' || msg.source === 'system') {
-            layer.onHostError(msg.message);
-          }
-        },
+      bindMessageHandler((msg) => {
+        switch (msg.event) {
+          case 'prompt.generateRequested':
+            layer.onGenerateRequested();
+            break;
+          case 'prompt.streaming':
+            layer.onStreaming(msg.progress, msg.text);
+            break;
+          case 'prompt.result':
+            layer.onResult(msg.code, msg.complete, msg.message, msg.progress);
+            break;
+          case 'prompt.estimateResult':
+            layer.onEstimateResult(msg.tokens, msg.kb);
+            break;
+          case 'prompt.error':
+            layer.onError(msg.message, msg.code);
+            break;
+          case 'error':
+            if (msg.source === 'prompt' || msg.source === 'system') {
+              layer.onHostError(msg.message);
+            }
+            break;
+        }
       });
       break;
     }
@@ -88,9 +107,15 @@ export function init() {
       const layer = new LogLayer();
       app.innerHTML = layer.render();
       layer.mount();
-      bindMessageHandlers({
-        'log.append': (msg) => layer.appendEntry(msg.entry),
-        'log.clear': () => layer.clear(),
+      bindMessageHandler((msg) => {
+        switch (msg.event) {
+          case 'log.append':
+            layer.appendEntry(msg.entry);
+            break;
+          case 'log.clear':
+            layer.clear();
+            break;
+        }
       });
       break;
     }
