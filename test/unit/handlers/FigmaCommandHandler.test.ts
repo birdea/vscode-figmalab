@@ -147,6 +147,41 @@ suite('FigmaCommandHandler', () => {
     );
   });
 
+  test('connect in remote mode clears expired session and restarts auth login', async () => {
+    const getStub = sandbox.stub();
+    getStub.withArgs('figma-mcp-helper.remoteMcpEndpoint').returns('https://worker.example.com');
+    getStub.withArgs('figma-mcp-helper.remoteMcpAuthUrl').returns('https://example.com/login');
+    (vscode.workspace.getConfiguration as sinon.SinonStub).returns({ get: getStub });
+    (vscode.env.openExternal as sinon.SinonStub).resetHistory();
+    context.secrets.get.resolves(
+      JSON.stringify({ accessToken: 'expired-token', expiresAt: Date.now() - 1000 }),
+    );
+
+    await handler.connect('remote');
+
+    assert.ok(remoteApiClient.checkStatus.notCalled);
+    assert.ok(context.secrets.delete.calledOnce);
+    assert.ok((vscode.env.openExternal as sinon.SinonStub).calledOnce);
+    assert.ok(webview.postMessage.calledWithMatch({ event: 'figma.authStarted', mode: 'remote' }));
+  });
+
+  test('connect in remote mode clears rejected session and restarts auth login', async () => {
+    const getStub = sandbox.stub();
+    getStub.withArgs('figma-mcp-helper.remoteMcpEndpoint').returns('https://worker.example.com');
+    getStub.withArgs('figma-mcp-helper.remoteMcpAuthUrl').returns('https://example.com/login');
+    (vscode.workspace.getConfiguration as sinon.SinonStub).returns({ get: getStub });
+    (vscode.env.openExternal as sinon.SinonStub).resetHistory();
+    context.secrets.get.resolves(JSON.stringify({ accessToken: 'token' }));
+    remoteApiClient.checkStatus.resolves({ connected: false, error: 'Figma API returned 403' });
+
+    await handler.connect('remote');
+
+    assert.ok(remoteApiClient.checkStatus.calledOnce);
+    assert.ok(context.secrets.delete.calledOnce);
+    assert.ok((vscode.env.openExternal as sinon.SinonStub).calledOnce);
+    assert.ok(webview.postMessage.calledWithMatch({ event: 'figma.authStarted', mode: 'remote' }));
+  });
+
   test('connect in remote mode falls back to generic error when status check fails', async () => {
     const getStub = sandbox.stub();
     getStub.withArgs('figma-mcp-helper.remoteMcpEndpoint').returns('https://worker.example.com');
