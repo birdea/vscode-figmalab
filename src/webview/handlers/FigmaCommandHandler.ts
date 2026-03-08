@@ -133,6 +133,14 @@ export class FigmaCommandHandler {
     }
   }
 
+  private isRemoteAuthRejected(error?: string): boolean {
+    if (!error) {
+      return false;
+    }
+
+    return /\b(401|403)\b|unauthorized|forbidden/i.test(error);
+  }
+
   private async connectRemote() {
     const config = vscode.workspace.getConfiguration();
     const baseUrl = (
@@ -149,7 +157,12 @@ export class FigmaCommandHandler {
     }
 
     const session = await this.remoteAuthService.getSession();
-    if (!session?.accessToken) {
+    const tokenExpired = !!session?.expiresAt && session.expiresAt <= Date.now();
+    if (!session?.accessToken || tokenExpired) {
+      if (tokenExpired) {
+        Logger.info('figma', 'Saved remote auth token expired — restarting login flow');
+        await this.remoteAuthService.clearSession();
+      }
       await this.startRemoteAuthLogin();
       return;
     }
@@ -157,6 +170,13 @@ export class FigmaCommandHandler {
     try {
       const result = await this.remoteApiClient.checkStatus(baseUrl, session.accessToken);
       const connected = !!result.connected;
+      if (!connected && this.isRemoteAuthRejected(result.error)) {
+        Logger.warn('figma', `Saved remote auth session rejected: ${result.error}`);
+        await this.remoteAuthService.clearSession();
+        await this.startRemoteAuthLogin();
+        return;
+      }
+
       this.post({
         event: 'figma.status',
         connected,
