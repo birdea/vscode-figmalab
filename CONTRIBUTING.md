@@ -121,6 +121,8 @@ npm run format:check  # Check formatting
 npm run format        # Apply formatting (Prettier)
 ```
 
+After `npm install`, a `pre-commit` hook is installed automatically and runs Prettier on staged files.
+
 ---
 
 ## Code Style
