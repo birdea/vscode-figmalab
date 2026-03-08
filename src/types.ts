@@ -68,15 +68,11 @@ export type HostToWebviewMessage =
   | { event: 'figma.dataResult'; data: unknown }
   | { event: 'figma.dataFetchError'; message: string; fallbackData: unknown }
   | { event: 'figma.screenshotResult'; base64: string }
-  | { event: 'agent.saveRequested' }
-  | { event: 'agent.clearRequested' }
   | { event: 'agent.state'; agent: AgentType; model: string; hasApiKey: boolean }
   | { event: 'agent.settingsSaved'; agent: AgentType; model: string; hasApiKey: boolean }
   | { event: 'agent.settingsCleared'; agent: AgentType }
   | { event: 'agent.modelsResult'; models: ModelInfo[] }
-  | { event: 'agent.modelInfo'; info: ModelInfo }
   | { event: 'prompt.generateRequested' }
-  | { event: 'prompt.cancelRequested' }
   | { event: 'prompt.streaming'; progress: number; text?: string }
   | {
       event: 'prompt.result';

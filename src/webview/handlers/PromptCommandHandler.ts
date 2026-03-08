@@ -4,7 +4,7 @@ import { EditorIntegration } from '../../editor/EditorIntegration';
 import { Logger } from '../../logger/Logger';
 import { PromptBuilder } from '../../prompt/PromptBuilder';
 import { PromptPayload, HostToWebviewMessage } from '../../types';
-import { SECRET_KEYS, PROGRESS_CAP } from '../../constants';
+import { PROGRESS_CAP, getSecretStorageKey } from '../../constants';
 import { StateManager } from '../../state/StateManager';
 import { UiLocale, USER_CANCELLED_CODE_GENERATION, t } from '../../i18n';
 import { UserCancelledError, toErrorMessage } from '../../errors';
@@ -39,8 +39,7 @@ export class PromptCommandHandler {
     const agent = payload.agent ?? this.stateManager.getAgent();
     const model = payload.model ?? this.stateManager.getModel();
 
-    const secretKey = SECRET_KEYS[`${agent.toUpperCase()}_API_KEY` as keyof typeof SECRET_KEYS];
-    const key = await this.context.secrets.get(secretKey);
+    const key = await this.context.secrets.get(getSecretStorageKey(agent));
     if (key) {
       await AgentFactory.getAgent(agent).setApiKey(key);
     }

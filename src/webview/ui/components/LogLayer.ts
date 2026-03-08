@@ -7,7 +7,6 @@ export class LogLayer {
   }
 
   mount() {
-    // No specific DOM event listeners needed
   }
 
   appendEntry(entry: LogEntry) {
@@ -25,7 +24,7 @@ export class LogLayer {
 
   clear() {
     const area = document.getElementById('log-area');
-    if (area) area.innerHTML = '';
+    if (area) area.textContent = '';
   }
 
   private formatEntry(entry: LogEntry): string {

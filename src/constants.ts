@@ -1,3 +1,5 @@
+import { AgentType } from './types';
+
 export const EXTENSION_ID = 'figma-mcp-helper';
 
 export const VIEW_IDS = {
@@ -23,6 +25,10 @@ export const SECRET_KEYS = {
   GEMINI_API_KEY: 'figma-mcp-helper.geminiApiKey',
   CLAUDE_API_KEY: 'figma-mcp-helper.claudeApiKey',
 } as const;
+
+export function getSecretStorageKey(agent: AgentType): string {
+  return agent === 'gemini' ? SECRET_KEYS.GEMINI_API_KEY : SECRET_KEYS.CLAUDE_API_KEY;
+}
 
 export const DEFAULT_MCP_ENDPOINT = 'http://localhost:3845';
 

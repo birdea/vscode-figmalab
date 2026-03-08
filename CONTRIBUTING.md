@@ -83,7 +83,6 @@ Thank you for your interest in contributing! This document covers how to set up 
 | ----------------- | ---------------------------------------------- |
 | `npm run build`   | Production build (minified, output to `dist/`) |
 | `npm run watch`   | Incremental watch build for development        |
-| `npm run compile` | Alias for `npm run build` (used by CI)         |
 | `npm run package` | Package as `.vsix` for manual installation     |
 
 The build uses **esbuild** to bundle `src/extension.ts` (Node host) and `src/webview/ui/main.ts` (webview browser bundle) separately.

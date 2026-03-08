@@ -193,9 +193,10 @@ export class FigmaLayer {
     const connectBtn = document.getElementById('btn-connect') as HTMLButtonElement | null;
     if (!connectBtn) return;
     connectBtn.disabled = this.connecting;
-    connectBtn.innerHTML = this.connecting
-      ? `<i class="codicon codicon-loading codicon-modifier-spin"></i>${this.msg('figma.connecting')}`
-      : `<i class="codicon codicon-plug"></i>${this.msg('figma.connect')}`;
+    connectBtn.replaceChildren(
+      this.createCodicon(this.connecting ? 'loading codicon-modifier-spin' : 'plug'),
+      document.createTextNode(this.connecting ? this.msg('figma.connecting') : this.msg('figma.connect')),
+    );
   }
 
   private renderToolList(methods: string[], connected: boolean) {
@@ -216,5 +217,11 @@ export class FigmaLayer {
 
   private msg(key: string, params?: Record<string, string | number>) {
     return t(this.locale, key, params);
+  }
+
+  private createCodicon(iconName: string): HTMLElement {
+    const icon = document.createElement('i');
+    icon.className = `codicon codicon-${iconName}`;
+    return icon;
   }
 }

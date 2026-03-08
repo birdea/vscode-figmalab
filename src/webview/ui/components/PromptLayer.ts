@@ -1,6 +1,7 @@
 import { vscode } from '../vscodeApi';
 import { OutputFormat, PromptPayload } from '../../../types';
 import { getDocumentLocale, t, UiLocale } from '../../../i18n';
+import { DEBOUNCE_MS } from '../../../constants';
 
 export class PromptLayer {
   private generatedCode = '';
@@ -190,7 +191,7 @@ export class PromptLayer {
       };
 
       vscode.postMessage({ command: 'prompt.estimate', payload });
-    }, 300);
+    }, DEBOUNCE_MS);
   }
 
   onEstimateResult(tokens: number, kb: number) {

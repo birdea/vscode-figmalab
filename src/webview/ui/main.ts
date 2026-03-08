@@ -29,8 +29,6 @@ export function init() {
         } else if (msg.event === 'figma.screenshotResult') figma.onScreenshotResult(msg.base64);
         else if (msg.event === 'error' && msg.source === 'figma') figma.onError(msg.message);
         else if (msg.event === 'agent.modelsResult') agent.onModelsResult(msg.models);
-        else if (msg.event === 'agent.saveRequested') agent.onSaveRequested();
-        else if (msg.event === 'agent.clearRequested') agent.onClearRequested();
         else if (msg.event === 'agent.state') agent.onState(msg.agent, msg.model, msg.hasApiKey);
         else if (msg.event === 'agent.settingsSaved')
           agent.onSettingsSaved(msg.agent, msg.model, msg.hasApiKey);
@@ -48,7 +46,6 @@ export function init() {
       window.addEventListener('message', (event) => {
         const msg = event.data as HostToWebviewMessage;
         if (msg.event === 'prompt.generateRequested') layer.onGenerateRequested();
-        else if (msg.event === 'prompt.cancelRequested') layer.onCancelRequested();
         else if (msg.event === 'prompt.streaming') layer.onStreaming(msg.progress, msg.text);
         else if (msg.event === 'prompt.result')
           layer.onResult(msg.code, msg.complete, msg.message, msg.progress);

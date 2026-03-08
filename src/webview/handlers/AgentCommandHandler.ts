@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { AgentFactory } from '../../agent/AgentFactory';
 import { Logger } from '../../logger/Logger';
 import { AgentType, HostToWebviewMessage } from '../../types';
-import { CONFIG_KEYS, SECRET_KEYS } from '../../constants';
+import { CONFIG_KEYS, getSecretStorageKey } from '../../constants';
 import { StateManager } from '../../state/StateManager';
 import { ValidationError, toErrorMessage } from '../../errors';
 
@@ -30,9 +30,7 @@ export class AgentCommandHandler {
   async getState() {
     const savedAgent = this.context.globalState.get<AgentType>(CONFIG_KEYS.DEFAULT_AGENT, 'gemini');
     const savedModel = this.context.globalState.get<string>(CONFIG_KEYS.DEFAULT_MODEL, '');
-    const secretKey =
-      SECRET_KEYS[`${savedAgent.toUpperCase()}_API_KEY` as keyof typeof SECRET_KEYS];
-    const key = await this.context.secrets.get(secretKey);
+    const key = await this.context.secrets.get(getSecretStorageKey(savedAgent));
 
     this.stateManager.setAgent(savedAgent);
     this.stateManager.setModel(savedModel);
@@ -47,8 +45,7 @@ export class AgentCommandHandler {
 
   async getModelInfoHelp(agent: AgentType, modelId: string) {
     try {
-      const secretKey = SECRET_KEYS[`${agent.toUpperCase()}_API_KEY` as keyof typeof SECRET_KEYS];
-      const key = await this.context.secrets.get(secretKey);
+      const key = await this.context.secrets.get(getSecretStorageKey(agent));
       if (key) {
         await AgentFactory.getAgent(agent).setApiKey(key);
       }
@@ -66,8 +63,7 @@ export class AgentCommandHandler {
 
   async setApiKey(agent: AgentType, key: string) {
     this.validateApiKey(agent, key);
-    const secretKey = SECRET_KEYS[`${agent.toUpperCase()}_API_KEY` as keyof typeof SECRET_KEYS];
-    await this.context.secrets.store(secretKey, key);
+    await this.context.secrets.store(getSecretStorageKey(agent), key);
     await AgentFactory.getAgent(agent).setApiKey(key);
     Logger.success('agent', `${agent} API key saved`);
   }
@@ -82,8 +78,7 @@ export class AgentCommandHandler {
     await this.context.globalState.update(CONFIG_KEYS.DEFAULT_AGENT, agent);
     await this.context.globalState.update(CONFIG_KEYS.DEFAULT_MODEL, model);
 
-    const secretKey = SECRET_KEYS[`${agent.toUpperCase()}_API_KEY` as keyof typeof SECRET_KEYS];
-    const storedKey = await this.context.secrets.get(secretKey);
+    const storedKey = await this.context.secrets.get(getSecretStorageKey(agent));
 
     this.post({
       event: 'agent.settingsSaved',
@@ -94,8 +89,7 @@ export class AgentCommandHandler {
   }
 
   async clearSettings(agent: AgentType) {
-    const secretKey = SECRET_KEYS[`${agent.toUpperCase()}_API_KEY` as keyof typeof SECRET_KEYS];
-    await this.context.secrets.delete(secretKey);
+    await this.context.secrets.delete(getSecretStorageKey(agent));
 
     this.stateManager.resetAgentState();
     await this.context.globalState.update(CONFIG_KEYS.DEFAULT_AGENT, 'gemini');
@@ -109,8 +103,7 @@ export class AgentCommandHandler {
     if (runtimeKey) {
       await AgentFactory.getAgent(agent).setApiKey(runtimeKey);
     } else {
-      const secretKey = SECRET_KEYS[`${agent.toUpperCase()}_API_KEY` as keyof typeof SECRET_KEYS];
-      const savedKey = await this.context.secrets.get(secretKey);
+      const savedKey = await this.context.secrets.get(getSecretStorageKey(agent));
       if (savedKey) {
         await AgentFactory.getAgent(agent).setApiKey(savedKey);
       }

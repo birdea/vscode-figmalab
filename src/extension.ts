@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { SidebarProvider } from './webview/SidebarProvider';
 import { Logger } from './logger/Logger';
 import { AgentFactory } from './agent/AgentFactory';
-import { COMMANDS, VIEW_IDS, SECRET_KEYS } from './constants';
+import { COMMANDS, VIEW_IDS, getSecretStorageKey } from './constants';
 import { AgentType } from './types';
 import { StateManager } from './state/StateManager';
 import { resolveLocale, t } from './i18n';
@@ -20,8 +20,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // Load saved API keys at activation
   const agents: AgentType[] = ['gemini', 'claude'];
   for (const agent of agents) {
-    const secretKey = SECRET_KEYS[`${agent.toUpperCase()}_API_KEY` as keyof typeof SECRET_KEYS];
-    const key = await context.secrets.get(secretKey);
+    const key = await context.secrets.get(getSecretStorageKey(agent));
     if (key) {
       await AgentFactory.getAgent(agent).setApiKey(key);
     }
@@ -69,8 +68,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
       Logger.info('system', 'Configuration changed — reloading agent API keys');
       for (const agent of agents) {
-        const secretKey = SECRET_KEYS[`${agent.toUpperCase()}_API_KEY` as keyof typeof SECRET_KEYS];
-        const key = await context.secrets.get(secretKey);
+        const key = await context.secrets.get(getSecretStorageKey(agent));
         if (key) {
           await AgentFactory.getAgent(agent).setApiKey(key);
         }
