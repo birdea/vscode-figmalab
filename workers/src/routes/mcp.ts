@@ -21,11 +21,32 @@ interface McpRequest {
 }
 
 function parseFigmaUrl(url: string): { fileKey: string; nodeId: string } | null {
-  const match = url.match(
-    /https?:\/\/(?:www\.)?figma\.com\/(?:design|file)\/([^/]+)\/[^?]*\?[^]*node-id=([^&\s]+)/,
-  );
-  if (!match) return null;
-  return { fileKey: match[1], nodeId: match[2].replace(/-/g, ':') };
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.toLowerCase();
+    if (hostname !== 'figma.com' && hostname !== 'www.figma.com') {
+      return null;
+    }
+
+    const segments = parsed.pathname.split('/').filter(Boolean);
+    if (segments.length < 3) {
+      return null;
+    }
+
+    const [resourceType, fileKey] = segments;
+    if ((resourceType !== 'design' && resourceType !== 'file') || !fileKey) {
+      return null;
+    }
+
+    const rawNodeId = parsed.searchParams.get('node-id');
+    if (!rawNodeId) {
+      return null;
+    }
+
+    return { fileKey, nodeId: rawNodeId.replace(/-/g, ':') };
+  } catch {
+    return null;
+  }
 }
 
 function resolveFileAndNode(body: McpRequest): { fileKey: string; nodeId: string } | null {

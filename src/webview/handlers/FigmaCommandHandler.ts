@@ -36,6 +36,20 @@ export class FigmaCommandHandler {
     this.webview.postMessage(msg);
   }
 
+  private toTrustedFigmaUrl(input: string): string | undefined {
+    try {
+      const url = new URL(input);
+      const hostname = url.hostname.toLowerCase();
+      if (hostname === 'figma.com' || hostname === 'www.figma.com') {
+        return url.toString();
+      }
+    } catch {
+      // Ignore non-URL inputs and fall back to parsed fileKey/nodeId fields.
+    }
+
+    return undefined;
+  }
+
   async connect(mode: ConnectionMode = 'local') {
     this.activeMode = mode;
     if (mode === 'remote') {
@@ -264,8 +278,9 @@ export class FigmaCommandHandler {
     }
 
     try {
+      const figmaUrl = this.toTrustedFigmaUrl(input);
       const data = await this.remoteApiClient.fetchDesignContext(baseUrl, session.accessToken, {
-        ...(typeof input === 'string' && input.includes('figma.com') ? { figmaUrl: input } : {}),
+        ...(figmaUrl ? { figmaUrl } : {}),
         fileKey: parsed.fileId || undefined,
         nodeId: parsed.nodeId || undefined,
       });
@@ -313,8 +328,9 @@ export class FigmaCommandHandler {
     }
 
     try {
+      const figmaUrl = this.toTrustedFigmaUrl(input);
       const result = await this.remoteApiClient.fetchScreenshot(baseUrl, session.accessToken, {
-        ...(typeof input === 'string' && input.includes('figma.com') ? { figmaUrl: input } : {}),
+        ...(figmaUrl ? { figmaUrl } : {}),
         fileKey: fileId,
         nodeId: nodeId || undefined,
       });

@@ -333,6 +333,28 @@ suite('FigmaCommandHandler', () => {
     );
   });
 
+  test('fetchData in remote mode does not trust non-figma hosts that contain figma.com', async () => {
+    const getStub = sandbox.stub();
+    getStub.withArgs('figma-mcp-helper.remoteMcpEndpoint').returns('https://worker.example.com');
+    getStub.withArgs('figma-mcp-helper.openFetchedDataInEditor', false).returns(false);
+    (vscode.workspace.getConfiguration as sinon.SinonStub).returns({ get: getStub });
+    context.secrets.get.resolves(JSON.stringify({ accessToken: 'token' }));
+
+    await handler.connect('remote');
+    await handler.fetchData('https://evil.example/redirect?next=https://figma.com/file/ABCDE/demo');
+
+    assert.ok(
+      remoteApiClient.fetchDesignContext.calledWith(
+        'https://worker.example.com',
+        'token',
+        sinon.match((value: unknown) => {
+          const payload = value as Record<string, unknown>;
+          return !('figmaUrl' in payload);
+        }),
+      ),
+    );
+  });
+
   test('fetchData in remote mode requires a saved session', async () => {
     const getStub = sandbox.stub();
     getStub.withArgs('figma-mcp-helper.remoteMcpEndpoint').returns('https://worker.example.com');
@@ -457,6 +479,29 @@ suite('FigmaCommandHandler', () => {
         event: 'figma.screenshotResult',
         base64: 'remote-base64',
       }),
+    );
+  });
+
+  test('fetchScreenshot in remote mode does not trust non-figma hosts that contain figma.com', async () => {
+    const getStub = sandbox.stub();
+    getStub.withArgs('figma-mcp-helper.remoteMcpEndpoint').returns('https://worker.example.com');
+    (vscode.workspace.getConfiguration as sinon.SinonStub).returns({ get: getStub });
+    context.secrets.get.resolves(JSON.stringify({ accessToken: 'token' }));
+
+    await handler.connect('remote');
+    await handler.fetchScreenshot(
+      'https://evil.example/redirect?next=https://figma.com/file/ABCDE/demo?node-id=4-5',
+    );
+
+    assert.ok(
+      remoteApiClient.fetchScreenshot.calledWith(
+        'https://worker.example.com',
+        'token',
+        sinon.match((value: unknown) => {
+          const payload = value as Record<string, unknown>;
+          return !('figmaUrl' in payload);
+        }),
+      ),
     );
   });
 
