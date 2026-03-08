@@ -1,8 +1,20 @@
 import * as http from 'http';
 import * as https from 'https';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Logger } from '../logger/Logger';
 import { MCP_DEFAULT_PORT, REQUEST_TIMEOUT_MS } from '../constants';
 import { ValidationError, TimeoutError, NetworkError } from '../errors';
+
+function resolveDefaultClientVersion(): string {
+  try {
+    const packageJsonPath = path.resolve(__dirname, '../../package.json');
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')) as { version?: unknown };
+    return typeof packageJson.version === 'string' ? packageJson.version : '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
 
 interface JsonRpcRequest {
   jsonrpc: '2.0';
@@ -41,7 +53,7 @@ export class McpClient {
     endpoint: string,
     private readonly clientInfo: { name: string; version: string } = {
       name: 'vscode-figmalab',
-      version: '0.1.0',
+      version: resolveDefaultClientVersion(),
     },
   ) {
     this.endpoint = endpoint;

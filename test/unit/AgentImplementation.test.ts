@@ -1,5 +1,6 @@
 import * as assert from 'assert';
 import nock from 'nock';
+import * as sinon from 'sinon';
 import { GeminiAgent } from '../../src/agent/GeminiAgent';
 import { ClaudeAgent } from '../../src/agent/ClaudeAgent';
 import { Logger } from '../../src/logger/Logger';
@@ -130,6 +131,11 @@ suite('Agent Implementations', () => {
       assert.strictEqual(info.id, 'claude-sonnet-4-6');
     });
 
+    test('default opus model exposes expanded output token limit', async () => {
+      const info = await agent.getModelInfo('claude-opus-4-6');
+      assert.strictEqual(info.outputTokenLimit, 32768);
+    });
+
     test('listModels uses configured catalog when provided', async () => {
       const vscode = require('vscode');
       const getStub = vscode.workspace.getConfiguration().get;
@@ -174,6 +180,20 @@ suite('Agent Implementations', () => {
     test('generateCode rejects when no API key set', async () => {
       const gen = agent.generateCode({ outputFormat: 'tsx' as any });
       await assert.rejects(() => gen.next(), /No API key set/);
+    });
+
+    test('generateCode uses selected model output token limit', async () => {
+      const streamStub = sinon.stub().returns({
+        async *[Symbol.asyncIterator]() {},
+        abort: sinon.stub(),
+      });
+      (agent as any).apiKey = 'test-key';
+      (agent as any).client = { messages: { stream: streamStub } };
+
+      const gen = agent.generateCode({ outputFormat: 'tsx' as any, model: 'claude-opus-4-6' });
+      await gen.next();
+
+      assert.strictEqual(streamStub.firstCall.args[0].max_tokens, 32768);
     });
   });
 });

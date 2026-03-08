@@ -21,7 +21,7 @@ const DEFAULT_CLAUDE_MODELS: ModelInfo[] = [
     name: 'Claude Opus 4.6',
     description: 'Most capable Claude',
     inputTokenLimit: 200000,
-    outputTokenLimit: 8192,
+    outputTokenLimit: 32768,
   },
   {
     id: 'claude-sonnet-4-6',
@@ -94,13 +94,15 @@ export class ClaudeAgent extends BaseAgent {
       throw new Error('Claude client not initialized');
     }
 
+    const modelId = payload.model || 'claude-sonnet-4-6';
+    const modelInfo = await this.getModelInfo(modelId);
     const prompt = new PromptBuilder().build(payload);
-    Logger.info('agent', `Generating with Claude: ${payload.model}`);
+    Logger.info('agent', `Generating with Claude: ${modelId}`);
 
     try {
       const stream = this.client.messages.stream({
-        model: payload.model || 'claude-sonnet-4-6',
-        max_tokens: 8192,
+        model: modelId,
+        max_tokens: modelInfo.outputTokenLimit ?? 8192,
         system: `You are an expert UI developer. Generate ${payload.outputFormat} code that faithfully reproduces the Figma design. Output ONLY valid code. No explanation.`,
         messages: [{ role: 'user', content: prompt }],
       });

@@ -49,7 +49,7 @@ export class GeminiAgent extends BaseAgent {
       };
 
       const req = https
-        .get(options, (res) => {
+        .request(options, (res) => {
           if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
             res.resume();
             reject(new Error(`Gemini models API returned HTTP ${res.statusCode}`));
@@ -98,6 +98,7 @@ export class GeminiAgent extends BaseAgent {
       req.setTimeout(REQUEST_TIMEOUT_MS, () => {
         req.destroy(new Error('Gemini models API request timed out'));
       });
+      req.end();
     });
   }
 

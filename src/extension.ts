@@ -7,9 +7,13 @@ import { AgentType } from './types';
 import { StateManager } from './state/StateManager';
 import { resolveLocale, t } from './i18n';
 
+let outputChannelRef: vscode.OutputChannel | undefined;
+let sidebarProviders: SidebarProvider[] = [];
+
 export async function activate(context: vscode.ExtensionContext) {
   const locale = resolveLocale(vscode.env.language);
   const outputChannel = vscode.window.createOutputChannel('Figma MCP Helper');
+  outputChannelRef = outputChannel;
   Logger.initialize(outputChannel);
   const stateManager = new StateManager();
 
@@ -45,6 +49,7 @@ export async function activate(context: vscode.ExtensionContext) {
     stateManager,
     (entry) => logProvider.postMessage({ event: 'log.append', entry }),
   );
+  sidebarProviders = [setupProvider, promptProvider, logProvider];
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(VIEW_IDS.SETUP, setupProvider, {
@@ -109,8 +114,11 @@ export async function activate(context: vscode.ExtensionContext) {
   Logger.info('system', `Figma MCP Helper v${context.extension.packageJSON.version} activated`);
 }
 
-export function deactivate() {
+export async function deactivate(): Promise<void> {
   Logger.info('system', 'Figma MCP Helper deactivated');
+  await Promise.allSettled(sidebarProviders.splice(0).map((provider) => provider.dispose()));
   AgentFactory.clear();
   Logger.clear();
+  outputChannelRef?.dispose();
+  outputChannelRef = undefined;
 }

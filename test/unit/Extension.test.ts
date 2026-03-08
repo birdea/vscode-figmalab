@@ -2,10 +2,12 @@ import * as assert from 'assert';
 import * as sinon from 'sinon';
 import { activate, deactivate } from '../../src/extension';
 import { Logger } from '../../src/logger/Logger';
+import { SidebarProvider } from '../../src/webview/SidebarProvider';
 
 suite('Extension Comprehensive', () => {
   let mockContext: any;
   let sandbox: sinon.SinonSandbox;
+  let outputChannel: any;
 
   setup(() => {
     sandbox = sinon.createSandbox();
@@ -22,12 +24,14 @@ suite('Extension Comprehensive', () => {
     };
     
     const vscode = require('vscode');
-    vscode.window.createOutputChannel.returns({ appendLine: () => {}, clear: () => {}, show: () => {} });
+    outputChannel = { appendLine: () => {}, clear: () => {}, show: () => {}, dispose: sandbox.stub() };
+    vscode.window.createOutputChannel.returns(outputChannel);
     vscode.commands.registerCommand = sandbox.stub();
     vscode.window.registerWebviewViewProvider = sandbox.stub();
     vscode.commands.executeCommand = sandbox.stub();
     vscode.window.showSaveDialog = sandbox.stub();
     vscode.workspace.fs.writeFile = sandbox.stub().resolves();
+    sandbox.stub(SidebarProvider.prototype, 'dispose').resolves();
   });
 
   teardown(() => {
@@ -84,7 +88,11 @@ suite('Extension Comprehensive', () => {
     assert.ok(!vscode.workspace.fs.writeFile.called);
   });
 
-  test('deactivate', () => {
-    deactivate();
+  test('deactivate disposes providers and output channel', async () => {
+    await activate(mockContext);
+    await deactivate();
+
+    assert.strictEqual((SidebarProvider.prototype.dispose as any).callCount, 3);
+    assert.ok(outputChannel.dispose.calledOnce);
   });
 });

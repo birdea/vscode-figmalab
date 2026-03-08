@@ -15,7 +15,7 @@ const extensionConfig = {
   platform: 'node',
   sourcemap: !isProduction,
   minify: isProduction,
-  target: 'node18',
+  target: 'node20',
   logLevel: 'info',
 };
 

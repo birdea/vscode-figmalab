@@ -2,6 +2,7 @@ import * as assert from 'assert';
 import nock from 'nock';
 import { McpClient } from '../../src/figma/McpClient';
 import { Logger } from '../../src/logger/Logger';
+const packageJson = require('../../package.json') as { version: string };
 
 suite('McpClient', () => {
   let client: McpClient;
@@ -19,7 +20,10 @@ suite('McpClient', () => {
 
   test('initialize success', async () => {
     nock('http://localhost:3845')
-      .post('/')
+      .post('/', (body) => {
+        const initializeBody = body as { params?: { clientInfo?: { version?: string } } };
+        return initializeBody.params?.clientInfo?.version === packageJson.version;
+      })
       .reply(200, { jsonrpc: '2.0', id: 1, result: { protocolVersion: '2024-11-05' } });
 
     const success = await client.initialize();

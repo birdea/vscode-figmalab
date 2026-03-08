@@ -11,6 +11,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
   private handler?: WebviewMessageHandler;
   private logSubscription?: vscode.Disposable;
+  private messageSubscription?: vscode.Disposable;
+  private viewDisposeSubscription?: vscode.Disposable;
 
   constructor(
     private readonly viewId: string,
@@ -56,15 +58,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       entries.forEach((entry) => this.onLog?.(entry));
     }
 
-    webviewView.onDidDispose(() => {
-      this.logSubscription?.dispose();
-      this.logSubscription = undefined;
-      this.handler?.dispose();
+    this.viewDisposeSubscription?.dispose();
+    this.viewDisposeSubscription = webviewView.onDidDispose(() => {
+      void this.dispose();
     });
 
     webviewView.webview.html = this.getHtml(webviewView.webview);
 
-    webviewView.webview.onDidReceiveMessage(async (msg: WebviewToHostMessage) => {
+    this.messageSubscription?.dispose();
+    this.messageSubscription = webviewView.webview.onDidReceiveMessage(async (msg: WebviewToHostMessage) => {
       if (!this.handler) {
         Logger.error('system', `Handler not initialized for ${this.viewId}`);
         return;
@@ -116,5 +118,24 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   postMessage(msg: unknown) {
     this.view?.webview.postMessage(msg);
+  }
+
+  async dispose(): Promise<void> {
+    this.logSubscription?.dispose();
+    this.logSubscription = undefined;
+
+    this.messageSubscription?.dispose();
+    this.messageSubscription = undefined;
+
+    this.viewDisposeSubscription?.dispose();
+    this.viewDisposeSubscription = undefined;
+
+    const handler = this.handler;
+    this.handler = undefined;
+    this.view = undefined;
+
+    if (handler) {
+      await handler.dispose();
+    }
   }
 }
