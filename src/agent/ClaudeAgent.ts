@@ -45,7 +45,7 @@ export class ClaudeAgent extends BaseAgent {
 
   async setApiKey(key: string): Promise<void> {
     await super.setApiKey(key);
-    this.client = new Anthropic({ apiKey: key });
+    this.client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true });
     Logger.info('agent', 'Claude API key updated');
   }
 
