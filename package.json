@@ -210,7 +210,7 @@
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "@vscode/test-electron": "^2.3.0",
-    "@vscode/vsce": "^2.22.0",
+    "@vscode/vsce": "^3.7.1",
     "c8": "^11.0.0",
     "conventional-changelog": "^7.2.0",
     "esbuild": "^0.20.0",
