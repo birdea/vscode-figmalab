@@ -83,5 +83,24 @@ const m = require('module');
 const originalRequire = m.prototype.require;
 m.prototype.require = function(path: string) {
   if (path === 'vscode') return mockVscode;
+  // @anthropic-ai/sdk >=0.78 detects jsdom's global `window` as a browser
+  // environment and throws at construction time. Since this process is Node
+  // (a VSCode extension), patch the cached module so that new Anthropic(...)
+  // automatically sets dangerouslyAllowBrowser:true in tests.
+  if (path === '@anthropic-ai/sdk') {
+    const realSdk = originalRequire.apply(this, arguments);
+    const OriginalAnthropic: new (...args: any[]) => any = realSdk.default;
+    if (!OriginalAnthropic.__testPatched) {
+      class PatchedAnthropic extends OriginalAnthropic {
+        constructor(opts: Record<string, unknown> = {}) {
+          super({ dangerouslyAllowBrowser: true, ...opts });
+        }
+        static __testPatched = true;
+      }
+      Object.defineProperty(realSdk, 'default', { value: PatchedAnthropic, writable: true, configurable: true });
+      realSdk.Anthropic = PatchedAnthropic;
+    }
+    return realSdk;
+  }
   return originalRequire.apply(this, arguments);
 };
