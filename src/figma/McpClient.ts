@@ -1,6 +1,8 @@
 import * as http from 'http';
 import * as https from 'https';
 import { Logger } from '../logger/Logger';
+import { MCP_DEFAULT_PORT, REQUEST_TIMEOUT_MS } from '../constants';
+import { ValidationError, TimeoutError, NetworkError } from '../errors';
 
 interface JsonRpcRequest {
   jsonrpc: '2.0';
@@ -14,6 +16,20 @@ interface JsonRpcResponse {
   id: number | string | null;
   result?: unknown;
   error?: { code: number; message: string; data?: unknown };
+}
+
+function isJsonRpcResponse(value: unknown): value is JsonRpcResponse {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  if (v['jsonrpc'] !== '2.0') return false;
+  if (v['id'] !== null && typeof v['id'] !== 'number' && typeof v['id'] !== 'string') return false;
+  const hasResult = 'result' in v;
+  const hasError =
+    typeof v['error'] === 'object' &&
+    v['error'] !== null &&
+    typeof (v['error'] as Record<string, unknown>)['code'] === 'number' &&
+    typeof (v['error'] as Record<string, unknown>)['message'] === 'string';
+  return hasResult || hasError;
 }
 
 export class McpClient {
@@ -51,7 +67,7 @@ export class McpClient {
           : isHttps
             ? 443
             : isLocalhost
-              ? 3845
+              ? MCP_DEFAULT_PORT
               : 80;
 
       const options: http.RequestOptions = {
@@ -75,30 +91,35 @@ export class McpClient {
           }
 
           try {
-            const response: JsonRpcResponse = JSON.parse(data);
-            if (response.jsonrpc !== '2.0') {
-              reject(new Error(`Invalid MCP JSON-RPC version: ${String(response.jsonrpc)}`));
+            const parsed: unknown = JSON.parse(data);
+            if (!isJsonRpcResponse(parsed)) {
+              reject(new ValidationError(`Invalid MCP JSON-RPC response shape: ${data.slice(0, 200)}`));
               return;
             }
+            const response = parsed;
             if (response.id !== null && response.id !== undefined && String(response.id) !== String(id)) {
-              reject(new Error(`MCP response id mismatch: expected ${id}, got ${response.id}`));
+              reject(new ValidationError(`MCP response id mismatch: expected ${id}, got ${response.id}`));
               return;
             }
             if (response.error) {
-              reject(new Error(`MCP Error ${response.error.code}: ${response.error.message}`));
+              reject(new NetworkError(`MCP Error ${response.error.code}: ${response.error.message}`));
             } else {
               resolve(response.result);
             }
-          } catch {
-            reject(new Error(`Failed to parse MCP response: ${data}`));
+          } catch (parseErr) {
+            if (parseErr instanceof ValidationError || parseErr instanceof NetworkError) {
+              reject(parseErr);
+            } else {
+              reject(new ValidationError(`Failed to parse MCP response: ${data.slice(0, 200)}`));
+            }
           }
         });
       });
 
-      req.on('error', (e) => reject(new Error(`MCP request failed: ${e.message}`)));
-      req.setTimeout(10000, () => {
+      req.on('error', (e) => reject(new NetworkError(`MCP request failed: ${e.message}`, e)));
+      req.setTimeout(REQUEST_TIMEOUT_MS, () => {
         req.destroy();
-        reject(new Error('MCP request timed out'));
+        reject(new TimeoutError('MCP request timed out'));
       });
       req.write(bodyStr);
       req.end();

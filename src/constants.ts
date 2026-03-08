@@ -26,8 +26,16 @@ export const SECRET_KEYS = {
 
 export const DEFAULT_MCP_ENDPOINT = 'http://localhost:3845';
 
+export const MCP_DEFAULT_PORT = 3845;
+
+export const REQUEST_TIMEOUT_MS = 10000;
+
+export const PROGRESS_CAP = 95;
+
 export const MAX_LOG_ENTRIES = 500;
 
 export const TOKEN_ESTIMATE_DIVISOR = 4;
 
 export const DEBOUNCE_MS = 300;
+
+export const GEMINI_MODELS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes

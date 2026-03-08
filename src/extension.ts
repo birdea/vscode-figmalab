@@ -59,6 +59,21 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration(async (e) => {
+      if (!e.affectsConfiguration('figma-mcp-helper')) return;
+
+      Logger.info('system', 'Configuration changed — reloading agent API keys');
+      for (const agent of agents) {
+        const secretKey = SECRET_KEYS[`${agent.toUpperCase()}_API_KEY` as keyof typeof SECRET_KEYS];
+        const key = await context.secrets.get(secretKey);
+        if (key) {
+          await AgentFactory.getAgent(agent).setApiKey(key);
+        }
+      }
+    }),
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand(COMMANDS.CONNECT, async () => {
       await vscode.commands.executeCommand('workbench.view.extension.figma-mcp-helper');
       setupProvider.postMessage({ event: 'figma.connectRequested' });

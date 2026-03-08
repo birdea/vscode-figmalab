@@ -8,6 +8,8 @@ export class PromptLayer {
   private isGenerating = false;
   private requestId: string | null = null;
   private readonly locale: UiLocale = getDocumentLocale();
+  private pendingChunks: string[] = [];
+  private rafPending = false;
 
   render(): string {
     return `
@@ -212,10 +214,23 @@ export class PromptLayer {
 
   onChunk(text: string) {
     this.generatedCode += text;
-    const codeOutput = document.getElementById('code-output') as HTMLPreElement;
-    if (codeOutput) {
-      codeOutput.insertAdjacentText('beforeend', text);
-      codeOutput.scrollTop = codeOutput.scrollHeight;
+    this.pendingChunks.push(text);
+    if (!this.rafPending) {
+      this.rafPending = true;
+      const flush = () => {
+        const codeOutput = document.getElementById('code-output') as HTMLPreElement | null;
+        if (codeOutput && this.pendingChunks.length > 0) {
+          codeOutput.insertAdjacentText('beforeend', this.pendingChunks.join(''));
+          codeOutput.scrollTop = codeOutput.scrollHeight;
+        }
+        this.pendingChunks = [];
+        this.rafPending = false;
+      };
+      if (typeof requestAnimationFrame !== 'undefined') {
+        requestAnimationFrame(flush);
+      } else {
+        setTimeout(flush, 0);
+      }
     }
   }
 

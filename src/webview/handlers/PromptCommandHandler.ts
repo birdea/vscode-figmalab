@@ -4,9 +4,10 @@ import { EditorIntegration } from '../../editor/EditorIntegration';
 import { Logger } from '../../logger/Logger';
 import { PromptBuilder } from '../../prompt/PromptBuilder';
 import { PromptPayload, HostToWebviewMessage } from '../../types';
-import { SECRET_KEYS } from '../../constants';
+import { SECRET_KEYS, PROGRESS_CAP } from '../../constants';
 import { StateManager } from '../../state/StateManager';
 import { UiLocale, USER_CANCELLED_CODE_GENERATION, t } from '../../i18n';
+import { UserCancelledError } from '../../errors';
 
 export class PromptCommandHandler {
   private isGenerating = false;
@@ -67,10 +68,10 @@ export class PromptCommandHandler {
       );
       for await (const chunk of gen) {
         if (this.abortController.signal.aborted) {
-          throw new Error(USER_CANCELLED_CODE_GENERATION);
+          throw new UserCancelledError(USER_CANCELLED_CODE_GENERATION);
         }
         fullCode += chunk;
-        progress = Math.min(95, progress + 5);
+        progress = Math.min(PROGRESS_CAP, progress + 5);
         this.post({ event: 'prompt.generating', progress });
         this.post({ event: 'prompt.chunk', text: chunk });
       }
@@ -80,7 +81,9 @@ export class PromptCommandHandler {
     } catch (e) {
       const err = e as Error;
       const isCancelled =
-        this.abortController?.signal.aborted || err.message === USER_CANCELLED_CODE_GENERATION;
+        err instanceof UserCancelledError ||
+        this.abortController?.signal.aborted ||
+        err.message === USER_CANCELLED_CODE_GENERATION;
       this.post({
         event: 'prompt.error',
         message: isCancelled ? t(this.locale, 'host.prompt.cancelled') : err.message,

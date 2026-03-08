@@ -1,6 +1,7 @@
 import { vscode } from '../vscodeApi';
 import { AgentType, ModelInfo } from '../../../types';
 import { getDocumentLocale, t, UiLocale } from '../../../i18n';
+import { toFriendlyApiKeyError } from '../utils/errorUtils';
 
 export class AgentLayer {
   private models: ModelInfo[] = [];
@@ -110,6 +111,15 @@ export class AgentLayer {
 
     this.updateStatus();
     vscode.postMessage({ command: 'agent.getState' });
+
+    window.addEventListener('unload', () => this.dispose());
+  }
+
+  dispose() {
+    if (this.autoLoadTimer) {
+      clearTimeout(this.autoLoadTimer);
+      this.autoLoadTimer = null;
+    }
   }
 
   onModelsResult(models: ModelInfo[]) {
@@ -293,13 +303,7 @@ export class AgentLayer {
   }
 
   private toFriendlyError(message: string): string {
-    if (message.includes('No API key')) {
-      return this.msg('agent.error.noApiKey');
-    }
-    if (message.includes('HTTP 401') || message.includes('permission')) {
-      return this.msg('agent.error.auth');
-    }
-    return this.msg('agent.error.generic');
+    return toFriendlyApiKeyError(this.locale, message, 'agent.error.noApiKey', 'agent.error.auth', 'agent.error.generic');
   }
 
   private msg(key: string, params?: Record<string, string | number>) {

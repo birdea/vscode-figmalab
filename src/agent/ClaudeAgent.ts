@@ -7,6 +7,14 @@ import { Logger } from '../logger/Logger';
 import { CONFIG_KEYS } from '../constants';
 import { USER_CANCELLED_CODE_GENERATION } from '../i18n';
 
+interface ModelConfig {
+  id?: unknown;
+  name?: unknown;
+  description?: unknown;
+  inputTokenLimit?: unknown;
+  outputTokenLimit?: unknown;
+}
+
 const DEFAULT_CLAUDE_MODELS: ModelInfo[] = [
   {
     id: 'claude-opus-4-6',
@@ -53,11 +61,11 @@ export class ClaudeAgent extends BaseAgent {
     const validModels = configuredModels
       .map((entry): ModelInfo | null => {
         if (!entry || typeof entry !== 'object') return null;
-        const model = entry as Record<string, unknown>;
+        const model = entry as ModelConfig;
         if (typeof model.id !== 'string' || !model.id.trim()) return null;
         return {
           id: model.id.trim(),
-          name: typeof model.name === 'string' && model.name.trim() ? model.name.trim() : model.id,
+          name: typeof model.name === 'string' && model.name.trim() ? model.name.trim() : model.id.trim(),
           description: typeof model.description === 'string' ? model.description : undefined,
           inputTokenLimit:
             typeof model.inputTokenLimit === 'number' ? model.inputTokenLimit : undefined,

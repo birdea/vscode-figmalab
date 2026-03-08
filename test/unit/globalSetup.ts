@@ -15,6 +15,13 @@ const dom = new JSDOM('<!DOCTYPE html><html><body><div id="app"></div></body></h
 (global as any).HTMLSelectElement = dom.window.HTMLSelectElement;
 (global as any).HTMLInputElement = dom.window.HTMLInputElement;
 (global as any).HTMLTextAreaElement = dom.window.HTMLTextAreaElement;
+// Provide synchronous requestAnimationFrame polyfill for jsdom tests
+(global as any).requestAnimationFrame = (cb: FrameRequestCallback) => {
+  cb(0);
+  return 0;
+};
+(dom.window as any).requestAnimationFrame = (global as any).requestAnimationFrame;
+
 (global as any).acquireVsCodeApi = () => ({
   postMessage: () => {},
   getState: () => ({}),
@@ -37,7 +44,9 @@ const mockVscode = {
     getConfiguration: sinon.stub().returns({
       get: sinon.stub(),
     }),
+    onDidChangeConfiguration: sinon.stub().returns({ dispose: sinon.stub() }),
     openTextDocument: sinon.stub(),
+    workspaceFolders: undefined,
     fs: {
       writeFile: sinon.stub(),
       delete: sinon.stub(),
