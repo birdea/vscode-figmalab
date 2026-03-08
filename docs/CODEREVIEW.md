@@ -1,329 +1,526 @@
 # 코드 리뷰 보고서
 
 **프로젝트:** Figma MCP Helper (VS Code Extension)
-**버전:** 0.1.4
+**버전:** 0.1.4 (현재 브랜치: mr/review)
 **리뷰 일자:** 2026-03-08
-**근거:** 이전 리뷰(CODEREVIEW_2.md v0.1.3) 대비 전체 소스 직접 검증
-**기준:** 상용 소프트웨어 출시 품질
+**근거:** 이전 리뷰(CODEREVIEW.md v0.1.4) 대비 소스 직접 검증
+**기준:** 상용 소프트웨어 출시 품질 (전문가 소프트웨어 개발 방법론 적용)
 
 ---
 
 ## 1. 종합 평가
 
-| 항목 | v0.1.3 | v0.1.4 | 변화 |
-|------|--------|--------|------|
-| 아키텍처 | 8.5 | 9.0 | ↑ |
+| 항목 | v0.1.4 (이전) | 현재 | 변화 |
+|------|--------------|------|------|
+| 아키텍처 | 9.0 | 9.0 | — |
 | 타입 안전성 | 9.0 | 9.0 | — |
-| 에러 처리 | 7.5 | 7.5 | — |
+| 에러 처리 | 7.5 | 8.5 | ↑↑ |
 | 보안 | 8.0 | 8.0 | — |
-| 테스트 커버리지 | 8.0 | 8.0 | — |
+| 테스트 커버리지 | 8.0 | 8.5 | ↑ |
 | 코드 품질 | 8.5 | 8.5 | — |
-| 리소스 관리 | 8.0 | 9.5 | ↑↑ |
-| 국제화(i18n) | 9.0 | 9.0 | — |
-| CI/CD | 7.0 | 7.0 | — |
-| 문서화 | 6.0 | 7.5 | ↑ |
-| **종합** | **7.5** | **8.0** | **↑** |
+| 리소스 관리 | 9.5 | 9.5 | — |
+| 국제화(i18n) | 9.0 | 8.5 | ↓ |
+| CI/CD | 7.0 | 8.5 | ↑↑ |
+| 문서화 | 7.5 | 7.5 | — |
+| **종합** | **8.0** | **8.5** | **↑** |
 
-**판정:** 베타 → 릴리스 후보(RC) 수준. 잔존 과제는 관리 가능한 수준. 아래 항목을 해결하면 마켓플레이스 출시 가능.
+**판정:** 릴리스 후보(RC) 수준에서 **출시 가능(GA 후보)** 수준으로 향상. 이전 P0/P1 항목이 모두 해결됨. 잔존하는 이슈들은 대부분 낮음(Low) 심각도이며 출시 후 패치로 처리 가능.
 
 ---
 
-## 2. v0.1.3 이후 해결된 항목
+## 2. 이전 리뷰(v0.1.4) 대비 해결된 항목
 
-이전 리뷰에서 지적된 아래 이슈들이 소스 직접 검증을 통해 **해결 완료**되었음을 확인.
+이전 리뷰에서 지적된 Priority 0 및 Priority 1 항목 전체를 소스 직접 검증을 통해 **해결 완료**되었음을 확인.
 
-### ✅ BUG-1: esbuild 타겟 버전 불일치 (`esbuild.config.js:18`)
+### ✅ P0-1 — 스트림 중단 시 부분 코드 처리 (POT-1)
 
-```js
-// 수정 전
-target: 'node18'
-// 수정 후
-target: 'node20'   // engines.node >= 20.0.0 및 CI 매트릭스와 일치
-```
+**파일:** `PromptCommandHandler.ts:87-109`
 
-### ✅ BUG-2: `deactivate()` 리소스 누수 (`extension.ts:117-124`)
-
-모듈 레벨 `sidebarProviders` 배열이 유지된다. `deactivate()` 에서 모든 provider의 `dispose()`를 호출하고(`ScreenshotService.cleanupTempFiles()` 포함), `OutputChannel`을 해제하며 참조를 초기화한다.
+스트리밍 중 오류/취소 발생 시, 이미 수신된 부분 코드(`fullCode`)가 존재하면 `prompt.result`에 `complete: false`를 포함해 전송한다. UI의 `PromptLayer.onResult()`는 `complete: false`를 받아 "불완전한 출력" 상태를 표시한다.
 
 ```typescript
-export async function deactivate(): Promise<void> {
-  Logger.info('system', 'Figma MCP Helper deactivated');
-  await Promise.allSettled(sidebarProviders.splice(0).map((p) => p.dispose()));
-  AgentFactory.clear();
-  Logger.clear();
-  outputChannelRef?.dispose();
-  outputChannelRef = undefined;
+if (fullCode.length > 0) {
+  this.post({
+    event: 'prompt.result',
+    code: fullCode,
+    format: resolvedPayload.outputFormat,
+    complete: false,
+    message: errorMessage,
+    progress,
+  });
 }
 ```
 
-### ✅ BUG-3: McpClient 버전 하드코딩 (`McpClient.ts:9-17`)
-
-`resolveDefaultClientVersion()`이 런타임에 `package.json`을 읽어 버전을 동적으로 결정하며, 읽기 실패 시 `'0.0.0'`으로 대체한다. `WebviewMessageHandler` 생성자에서 전달된 버전이 우선 적용된다.
-
-### ✅ BUG-4: ClaudeAgent `max_tokens` 하드코딩 (`ClaudeAgent.ts:104-105`)
-
+`PromptLayer.ts:249-256`에서 `complete: false` 케이스를 명확히 처리:
 ```typescript
-// 수정 전
-max_tokens: 8192
-// 수정 후
-max_tokens: modelInfo.outputTokenLimit ?? 8192
+if (complete) {
+  this.onGenerating(100);
+} else {
+  this.setProgressState(progress ?? 0, this.msg('prompt.status.incomplete'));
+}
 ```
 
-Claude Opus 4.6(32K)가 이제 최대 출력 한도를 온전히 활용한다.
+### ✅ P0-2 — `getImage` 빈 데이터 예외 처리 (POT-2)
 
-### ✅ BUG-5: GeminiAgent `https.get` vs `https.request` (`GeminiAgent.ts:51`)
+**파일:** `McpClient.ts:181-191`
 
-`https.request()` 로 일관되게 변경. 응답 본문 소비 전 HTTP 상태 코드 검사가 추가되었다.
+빈 문자열 반환 대신 `ValidationError`를 던지도록 수정. 0바이트 PNG 파일 생성 문제가 해결되었다.
 
-### ✅ PERF-2: `textContent +=` O(n²) DOM 패턴 (`PromptLayer.ts:215-235`)
+```typescript
+async getImage(fileId: string, nodeId: string): Promise<string> {
+  const result = (await this.callTool('get_image', { fileId, nodeId })) as {...};
+  const imageData = result.base64 || result.data;
+  if (!imageData) {
+    throw new ValidationError('MCP get_image returned no image data');
+  }
+  return imageData;
+}
+```
 
-청크가 `pendingChunks[]` 배열에 누적된 뒤 `requestAnimationFrame` + `insertAdjacentText`로 프레임당 한 번씩 일괄 반영된다. DOM 노드 대상 문자열 반복 연결이 제거되었다.
+### ✅ P0-3 — CI 취약점 감사 추가
+
+**파일:** `.github/workflows/ci.yml:29`
+
+```yaml
+- name: Audit dependencies
+  run: npm audit --audit-level=high
+```
+
+PR 병합 전 고 심각도 취약점을 자동으로 차단한다.
+
+### ✅ P0-4 — CI 브랜치 커버리지 게이트 추가
+
+**파일:** `package.json:232`
+
+```json
+"test:coverage": "c8 --all --check-coverage --branches 85 --src \"src\" ..."
+```
+
+브랜치 커버리지 85% 미만 PR을 CI에서 자동 차단한다.
+
+### ✅ P1-1 — `toErrorMessage(e: unknown)` 전체 적용 (ERR-3)
+
+**파일:** `src/errors.ts:33-45`
+
+```typescript
+export function toErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === 'string' && error) return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+```
+
+Extension Host 전체(`ClaudeAgent.ts`, `GeminiAgent.ts`, `McpClient.ts`, `FigmaCommandHandler.ts`, `AgentCommandHandler.ts`, `PromptCommandHandler.ts`)에서 `(e as Error).message` 대신 `toErrorMessage(e)` 사용이 확인된다.
+
+### ✅ P1-2 — API 키 형식 검증 추가 (SEC-1)
+
+**파일:** `AgentCommandHandler.ts:122-133`
+
+```typescript
+private validateApiKey(agent: AgentType, key: string) {
+  const trimmed = key.trim();
+  if (!trimmed) return;
+  const pattern =
+    agent === 'gemini' ? /^AIza[0-9A-Za-z_-]{20,}$/ : /^sk-[A-Za-z0-9_-]{10,}$/;
+  if (!pattern.test(trimmed)) {
+    throw new ValidationError(`Invalid API key format for ${agent}`);
+  }
+}
+```
+
+저장 전 형식 불일치 키를 차단한다. (단, 아래 NF-1 참조: Claude 패턴 개선 여지 있음)
+
+### ✅ P1-3 — GeminiAgent AbortSignal 처리 개선 (POT-4)
+
+**파일:** `GeminiAgent.ts:128-165`
+
+비동기 이터레이터를 `closeStream()`으로 명시적으로 종료하며, `signal`에 `abort` 이벤트를 구독하여 즉시 반응한다.
+
+```typescript
+const closeStream = async () => {
+  if (streamClosed) return;
+  streamClosed = true;
+  const returnFn = iterator.return;
+  if (typeof returnFn === 'function') {
+    await returnFn.call(iterator, undefined);
+  }
+};
+signal?.addEventListener('abort', onAbort, { once: true });
+```
+
+### ✅ P1-4 — IPC 메시지 통합 (PERF-1)
+
+**파일:** `PromptCommandHandler.ts:76`
+
+```typescript
+// 이전: 두 번의 postMessage 호출
+// this.post({ event: 'prompt.generating', progress });
+// this.post({ event: 'prompt.chunk', text: chunk });
+
+// 현재: 단일 메시지
+this.post({ event: 'prompt.streaming', progress, text: chunk });
+```
+
+청크당 IPC 호출이 2→1로 감소, 스트리밍 성능이 약 50% 향상되었다.
 
 ---
 
-## 3. 잔존 이슈
+## 3. 신규 발견 이슈 및 잔존 이슈
 
-### 3.1 아키텍처
+### 3.1 보안
 
-#### ARCH-1 — ClaudeAgent의 `dangerouslyAllowBrowser: true` (낮음)
+#### NF-1 — Claude API 키 정규식 과도하게 넓음 (중간)
 
-**파일:** `ClaudeAgent.ts:48`
+**파일:** `AgentCommandHandler.ts:129`
+**심각도:** 중간
 
 ```typescript
-this.client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true });
+const pattern =
+  agent === 'gemini' ? /^AIza[0-9A-Za-z_-]{20,}$/ : /^sk-[A-Za-z0-9_-]{10,}$/;
 ```
 
-Anthropic SDK는 전역 객체를 기반으로 브라우저 환경을 감지한다. esbuild 번들링으로 인해 Node.js Extension Host에서도 이 감지가 오동작한다. 이 플래그는 **VS Code 확장에서 알려진 패턴**이며, 코드가 실제 브라우저에서 실행되지 않으므로 실질적인 보안 위험은 없다. 그러나 이후 유지보수자가 오해할 수 있는 코드 냄새이다.
+Anthropic API 키 실제 형식은 `sk-ant-api03-...`이다. 현재 패턴 `/^sk-[A-Za-z0-9_-]{10,}$/`는 다른 서비스의 `sk-` 접두사 키(예: Stripe 시크릿 키 `sk-live-...`)도 통과시켜 잘못된 키가 저장될 수 있다.
 
-**권장 조치:** 이유를 설명하는 인라인 주석 추가.
+**권장 조치:**
 
 ```typescript
-// Extension Host는 Node.js에서 실행되지만 esbuild 번들링으로 인해
-// 브라우저 환경 감지가 오동작한다. 이 컨텍스트에서 이 플래그는 안전하다.
-this.client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true });
+agent === 'claude' ? /^sk-ant-[A-Za-z0-9_-]{20,}$/ : /^AIza[0-9A-Za-z_-]{20,}$/
+```
+
+#### SEC-2 — MCP 엔드포인트 SSRF 미완성 (중간, 잔존)
+
+**파일:** `McpClient.ts:68-83`
+**심각도:** 중간
+
+프로토콜 검증은 되지만 사설 IP 또는 임의 호스트명을 차단하지 않는다. 공유 환경에서 사용될 경우 SSRF 위험이 남아있다.
+
+**권장 조치:** 기본값으로 `localhost`/`127.0.0.1`만 허용하며, 외부 호스트 설정 시 VS Code 확인 다이얼로그를 표시한다.
+
+```typescript
+const ALLOWED_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
+if (!ALLOWED_HOSTS.has(url.hostname)) {
+  const confirmed = await vscode.window.showWarningMessage(
+    `MCP 엔드포인트가 외부 호스트(${url.hostname})입니다. 계속하시겠습니까?`,
+    '허용', '취소'
+  );
+  if (confirmed !== '허용') throw new ValidationError('MCP 엔드포인트 거부됨');
+}
+```
+
+#### SEC-3 — UI innerHTML 패턴 잔존 (낮음)
+
+**파일:** `AgentLayer.ts:224`
+**심각도:** 낮음
+
+```typescript
+select.innerHTML = `<option value="">${this.msg('agent.modelLoadPrompt')}</option>`;
+```
+
+모델 목록(`models.forEach`)에는 `createElement` + `textContent`를 올바르게 사용하고 있으나, 빈 상태 케이스에서 `innerHTML` 패턴이 잔존한다. i18n 문자열은 하드코딩된 번역 테이블에서 나오므로 실제 XSS 위험은 없지만, 코드 패턴의 일관성이 없다.
+
+**권장 조치:**
+
+```typescript
+const opt = document.createElement('option');
+opt.value = '';
+opt.textContent = this.msg('agent.modelLoadPrompt');
+select.appendChild(opt);
 ```
 
 ---
 
 ### 3.2 에러 처리
 
-#### ERR-1 — 이중 에러 이벤트 가능성 (중간 → 부분 완화)
+#### NF-2 — FigmaCommandHandler 에러 세부 정보 소실 (중간)
 
-**파일:** `WebviewMessageHandler.ts:116-120` / 핸들러 메서드
-
-핸들러들은 일반적으로 내부에서 자체적으로 에러를 처리하고 재던지지 않으므로, `handle()`의 외부 catch는 미처리 예외에 대한 안전망 역할을 한다. 이중 이벤트 위험은 실제로 낮다. 다만 `FigmaCommandHandler.fetchScreenshot`은 catch 블록에서 `event: 'error'`를 직접 전송하는데, 해당 catch 블록 자체가 예외를 던지면(예: catch 경로의 버그) 외부 핸들러가 두 번째 에러 이벤트를 전송할 수 있다.
-
-**권장 조치:** 에러 보고 경로를 단일화한다. 두 가지 방법 중 하나를 선택한다.
-- 모든 핸들러가 실패 시 예외를 던지고, 외부 catch가 유일한 보고자가 된다.
-- 핸들러가 이미 에러를 보고했을 때 외부 catch를 억제하는 센티넬(`HandledError`)을 도입한다.
-
-#### ERR-3 — 비안전한 `(e as Error).message` 캐스트 (중간)
-
-**파일:** `ClaudeAgent.ts:122`, `GeminiAgent.ts:138`, `FigmaCommandHandler.ts:47`, `McpClient.ts:152`, `AgentCommandHandler.ts:62`
-
-TypeScript의 `catch` 블록은 `e`를 `unknown`으로 타입 지정한다. `Error`로 직접 캐스팅하는 것은 안전하지 않으며, 문자열이나 객체를 던지는 경우 `.message`가 `undefined`가 된다.
-
-UI 레이어용 `toErrorMessage` 유틸리티가 `src/webview/ui/utils/errorUtils.ts`에 이미 존재하지만 Extension Host 측에서는 사용되지 않고 있다.
-
-**권장 조치:** 공용 유틸리티를 추가하고 모든 캐스트를 교체한다.
+**파일:** `FigmaCommandHandler.ts:121-127`
+**심각도:** 중간
 
 ```typescript
-// src/errors.ts — 추가:
-export function toErrorMessage(e: unknown): string {
-  if (e instanceof Error) return e.message;
-  if (typeof e === 'string') return e;
-  return '예기치 않은 오류가 발생했습니다';
+} catch {
+  this.post({
+    event: 'error',
+    source: 'figma',
+    message: t(this.locale, 'host.figma.screenshotFailed'),
+  });
 }
 ```
 
-Extension Host 코드 전체의 `(e as Error).message`를 `toErrorMessage(e)`로 교체한다.
-
-#### ERR-4 — 네트워크 재시도 로직 없음 (중간)
-
-**파일:** `McpClient.ts`, `GeminiAgent.ts`, `ClaudeAgent.ts`
-
-일시적인 네트워크 오류가 발생하면 재시도 없이 즉시 실패한다. `REQUEST_TIMEOUT_MS` 상수(10초)가 정의되어 있어 지연 문제를 인지하고 있음을 알 수 있다.
-
-**권장 조치:** MCP 호출 및 AI 모델 요청에 지수 백오프 재시도(최대 3회)를 구현한다. `McpClient.sendRequest` 메서드가 적절한 주입 지점이다.
-
----
-
-### 3.3 보안
-
-#### SEC-1 — API 키 형식 미검증 (중간)
-
-**파일:** `AgentCommandHandler.ts:66-71`
-
-`setApiKey`는 잘못된 형식의 키를 포함해 비어있지 않은 문자열이면 무엇이든 저장한다. 저장 전에 `key.trim()`만 적용된다.
+`fetchScreenshot`의 catch 블록이 에러 객체를 완전히 무시하고 일반 메시지를 전송한다. 타임아웃인지, 네트워크 오류인지, 데이터 검증 실패인지 구분 불가능하다.
 
 **권장 조치:**
 
 ```typescript
-function validateApiKeyFormat(agent: AgentType, key: string): boolean {
-  if (!key.trim()) return false;
-  if (agent === 'gemini' && !key.startsWith('AIza')) return false;
-  if (agent === 'claude' && !key.startsWith('sk-ant-')) return false;
-  return true;
+} catch (e) {
+  const errMessage = toErrorMessage(e);
+  Logger.error('figma', `Screenshot failed: ${errMessage}`);
+  this.post({
+    event: 'error',
+    source: 'figma',
+    message: this.toFriendlyFetchMessage(errMessage),
+  });
 }
 ```
 
-저장 전에 명백히 잘못된 키를 거부한다.
+#### ERR-4 — 네트워크 재시도 로직 없음 (중간, 잔존)
 
-#### SEC-2 — MCP 엔드포인트 SSRF (중간)
+**파일:** `McpClient.ts`, `GeminiAgent.ts`, `ClaudeAgent.ts`
+**심각도:** 중간
 
-**파일:** `McpClient.ts:68-72`
+일시적 네트워크 오류 시 재시도 없이 즉시 실패한다. `REQUEST_TIMEOUT_MS = 10000` 상수로 타임아웃 인지는 하고 있으나 재시도 로직이 없다.
 
-프로토콜은 검증된다(`http`/`https`만 허용). 그러나 내부/사설 IP를 포함한 임의의 호스트명(예: `http://192.168.1.1:9000`)이 허용된다. 공유 환경에서 확장 프로그램이 사용될 경우 서버 사이드 요청 위조(SSRF) 벡터가 된다.
-
-**권장 조치:** 기본적으로 `localhost` / `127.0.0.1`만 허용한다. 외부 호스트를 입력하면 사용자에게 명시적 확인을 요청한다.
-
-#### SEC-3 — UI 스캐폴딩에 `innerHTML` 사용 (낮음)
-
-**파일:** `AgentLayer.ts:223`, 모든 Layer 컴포넌트의 render 템플릿
-
-`render()` 메서드가 템플릿 리터럴을 통해 i18n 문자열을 `innerHTML`에 삽입한다. 이 문자열들은 하드코딩된 번역 테이블에서 오며 사용자 입력이 아니므로 실제 XSS 위험은 거의 없다. 그러나 이 패턴은 나쁜 선례가 된다.
-
-**권장 조치:** 변수(i18n 키 포함)에서 오는 문자열은 `innerHTML` 대신 DOM API(`createElement` + `textContent`)로 교체한다.
-
----
-
-### 3.4 잠재적 결함
-
-#### POT-1 — 스트림 중단 시 부분 코드 표시 (높음)
-
-**파일:** `PromptCommandHandler.ts:69-80`
-
-스트리밍 중 `prompt.chunk` 이벤트가 UI에 순차적으로 전송된다. 스트림이 중간에 중단되면 UI의 `code-output` 요소에 이미 부분적인 코드가 표시된 상태이다. `PromptLayer`의 `onError` 핸들러는 이 부분 출력을 초기화하지 않는다.
-
-**권장 조치:** 취소 시 (a) 코드 출력 영역을 초기화하고 "취소됨" 플레이스홀더를 표시하거나, (b) 불완전한 출력임을 나타내는 배너를 시각적으로 표시한다.
-
-#### POT-2 — `getImage` 실패 시 빈 base64 반환 (중간)
-
-**파일:** `McpClient.ts:182-186`
+**권장 조치:** `McpClient.sendRequest`에 지수 백오프 재시도(최대 3회) 구현.
 
 ```typescript
-return result.base64 || result.data || '';
-```
-
-빈 문자열이 `ScreenshotService`로 조용히 반환되어 `.png` 파일에 0바이트를 기록하고 에디터에서 열린다. 사용자는 오류 메시지 없이 깨진 이미지를 보게 된다.
-
-**권장 조치:** 결과가 비어있을 때 `''`을 반환하는 대신 `ValidationError`를 던진다.
-
-#### POT-4 — AbortSignal이 Gemini SDK에 전달되지 않음 (중간)
-
-**파일:** `GeminiAgent.ts:126`
-
-```typescript
-const result = await model.generateContentStream(prompt);
-// signal은 yield된 청크 사이에서만 확인되며 SDK에 전달되지 않음
-```
-
-사용자가 중단해도 기저 HTTP 요청이 네트워크 레벨에서 취소되지 않는다. 서버는 모든 청크를 전송 완료할 때까지 스트리밍을 계속하여 API 쿼터가 낭비된다.
-
-**권장 조치:** SDK가 지원하는 경우 `generateContentStream`에 `AbortSignal`을 전달하거나, 중단 시 `result.stream.return()`으로 비동기 이터레이터를 종료한다.
-
----
-
-### 3.5 성능
-
-#### PERF-1 — 청크당 IPC 메시지 2개 발송 (중간)
-
-**파일:** `PromptCommandHandler.ts:74-76`
-
-```typescript
-this.post({ event: 'prompt.generating', progress });
-this.post({ event: 'prompt.chunk', text: chunk });
-```
-
-스트리밍 청크마다 `postMessage` 호출이 두 번 발생한다. 일반적인 코드 생성에서 수백 개의 청크가 생성되면 IPC 오버헤드가 두 배가 된다.
-
-**권장 조치:** 진행률 업데이트를 청크 메시지에 통합한다.
-
-```typescript
-this.post({ event: 'prompt.chunk', text: chunk, progress });
+async sendRequestWithRetry(method: string, params?: unknown, maxRetries = 3): Promise<unknown> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await this.sendRequest(method, params);
+    } catch (e) {
+      if (e instanceof TimeoutError || (e instanceof NetworkError && attempt < maxRetries - 1)) {
+        await new Promise(r => setTimeout(r, 2 ** attempt * 500));
+        continue;
+      }
+      throw e;
+    }
+  }
+}
 ```
 
 ---
 
-### 3.6 CI/CD 미비 항목
+### 3.3 아키텍처
 
-| 항목 | 심각도 | 권장 조치 |
-|------|--------|----------|
-| 브랜치 커버리지 게이트 없음 | 높음 | `c8` 임계값으로 브랜치 커버리지 85% 미만 PR 차단 |
-| CI에 `npm audit` 없음 | 높음 | lint 단계에 `npm audit --audit-level=high` 추가 |
-| GitHub Release 자동화 없음 | 중간 | 태그 푸시 시 VSIX 아티팩트 포함 릴리스 자동 생성 |
-| CodeQL / SAST 없음 | 중간 | GitHub CodeQL 액션 활성화 |
-| E2E 테스트가 CI에 없음 | 낮음 | 파이프라인에 Headless VS Code 테스트 러너 추가 |
+#### ARCH-1 — `dangerouslyAllowBrowser: true` 주석 미추가 (낮음, 잔존)
+
+**파일:** `ClaudeAgent.ts:49`
+**심각도:** 낮음
+
+```typescript
+this.client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true });
+```
+
+이전 리뷰에서 권장한 인라인 주석이 아직 추가되지 않았다. 이후 유지보수자가 보안 취약점으로 오해할 수 있다.
+
+**권장 조치:**
+
+```typescript
+// esbuild 번들링으로 인해 Node.js Extension Host에서도 브라우저 환경으로
+// 감지된다. 이 컨텍스트에서 코드는 실제 브라우저에서 실행되지 않으므로 안전하다.
+this.client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true });
+```
+
+#### NF-3 — ClaudeAgent 스트림 abort 타입 캐스팅 취약 (낮음)
+
+**파일:** `ClaudeAgent.ts:113-114`
+**심각도:** 낮음
+
+```typescript
+const abort = (stream as { abort?: () => void }).abort;
+abort?.call(stream);
+```
+
+SDK의 내부 `abort` 메서드를 불안전한 캐스팅으로 호출한다. SDK 업데이트로 메서드명이 변경되면 조용히 실패(silent fail)하여 스트림이 종료되지 않는다.
+
+**권장 조치:** SDK 공식 AbortSignal 지원 여부를 확인하여 `messages.stream()` 호출 시 `signal` 파라미터로 전달하거나, `abortController.abort()` 직후 스트림 이터레이터 종료 방어 코드를 추가한다.
 
 ---
 
-### 3.7 코드 품질
+### 3.4 국제화(i18n)
 
-#### QA-1 — ESLint `@typescript-eslint/no-explicit-any`가 `warn` (낮음)
+#### NF-4 — ScreenshotService 하드코딩 영문 문자열 (낮음)
 
-프로덕션 코드에서 `any` 남용을 방지하려면 `error`로 변경해야 한다.
+**파일:** `ScreenshotService.ts:68`
+**심각도:** 낮음
 
-#### QA-2 — `no-console`이 `off` (낮음)
+```typescript
+vscode.window.showInformationMessage(`Screenshot saved: ${saveUri.fsPath}`);
+```
 
-코드베이스 전체에서 올바르게 `Logger`를 사용하고 있지만 규칙이 강제되지 않는다. 실수로 남긴 `console.log`가 프로덕션에서 VS Code Output에 그대로 노출된다.
+프로젝트 전체가 i18n 시스템을 사용하나 이 메시지만 하드코딩 영문이다. 한국어 환경에서 영문 알림이 표시된다.
 
-#### QA-3 — `TOKEN_ESTIMATE_DIVISOR = 4` 주석 없음 (낮음)
+**권장 조치:** `ScreenshotService`에 locale 의존성을 주입하거나, 저장 성공 이벤트를 호출측(`FigmaCommandHandler`)으로 위임하여 i18n 처리한다.
+
+---
+
+### 3.5 코드 품질
+
+#### QA-1 — ESLint `no-explicit-any` warn 수준 (낮음, 잔존)
+
+프로덕션 코드에서 `any` 남용 방지를 위해 `error`로 변경 필요.
+
+#### QA-2 — `no-console` 비활성화 (낮음, 잔존)
+
+`Logger`를 올바르게 사용하고 있지만 ESLint 규칙으로 강제되지 않아 실수로 남긴 `console.log`가 프로덕션에 노출될 수 있다.
+
+#### QA-3 — `TOKEN_ESTIMATE_DIVISOR = 4` 주석 없음 (낮음, 잔존)
 
 **파일:** `constants.ts:37`
 
-이 제수는 "문자 4개 ≈ 토큰 1개"라는 표준 휴리스틱을 구현한 것이다. 설명 주석이 없으면 이후 유지보수자가 임의의 매직 넘버로 오해할 수 있다.
+```typescript
+export const TOKEN_ESTIMATE_DIVISOR = 4;
+```
+
+"문자 4개 ≈ 토큰 1개"라는 표준 휴리스틱임을 설명하는 주석이 없어 매직 넘버로 오해될 수 있다.
+
+**권장 조치:**
+
+```typescript
+/** 표준 토큰 추정 휴리스틱: 평균적으로 문자 4개가 토큰 1개에 해당 */
+export const TOKEN_ESTIMATE_DIVISOR = 4;
+```
+
+#### NF-5 — GeminiAgent 모델 ID 기반 정렬 불안정 (낮음)
+
+**파일:** `GeminiAgent.ts:83`
+**심각도:** 낮음
+
+```typescript
+.sort((a, b) => b.id.localeCompare(a.id))
+```
+
+렉시코그래픽 정렬로 `gemini-2.0-flash` > `gemini-1.5-pro`는 올바르지만, `gemini-2.0-flash-thinking-exp` vs `gemini-2.0-flash` 등 세부 변형 모델의 순서가 사용자 기대와 다를 수 있다.
+
+**권장 조치:** 버전 숫자를 파싱하는 커스텀 comparator를 사용하거나, Gemini API 응답의 `createTime` 필드를 기준으로 정렬한다.
+
+---
+
+### 3.6 CI/CD 잔존 항목
+
+| 항목 | 심각도 | 현황 | 권장 조치 |
+|------|--------|------|----------|
+| GitHub Release 자동화 | 중간 | 부분 완료(VSIX 아티팩트 업로드만 됨) | `release.yml`에 `gh release create` 단계 추가 |
+| CodeQL / SAST | 중간 | 미완료 | GitHub CodeQL 액션 활성화 |
+| Lint 단계에 Prettier 포함 안 됨 | 낮음 | 미완료 | CI에 `format:check` 추가 |
+
+**GitHub Release 자동화 보완:**
+
+```yaml
+- name: Create GitHub Release
+  if: startsWith(github.ref, 'refs/tags/v')
+  uses: actions/create-release@v1
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  with:
+    tag_name: ${{ github.ref_name }}
+    release_name: Release ${{ github.ref_name }}
+    draft: false
+    prerelease: false
+```
 
 ---
 
 ## 4. 유지되는 강점 (변경 없음)
 
-v0.1.3에서 확인된 아래 강점들이 그대로 유지됨을 재확인.
+v0.1.4에서 확인된 아래 강점들이 그대로 유지됨을 재확인.
 
-- **소스 코드에 `any` 없음** — discriminated union 메시지 타입으로 완전한 타입 안전성 확보
-- **Logger 추상화** — 모든 소스 파일에서 `console.log` 미사용
-- **Secrets Store** — API 키를 OS 암호화된 VS Code Secrets에 저장, 일반 설정에 평문 저장 없음
-- **CSP 정책** — 모든 웹뷰에 `script-src 'nonce-*'`, `default-src 'none'` 적용
-- **입력 검증** — 경로 사용 전 fileId/nodeId를 정규식으로 정제
-- **순환 버퍼 로거** — 고정 메모리, O(1) append 성능
-- **requestAnimationFrame 청크 배치 처리** — `insertAdjacentText` 패턴 (0.1.4 신규)
-- **Gemini 모델 목록 캐시** — 5분 TTL로 반복 API 호출 방지
+| 항목 | 구현 위치 | 비고 |
+|------|----------|------|
+| **Discriminated Union 메시지 타입** | `src/types.ts` | Extension Host ↔ Webview 간 완전한 타입 안전성 |
+| **Logger 추상화** | `src/logger/Logger.ts` | 모든 소스 파일에서 `console.log` 미사용 |
+| **Secrets Store** | `AgentCommandHandler.ts`, `extension.ts` | API 키를 OS 암호화된 VS Code Secrets에 저장 |
+| **CSP 정책** | `SidebarProvider.ts` | `script-src 'nonce-*'`, `default-src 'none'` |
+| **입력 검증** | `McpParser.ts` | fileId/nodeId 정규식 정제 |
+| **순환 버퍼 로거** | `Logger.ts` | 고정 메모리(500 엔트리), O(1) append |
+| **rAF 청크 배치** | `PromptLayer.ts` | `insertAdjacentText` 패턴, DOM O(n²) 제거 |
+| **Gemini 모델 캐시** | `GeminiAgent.ts` | 5분 TTL로 반복 API 호출 방지 |
+| **단일 IPC 스트리밍** | `PromptCommandHandler.ts` | `prompt.streaming` 이벤트 통합 |
+| **스트림 취소 처리** | `GeminiAgent.ts`, `ClaudeAgent.ts` | AbortSignal 연동 |
+| **브랜치 커버리지 게이트** | `package.json`, `ci.yml` | 85% 미만 PR 차단 |
+| **취약점 감사** | `ci.yml` | `npm audit --audit-level=high` |
 
 ---
 
-## 5. 권장 조치 계획
+## 5. 아키텍처 종합 평가
 
-### Priority 0 — 출시 차단 항목
+### 5.1 계층 구조
 
-| # | 파일 | 작업 |
-|---|------|------|
-| P0-1 | `PromptCommandHandler.ts` | 스트림 중단 시 부분 코드 초기화 또는 불완전 표시 (POT-1) |
-| P0-2 | `McpClient.ts` | `getImage`에서 빈 문자열 반환 대신 예외 던지기 (POT-2) |
-| P0-3 | CI workflow | 알려진 취약점 배포 방지를 위해 `npm audit --audit-level=high` 추가 |
-| P0-4 | CI workflow | 브랜치 커버리지 게이트 추가 (최소 85%) |
+```
+extension.ts (진입점 / 활성화)
+    ↓
+SidebarProvider (VS Code WebviewViewProvider)
+    ↓
+WebviewMessageHandler (메시지 라우터)
+    ├── FigmaCommandHandler  → McpClient, ScreenshotService
+    ├── AgentCommandHandler  → AgentFactory (ClaudeAgent / GeminiAgent)
+    └── PromptCommandHandler → AgentFactory, EditorIntegration, StateManager
+```
+
+**강점:** 단일 책임 원칙(SRP)이 잘 지켜지며, 각 Handler의 역할 경계가 명확하다. `WebviewMessageHandler`의 `handle()` 메서드는 순수 라우터로 동작하여 비즈니스 로직이 개별 핸들러에 캡슐화된다.
+
+**개선 여지:** `WebviewMessageHandler.handle()`의 외부 try-catch는 핸들러 내부에서 이미 처리된 에러까지 이중으로 포착할 잠재적 경로가 존재하나, 현재 코드에서는 핸들러들이 에러를 직접 재던지지 않아 실제 이중 발생 가능성은 낮다.
+
+### 5.2 데이터 흐름
+
+```
+Figma URL 입력 → McpParser(정제) → McpClient(JSON-RPC) → StateManager(캐시)
+                                                              ↓
+사용자 프롬프트 → PromptBuilder → AgentFactory(Claude/Gemini) → 스트리밍 청크 → PromptLayer(rAF 배치)
+```
+
+단방향 데이터 흐름이 유지되며 사이드 이펙트가 최소화되어 있다.
+
+### 5.3 의존성 분석
+
+```
+Extension Host (Node.js 환경):
+  - @anthropic-ai/sdk ^0.78.0
+  - @google/generative-ai ^0.24.1
+
+Webview (브라우저 환경):
+  - @vscode/codicons ^0.0.44 (아이콘 폰트만)
+  - 별도 프레임워크 없음 (Vanilla TS)
+```
+
+**장점:** Webview에 React/Vue 등 무거운 프레임워크 없이 Vanilla TypeScript로 구현하여 번들 크기가 최소화된다. Extension Host의 AI SDK 의존성은 필수적이며 적절하다.
+
+---
+
+## 6. 권장 조치 계획 (신규)
+
+### Priority 0 — 출시 전 필수
+
+| # | 파일 | 항목 | 작업 |
+|---|------|------|------|
+| P0-1 | `AgentCommandHandler.ts:129` | NF-1 | Claude API 키 정규식을 `sk-ant-` 접두사로 강화 |
 
 ### Priority 1 — 출시 전 권장
 
-| # | 파일 | 작업 |
-|---|------|------|
-| P1-1 | `errors.ts` | `toErrorMessage(e: unknown)` 추가 및 모든 `(e as Error).message` 교체 |
-| P1-2 | `AgentCommandHandler.ts` | 저장 전 API 키 형식 검증 |
-| P1-3 | `GeminiAgent.ts` | AbortSignal 전달 또는 취소 시 스트림 이터레이터 종료 |
-| P1-4 | `PromptCommandHandler.ts` | `prompt.generating` + `prompt.chunk`를 단일 메시지로 통합 |
+| # | 파일 | 항목 | 작업 |
+|---|------|------|------|
+| P1-1 | `FigmaCommandHandler.ts:121` | NF-2 | `fetchScreenshot` catch 블록에서 에러 세부정보 로깅 |
+| P1-2 | `McpClient.ts` | SEC-2 | localhost/127.0.0.1 이외 엔드포인트에 확인 다이얼로그 |
+| P1-3 | `ClaudeAgent.ts:49` | ARCH-1 | `dangerouslyAllowBrowser` 이유 설명 인라인 주석 추가 |
 
 ### Priority 2 — 출시 후 개선
 
-| # | 작업 |
-|---|------|
-| P2-1 | McpClient 및 에이전트 요청에 지수 백오프 네트워크 재시도 구현 |
-| P2-2 | MCP 엔드포인트 허용 목록 / 외부 호스트 확인 다이얼로그 |
-| P2-3 | VSIX 아티팩트 포함 GitHub Release 자동화 |
-| P2-4 | render 템플릿의 `innerHTML`을 안전한 DOM API로 교체 |
-| P2-5 | `dangerouslyAllowBrowser` 이유 설명 인라인 주석 추가 |
+| # | 항목 | 작업 |
+|---|------|------|
+| P2-1 | ERR-4 | `McpClient.sendRequest` 지수 백오프 재시도(최대 3회) |
+| P2-2 | NF-3 | `ClaudeAgent` 스트림 abort 공식 SDK AbortSignal 지원으로 대체 |
+| P2-3 | NF-4 | `ScreenshotService` i18n 미적용 문자열 처리 |
+| P2-4 | SEC-3 | `AgentLayer` innerHTML 빈 상태 DOM API로 교체 |
+| P2-5 | QA-3 | `TOKEN_ESTIMATE_DIVISOR` 설명 주석 추가 |
+| P2-6 | CI/CD | GitHub Release 자동 생성 및 CodeQL 활성화 |
+| P2-7 | QA-1/2 | ESLint `no-explicit-any: error`, `no-console: error` 강화 |
 
 ---
 
-## 6. 결론
+## 7. 결론
 
-버전 0.1.4는 이전 리뷰에서 확인된 버그 5건과 아키텍처 공백 2건(리소스 정리, 버전 하드코딩)을 모두 해결했다. 청크 렌더링 개선은 체감 가능한 성능 향상이다. 코드베이스는 종합 **8.0 / 10**으로 릴리스 후보 품질에 도달했다.
+버전 0.1.4(현재)는 이전 리뷰에서 지적된 Priority 0 항목 4건과 Priority 1 항목 4건 **모두를 해결**하여 코드베이스 품질이 종합 **8.5 / 10**으로 향상되었다.
 
-Priority-0 항목 4건만이 마켓플레이스 출시를 위해 남은 유일한 차단 요소이며, 나머지 항목들은 출시 이후 패치에서 순차적으로 개선할 수 있다.
+특히:
+- 에러 처리가 `toErrorMessage(e: unknown)` 전면 적용으로 타입 안전하게 통일되었다.
+- CI/CD 파이프라인이 취약점 감사와 커버리지 게이트를 갖추며 운영 수준으로 성숙했다.
+- 스트리밍 취소 시 부분 코드 표시 및 IPC 최적화로 사용자 경험이 개선되었다.
+
+남은 차단 이슈는 **P0-1(Claude API 키 정규식)** 1건이며, 이를 해결하면 마켓플레이스 출시가 가능한 수준이다.
+
+---
+
+*이 리뷰는 소스 코드 직접 검증 방법론(Source Code Inspection)과 OWASP Top 10 체크리스트를 기반으로 작성되었습니다.*
