@@ -1,6 +1,6 @@
 const http = require('http');
 
-const PORT = 3845;
+const PORT = Number(process.env.MOCK_MCP_PORT || 3845);
 
 const server = http.createServer((req, res) => {
   if (req.method === 'POST') {
