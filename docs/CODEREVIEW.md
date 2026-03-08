@@ -1,522 +1,329 @@
-# 상용 소프트웨어 코드 리뷰 보고서
+# 코드 리뷰 보고서
 
 **프로젝트:** Figma MCP Helper (VS Code Extension)
-**버전:** 0.1.3
+**버전:** 0.1.4
 **리뷰 일자:** 2026-03-08
-**리뷰어:** 전문 소프트웨어 관리자 관점
-**평가 기준:** 상용 소프트웨어(Commercial Software) 출시 수준
+**근거:** 이전 리뷰(CODEREVIEW_2.md v0.1.3) 대비 전체 소스 직접 검증
+**기준:** 상용 소프트웨어 출시 품질
 
 ---
 
 ## 1. 종합 평가
 
-| 항목 | 점수 | 등급 |
-|------|------|------|
-| 아키텍처 설계 | 8.5/10 | A |
-| 타입 안전성 | 9.0/10 | A+ |
-| 에러 처리 | 7.5/10 | B+ |
-| 보안 | 8.0/10 | A |
-| 테스트 커버리지 | 8.0/10 | A |
-| 코드 품질 | 8.5/10 | A |
-| 리소스 관리 | 8.0/10 | A |
-| 국제화(i18n) | 9.0/10 | A+ |
-| CI/CD | 7.0/10 | B |
-| 문서화 | 6.0/10 | C+ |
-| 상용화 준비도 | 6.5/10 | C+ |
-| **종합** | **7.5/10** | **B+** |
+| 항목 | v0.1.3 | v0.1.4 | 변화 |
+|------|--------|--------|------|
+| 아키텍처 | 8.5 | 9.0 | ↑ |
+| 타입 안전성 | 9.0 | 9.0 | — |
+| 에러 처리 | 7.5 | 7.5 | — |
+| 보안 | 8.0 | 8.0 | — |
+| 테스트 커버리지 | 8.0 | 8.0 | — |
+| 코드 품질 | 8.5 | 8.5 | — |
+| 리소스 관리 | 8.0 | 9.5 | ↑↑ |
+| 국제화(i18n) | 9.0 | 9.0 | — |
+| CI/CD | 7.0 | 7.0 | — |
+| 문서화 | 6.0 | 7.5 | ↑ |
+| **종합** | **7.5** | **8.0** | **↑** |
 
-**판정:** 베타 품질. 상용 출시 전 중요 개선 필요.
-
----
-
-## 2. 아키텍처 분석
-
-### 2.1 현재 아키텍처 (강점)
-
-```
-Extension Host (Node.js)          Webview (Browser)
-┌─────────────────────────┐       ┌──────────────────────┐
-│ extension.ts (진입점)     │       │ main.ts (진입점)      │
-│   ├─ SidebarProvider ×3 │◄─────►│   ├─ FigmaLayer      │
-│   ├─ WebviewMsgHandler  │ post  │   ├─ AgentLayer      │
-│   │   ├─ FigmaHandler   │Message│   ├─ PromptLayer     │
-│   │   ├─ AgentHandler   │       │   └─ LogLayer        │
-│   │   └─ PromptHandler  │       └──────────────────────┘
-│   ├─ McpClient (JSON-RPC)│
-│   ├─ AgentFactory       │
-│   │   ├─ GeminiAgent    │
-│   │   └─ ClaudeAgent    │
-│   ├─ StateManager       │
-│   └─ Logger (Singleton)  │
-└─────────────────────────┘
-```
-
-**긍정 평가:**
-- **관심사 분리(SoC):** Handler/Agent/UI 계층이 명확히 분리됨
-- **메시지 기반 IPC:** 느슨한 결합(loose coupling)으로 Extension ↔ Webview 통신
-- **Discriminated Union Types:** `WebviewToHostMessage`, `HostToWebviewMessage`로 타입 안전한 메시지 라우팅
-- **Factory 패턴:** `AgentFactory`로 Agent 인스턴스 싱글톤 관리
-- **Circular Buffer Logger:** 고정 메모리 O(1) append 성능
-
-### 2.2 아키텍처 문제점
-
-| ID | 문제 | 심각도 | 위치 |
-|----|------|--------|------|
-| ARCH-1 | McpClient 버전 하드코딩 (`0.1.0`) — package.json과 불일치 | MEDIUM | `McpClient.ts:44` |
-| ARCH-2 | `deactivate()` 에서 ScreenshotService 임시 파일 정리 누락 | HIGH | `extension.ts:112-116` |
-| ARCH-3 | WebviewMessageHandler가 모든 도메인 커맨드를 단일 switch로 처리 | LOW | `WebviewMessageHandler.ts:60-115` |
-| ARCH-4 | ClaudeAgent에 `dangerouslyAllowBrowser: true` 사용 | MEDIUM | `ClaudeAgent.ts:48` |
+**판정:** 베타 → 릴리스 후보(RC) 수준. 잔존 과제는 관리 가능한 수준. 아래 항목을 해결하면 마켓플레이스 출시 가능.
 
 ---
 
-## 3. 버그 및 결함 분석
+## 2. v0.1.3 이후 해결된 항목
 
-### 3.1 확인된 버그
+이전 리뷰에서 지적된 아래 이슈들이 소스 직접 검증을 통해 **해결 완료**되었음을 확인.
 
-#### BUG-1: esbuild 타겟 버전 불일치 (HIGH)
+### ✅ BUG-1: esbuild 타겟 버전 불일치 (`esbuild.config.js:18`)
+
+```js
+// 수정 전
+target: 'node18'
+// 수정 후
+target: 'node20'   // engines.node >= 20.0.0 및 CI 매트릭스와 일치
 ```
-// esbuild.config.js:18
-target: 'node18'  // ← Node 18 타겟
 
-// package.json engines
-"node": ">=20.0.0"  // ← Node 20 이상 요구
+### ✅ BUG-2: `deactivate()` 리소스 누수 (`extension.ts:117-124`)
 
-// .github/workflows/ci.yml
-node-version: [20, 22]  // ← Node 18 제거됨
-```
-**영향:** Node 18 폴리필이 불필요하게 포함되거나, Node 20+ 전용 API 사용 시 빌드 타겟과 런타임 불일치 가능.
-**수정:** `target: 'node20'`으로 변경.
+모듈 레벨 `sidebarProviders` 배열이 유지된다. `deactivate()` 에서 모든 provider의 `dispose()`를 호출하고(`ScreenshotService.cleanupTempFiles()` 포함), `OutputChannel`을 해제하며 참조를 초기화한다.
 
-#### BUG-2: Extension deactivate 시 리소스 미정리 (HIGH)
 ```typescript
-// extension.ts:112-116
-export function deactivate() {
+export async function deactivate(): Promise<void> {
   Logger.info('system', 'Figma MCP Helper deactivated');
+  await Promise.allSettled(sidebarProviders.splice(0).map((p) => p.dispose()));
   AgentFactory.clear();
   Logger.clear();
-  // ❌ ScreenshotService 임시 파일 정리 없음
-  // ❌ SidebarProvider.dispose() 호출 없음
-  // ❌ OutputChannel.dispose() 호출 없음
+  outputChannelRef?.dispose();
+  outputChannelRef = undefined;
 }
 ```
-**영향:** 익스텐션 비활성화 시 OS tmpdir에 스크린샷 파일이 영구 잔류. 반복 사용 시 디스크 점유량 누적.
 
-#### BUG-3: McpClient 버전 하드코딩 (MEDIUM)
+### ✅ BUG-3: McpClient 버전 하드코딩 (`McpClient.ts:9-17`)
+
+`resolveDefaultClientVersion()`이 런타임에 `package.json`을 읽어 버전을 동적으로 결정하며, 읽기 실패 시 `'0.0.0'`으로 대체한다. `WebviewMessageHandler` 생성자에서 전달된 버전이 우선 적용된다.
+
+### ✅ BUG-4: ClaudeAgent `max_tokens` 하드코딩 (`ClaudeAgent.ts:104-105`)
+
 ```typescript
-// McpClient.ts:42-45
-private readonly clientInfo: { name: string; version: string } = {
-  name: 'vscode-figmalab',
-  version: '0.1.0',  // ← 하드코딩. package.json은 0.1.3
-}
+// 수정 전
+max_tokens: 8192
+// 수정 후
+max_tokens: modelInfo.outputTokenLimit ?? 8192
 ```
-**참고:** `WebviewMessageHandler.ts:31`에서 `extensionVersion`을 올바르게 전달하고 있으나, McpClient의 기본값이 여전히 `0.1.0`.
 
-#### BUG-4: ClaudeAgent max_tokens 하드코딩 (MEDIUM)
-```typescript
-// ClaudeAgent.ts:102-103
-max_tokens: 8192,  // ← 하드코딩
-```
-**영향:** 모델별 `outputTokenLimit` 값이 `ModelInfo`에 정의되어 있으나 실제 생성 시 무시됨. Claude Opus 4.6은 32K 출력을 지원하나 8192로 제한.
+Claude Opus 4.6(32K)가 이제 최대 출력 한도를 온전히 활용한다.
 
-#### BUG-5: Gemini API 호출 시 `https.get` 사용으로 메서드 불일치 (LOW)
-```typescript
-// GeminiAgent.ts:51-52
-const req = https.get(options, (res) => {  // GET 메서드 사용
-```
-현재 Gemini Models API가 GET을 지원하므로 동작하나, `options`에 `method: 'GET'`이 명시되어 있어 `https.request`와 일관성 없음. 향후 API 변경 시 혼동 가능.
+### ✅ BUG-5: GeminiAgent `https.get` vs `https.request` (`GeminiAgent.ts:51`)
 
-### 3.2 잠재적 결함
+`https.request()` 로 일관되게 변경. 응답 본문 소비 전 HTTP 상태 코드 검사가 추가되었다.
 
-| ID | 설명 | 심각도 | 위치 |
-|----|------|--------|------|
-| POT-1 | 스트림 중단 시 부분 코드 감지 미비 — 불완전한 코드가 `prompt.result`로 전송 가능 | HIGH | `PromptCommandHandler.ts:69-80` |
-| POT-2 | `getImage()` 빈 문자열 반환 시 UI에서 깨진 이미지 표시 | MEDIUM | `McpClient.ts:174` |
-| POT-3 | Gemini 모델 정렬이 `localeCompare` — 시멘틱 버전 정렬이 아님 | LOW | `GeminiAgent.ts:82` |
-| POT-4 | AbortController가 Gemini SDK `generateContentStream`에 전달되지 않음 | MEDIUM | `GeminiAgent.ts:125` |
+### ✅ PERF-2: `textContent +=` O(n²) DOM 패턴 (`PromptLayer.ts:215-235`)
+
+청크가 `pendingChunks[]` 배열에 누적된 뒤 `requestAnimationFrame` + `insertAdjacentText`로 프레임당 한 번씩 일괄 반영된다. DOM 노드 대상 문자열 반복 연결이 제거되었다.
 
 ---
 
-## 4. 보안 분석
+## 3. 잔존 이슈
 
-### 4.1 보안 강점
+### 3.1 아키텍처
 
-| 항목 | 구현 상태 | 평가 |
-|------|----------|------|
-| API 키 저장 | VS Code Secrets Store (OS 암호화) | ✅ 우수 |
-| CSP 정책 | `script-src 'nonce-*'`, `default-src 'none'` | ✅ 우수 |
-| 입력 검증 | fileId/nodeId 정규식 정제, 길이 제한 | ✅ 우수 |
-| JSON-RPC 응답 검증 | `isJsonRpcResponse()` 형태 검사 | ✅ 우수 |
-| 프로토콜 검증 | http/https만 허용 | ✅ 우수 |
-| 파일 경로 정제 | `sanitizePathSegment()` 특수문자 제거 | ✅ 우수 |
+#### ARCH-1 — ClaudeAgent의 `dangerouslyAllowBrowser: true` (낮음)
 
-### 4.2 보안 취약점
+**파일:** `ClaudeAgent.ts:48`
 
-| ID | 취약점 | 심각도 | OWASP | 위치 |
-|----|--------|--------|-------|------|
-| SEC-1 | API 키 형식 미검증 — 빈 문자열 저장 가능 | MEDIUM | A07 | `AgentCommandHandler` |
-| SEC-2 | MCP 엔드포인트 URL 검증 부재 — 사설 IP 접근 가능 (SSRF) | MEDIUM | A10 | `FigmaCommandHandler.ts:28` |
-| SEC-3 | `innerHTML` 사용 — 현재는 안전하나 향후 동적 콘텐츠 추가 시 XSS 위험 | LOW | A03 | UI 컴포넌트 전체 |
-| SEC-4 | HTTP(비암호화) MCP 통신 기본값 | LOW | A02 | `constants.ts:27` |
-| SEC-5 | `dangerouslyAllowBrowser: true` — 웹뷰 브라우저 컨텍스트에서 SDK 사용 | LOW | - | `ClaudeAgent.ts:48` |
+```typescript
+this.client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true });
+```
 
-### 4.3 상용화 필수 보안 조치
+Anthropic SDK는 전역 객체를 기반으로 브라우저 환경을 감지한다. esbuild 번들링으로 인해 Node.js Extension Host에서도 이 감지가 오동작한다. 이 플래그는 **VS Code 확장에서 알려진 패턴**이며, 코드가 실제 브라우저에서 실행되지 않으므로 실질적인 보안 위험은 없다. 그러나 이후 유지보수자가 오해할 수 있는 코드 냄새이다.
 
-1. **API 키 형식 검증**: Gemini(`AIza...`) / Claude(`sk-ant-...`) 접두사 패턴 확인
-2. **MCP 엔드포인트 허용 목록**: localhost/127.0.0.1만 기본 허용, 외부 호스트는 사용자 확인
-3. **innerHTML → textContent/DOM API**: XSS 방지를 위한 안전한 DOM 조작으로 전환
-4. **Rate Limiting**: API 호출 빈도 제한 (키 노출 시 과금 폭주 방지)
+**권장 조치:** 이유를 설명하는 인라인 주석 추가.
+
+```typescript
+// Extension Host는 Node.js에서 실행되지만 esbuild 번들링으로 인해
+// 브라우저 환경 감지가 오동작한다. 이 컨텍스트에서 이 플래그는 안전하다.
+this.client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true });
+```
 
 ---
 
-## 5. 에러 처리 분석
+### 3.2 에러 처리
 
-### 5.1 에러 계층 구조 (강점)
+#### ERR-1 — 이중 에러 이벤트 가능성 (중간 → 부분 완화)
 
-```typescript
-// errors.ts — 잘 설계된 커스텀 에러 계층
-NetworkError   (code: 'NETWORK_ERROR', cause 추적)
-TimeoutError   (code: 'TIMEOUT_ERROR')
-ValidationError (code: 'VALIDATION_ERROR')
-UserCancelledError (code: 'USER_CANCELLED')
-```
+**파일:** `WebviewMessageHandler.ts:116-120` / 핸들러 메서드
 
-### 5.2 에러 처리 문제점
+핸들러들은 일반적으로 내부에서 자체적으로 에러를 처리하고 재던지지 않으므로, `handle()`의 외부 catch는 미처리 예외에 대한 안전망 역할을 한다. 이중 이벤트 위험은 실제로 낮다. 다만 `FigmaCommandHandler.fetchScreenshot`은 catch 블록에서 `event: 'error'`를 직접 전송하는데, 해당 catch 블록 자체가 예외를 던지면(예: catch 경로의 버그) 외부 핸들러가 두 번째 에러 이벤트를 전송할 수 있다.
 
-| ID | 문제 | 심각도 | 위치 |
-|----|------|--------|------|
-| ERR-1 | `WebviewMessageHandler.handle()` catch에서 에러 이벤트를 보내지만, 개별 핸들러도 자체적으로 에러 이벤트를 보냄 → 이중 에러 전송 가능 | HIGH | `WebviewMessageHandler.ts:116-120` |
-| ERR-2 | `McpClient.initialize()` catch에서 모든 에러를 `false`로 삼킴 — 네트워크 에러와 프로토콜 에러 구분 불가 | MEDIUM | `McpClient.ts:139-142` |
-| ERR-3 | 모든 `(e as Error).message` 패턴 — `unknown` 타입 에러를 안전하게 처리하지 않음 | MEDIUM | 코드베이스 전체 |
-| ERR-4 | 네트워크 재시도(retry) 로직 없음 — 일시적 네트워크 장애 시 즉시 실패 | MEDIUM | McpClient, Agent 전체 |
-| ERR-5 | 스트림 생성 중 부분 실패 시 이미 전송된 chunk를 롤백하지 않음 | MEDIUM | `PromptCommandHandler.ts:69-77` |
+**권장 조치:** 에러 보고 경로를 단일화한다. 두 가지 방법 중 하나를 선택한다.
+- 모든 핸들러가 실패 시 예외를 던지고, 외부 catch가 유일한 보고자가 된다.
+- 핸들러가 이미 에러를 보고했을 때 외부 catch를 억제하는 센티넬(`HandledError`)을 도입한다.
 
-### 5.3 권장 에러 처리 개선
+#### ERR-3 — 비안전한 `(e as Error).message` 캐스트 (중간)
+
+**파일:** `ClaudeAgent.ts:122`, `GeminiAgent.ts:138`, `FigmaCommandHandler.ts:47`, `McpClient.ts:152`, `AgentCommandHandler.ts:62`
+
+TypeScript의 `catch` 블록은 `e`를 `unknown`으로 타입 지정한다. `Error`로 직접 캐스팅하는 것은 안전하지 않으며, 문자열이나 객체를 던지는 경우 `.message`가 `undefined`가 된다.
+
+UI 레이어용 `toErrorMessage` 유틸리티가 `src/webview/ui/utils/errorUtils.ts`에 이미 존재하지만 Extension Host 측에서는 사용되지 않고 있다.
+
+**권장 조치:** 공용 유틸리티를 추가하고 모든 캐스트를 교체한다.
 
 ```typescript
-// 안전한 에러 추출 유틸리티 추가 권장
-function toErrorMessage(e: unknown): string {
+// src/errors.ts — 추가:
+export function toErrorMessage(e: unknown): string {
   if (e instanceof Error) return e.message;
   if (typeof e === 'string') return e;
-  return 'Unknown error';
-}
-
-// 재시도 로직 추가 권장
-async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3, delayMs = 1000): Promise<T> {
-  for (let i = 0; i < maxRetries; i++) {
-    try { return await fn(); }
-    catch (e) {
-      if (i === maxRetries - 1) throw e;
-      await new Promise(r => setTimeout(r, delayMs * (i + 1)));
-    }
-  }
-  throw new Error('Unreachable');
+  return '예기치 않은 오류가 발생했습니다';
 }
 ```
 
----
+Extension Host 코드 전체의 `(e as Error).message`를 `toErrorMessage(e)`로 교체한다.
 
-## 6. 성능 분석
+#### ERR-4 — 네트워크 재시도 로직 없음 (중간)
 
-### 6.1 성능 문제
+**파일:** `McpClient.ts`, `GeminiAgent.ts`, `ClaudeAgent.ts`
 
-| ID | 문제 | 심각도 | 영향 |
-|----|------|--------|------|
-| PERF-1 | 코드 생성 스트리밍 시 매 chunk마다 2개 메시지 전송 (`prompt.generating` + `prompt.chunk`) | MEDIUM | IPC 오버헤드 |
-| PERF-2 | UI에서 chunk 누적 렌더링 시 `textContent +=` 패턴 — 대용량 코드 시 O(n²) 성능 | MEDIUM | UI 프리징 |
-| PERF-3 | Gemini 모델 목록 API 호출이 동기적 HTTPS — 대기 중 UI 블로킹 없으나 타임아웃 10초 | LOW | UX 지연 |
-| PERF-4 | `Logger.getEntries()`가 매번 배열 필터링 수행 | LOW | 로그 다량 시 성능 |
+일시적인 네트워크 오류가 발생하면 재시도 없이 즉시 실패한다. `REQUEST_TIMEOUT_MS` 상수(10초)가 정의되어 있어 지연 문제를 인지하고 있음을 알 수 있다.
 
-### 6.2 권장 성능 최적화
-
-1. **Chunk 배치 처리**: 50ms debounce로 chunk를 모아 한 번에 전송
-2. **가상 스크롤**: 대용량 코드 출력 시 가상화된 텍스트 뷰 사용
-3. **문자열 빌더**: `Array.push()` + `join()` 패턴으로 문자열 연결 최적화
+**권장 조치:** MCP 호출 및 AI 모델 요청에 지수 백오프 재시도(최대 3회)를 구현한다. `McpClient.sendRequest` 메서드가 적절한 주입 지점이다.
 
 ---
 
-## 7. 테스트 분석
+### 3.3 보안
 
-### 7.1 현재 테스트 커버리지
+#### SEC-1 — API 키 형식 미검증 (중간)
 
-```
-전체: 97.78% statements, 85.52% branches, 97.22% functions
-소스(src/): 95.42% statements, 87.50% branches
-```
+**파일:** `AgentCommandHandler.ts:66-71`
 
-### 7.2 테스트 갭(Gap)
+`setApiKey`는 잘못된 형식의 키를 포함해 비어있지 않은 문자열이면 무엇이든 저장한다. 저장 전에 `key.trim()`만 적용된다.
 
-| 영역 | 현재 상태 | 상용화 요구 |
-|------|----------|-----------|
-| 단위 테스트 | 14개 파일, 주요 모듈 커버 | ✅ 충분 |
-| 통합 테스트 | 1개 E2E 파일 (제한적) | ❌ 확장 필요 |
-| UI 컴포넌트 테스트 | DOM 상호작용 제한적 | ❌ 확장 필요 |
-| 브랜치 커버리지 | 85.52% | ⚠️ 90% 이상 권장 |
-| 에러 경로 테스트 | 주요 경로 커버 | ⚠️ 엣지 케이스 추가 필요 |
-| 스트림 중단 테스트 | 미비 | ❌ 필수 추가 |
-| 동시성 테스트 | 없음 | ❌ 필수 추가 |
-| 보안 테스트 | 없음 | ❌ 필수 추가 |
-
-### 7.3 상용화 필수 테스트 추가
-
-1. **스트림 중단 시나리오**: 생성 중 취소, 네트워크 단절, 부분 응답
-2. **동시 요청 테스트**: 여러 패널에서 동시 생성 요청
-3. **입력 퍼징(Fuzzing)**: 악의적/비정상 Figma URL, 초대형 JSON 페이로드
-4. **메모리 누수 테스트**: 장시간 사용 시 Logger/ScreenshotService 메모리 프로파일링
-5. **API 키 보안 테스트**: 빈 키, 만료 키, 잘못된 형식 키 처리
-
----
-
-## 8. CI/CD 분석
-
-### 8.1 현재 파이프라인 평가
-
-| 항목 | 상태 | 상용화 요구 |
-|------|------|-----------|
-| 빌드 검증 | ✅ Node 20, 22 매트릭스 | 충분 |
-| 린트 검사 | ✅ ESLint + Prettier | 충분 |
-| 테스트 실행 | ✅ 커버리지 포함 | 충분 |
-| 릴리스 자동화 | ✅ 태그 기반 마켓플레이스 배포 | 기본 수준 |
-| 커버리지 게이트 | ❌ 없음 | 필수 추가 |
-| 보안 스캐닝 | ❌ 없음 | 필수 추가 |
-| CHANGELOG 자동화 | ⚠️ 스크립트만 존재, CI 미연동 | 권장 |
-| GitHub Release 생성 | ❌ 없음 | 권장 |
-| E2E 테스트 CI | ❌ 없음 | 권장 |
-
-### 8.2 상용화 필수 CI/CD 개선
-
-1. **커버리지 게이트**: 브랜치 커버리지 85% 미만 시 PR 차단
-2. **보안 스캐닝**: `npm audit`, CodeQL, Dependabot 알림 활성화
-3. **GitHub Release**: VSIX 아티팩트 + CHANGELOG 포함 자동 릴리스
-4. **Canary 배포**: 프리릴리스 채널로 마켓플레이스 베타 배포
-5. **서명(Signing)**: VSIX 패키지 서명으로 무결성 검증
-
----
-
-## 9. 코드 품질 세부 분석
-
-### 9.1 강점
-
-- **`any` 타입 사용 없음**: 소스 코드에서 `as any` 미사용 (테스트 제외)
-- **`console.log` 미사용**: Logger 추상화 일관 사용
-- **명시적 타입 정의**: Discriminated union으로 메시지 타입 안전성 확보
-- **상수 중앙 관리**: `constants.ts`에 매직 넘버 제거
-- **깔끔한 모듈 구조**: 단일 책임 원칙(SRP) 준수
-- **적절한 캐싱**: Gemini 모델 목록 5분 TTL 캐시
-
-### 9.2 개선 필요 항목
-
-| ID | 항목 | 위치 | 설명 |
-|----|------|------|------|
-| QA-1 | ESLint `no-explicit-any`가 warn이 아닌 error여야 함 | `eslint.config.js` | 상용 코드에서 `any` 차단 |
-| QA-2 | `no-console` 규칙이 off — extension에서는 Logger 사용이 원칙 | `eslint.config.js` | `no-console: error`로 변경 |
-| QA-3 | `TOKEN_ESTIMATE_DIVISOR = 4` 매직 넘버에 설명 주석 부재 | `constants.ts:37` | 토큰 추정 공식 문서화 |
-| QA-4 | `parseFloat` / `parseInt` 미사용으로 `Number()` 직접 변환 | 일부 위치 | 일관성 유지 필요 |
-
----
-
-## 10. 상용화 로드맵
-
-### Phase 1: 긴급 수정 (P0 — 출시 차단)
-
-> 예상 작업량: 소규모
-> 우선순위: **즉시 수정**
-
-| # | 작업 | 파일 | 상세 |
-|---|------|------|------|
-| 1.1 | esbuild 타겟 `node18` → `node20` 변경 | `esbuild.config.js:18` | CI와 일치시키기 |
-| 1.2 | `deactivate()` 리소스 정리 구현 | `extension.ts:112-116` | ScreenshotService cleanup, OutputChannel dispose |
-| 1.3 | McpClient 기본 버전 하드코딩 제거 | `McpClient.ts:44` | package.json에서 동적 로드 또는 제거 |
-| 1.4 | 이중 에러 이벤트 전송 방지 | `WebviewMessageHandler.ts:116-120` | 핸들러 레벨에서 에러 처리 시 상위 catch 스킵 |
-| 1.5 | 스트림 중단 시 부분 코드 표시 처리 | `PromptCommandHandler.ts:69-80` | 불완전 코드 경고 또는 폐기 로직 |
-
-### Phase 2: 보안 강화 (P1 — 출시 전 필수)
-
-> 예상 작업량: 중간
-> 우선순위: **출시 1주 전까지**
-
-| # | 작업 | 상세 |
-|---|------|------|
-| 2.1 | API 키 형식 검증 추가 | 빈 문자열, 잘못된 접두사 거부 |
-| 2.2 | MCP 엔드포인트 URL 허용 목록 | 기본 localhost만 허용, 외부 호스트 사용자 확인 다이얼로그 |
-| 2.3 | `innerHTML` → 안전한 DOM API 전환 | `createElement` + `textContent` 패턴으로 교체 |
-| 2.4 | CI에 `npm audit` 추가 | 취약 의존성 자동 감지 |
-| 2.5 | 에러 메시지에서 민감 정보 제거 | API 키, 내부 경로 등 사용자 에러 메시지에서 마스킹 |
-| 2.6 | Rate limiting 구현 | API 호출 빈도 제한 (예: 분당 10회) |
-
-### Phase 3: 안정성 강화 (P1 — 출시 전 권장)
-
-> 예상 작업량: 중간
-> 우선순위: **출시 2주 전까지**
-
-| # | 작업 | 상세 |
-|---|------|------|
-| 3.1 | 네트워크 재시도 로직 추가 | 지수 백오프(exponential backoff) 적용, 최대 3회 |
-| 3.2 | ClaudeAgent `max_tokens` 동적화 | `ModelInfo.outputTokenLimit` 값 사용 |
-| 3.3 | Gemini AbortSignal 전달 | `generateContentStream`에 signal 옵션 전달 |
-| 3.4 | 안전한 에러 추출 유틸리티 도입 | `toErrorMessage(e: unknown)` 패턴 통일 |
-| 3.5 | 브랜치 커버리지 90%+ 달성 | 에러 경로, 엣지 케이스 테스트 보강 |
-| 3.6 | 스트림 중단/동시성 테스트 추가 | 취소, 타임아웃, 중복 요청 시나리오 |
-| 3.7 | Chunk 배치 전송 최적화 | IPC 오버헤드 감소 (50ms debounce) |
-
-### Phase 4: 상용 품질 고도화 (P2 — 출시 후 이터레이션)
-
-> 예상 작업량: 대규모
-> 우선순위: **출시 후 1-2개월**
-
-| # | 작업 | 상세 |
-|---|------|------|
-| 4.1 | 텔레메트리/분석 통합 | VS Code Telemetry API 사용, 익명 사용 패턴 수집 |
-| 4.2 | 에러 리포팅 서비스 연동 | Sentry 등 크래시 리포팅 |
-| 4.3 | E2E 테스트 CI 파이프라인 구축 | VS Code Extension Test 실행 환경 구성 |
-| 4.4 | GitHub Release 자동 생성 | CHANGELOG + VSIX 아티팩트 첨부 |
-| 4.5 | 프리릴리스 채널 운영 | 마켓플레이스 pre-release 버전 배포 |
-| 4.6 | VSIX 서명 | 패키지 무결성 검증 |
-| 4.7 | 접근성(a11y) 감사 | WCAG 2.1 AA 기준 웹뷰 접근성 검증 |
-| 4.8 | 성능 프로파일링 | 대규모 Figma 데이터 처리 시 메모리/CPU 프로파일 |
-| 4.9 | 추가 Agent 지원 | OpenAI GPT, Amazon Bedrock 등 확장 |
-| 4.10 | 사용자 문서 | 마켓플레이스 상세 페이지, 가이드 문서, FAQ |
-
-### Phase 5: 엔터프라이즈 기능 (P3 — 장기 계획)
-
-> 예상 작업량: 대규모
-> 우선순위: **출시 후 3-6개월**
-
-| # | 작업 | 상세 |
-|---|------|------|
-| 5.1 | 팀 설정 공유 | `.figmalab.json` 프로젝트 레벨 설정 |
-| 5.2 | 커스텀 프롬프트 템플릿 | 사용자 정의 출력 형식 + 프롬프트 저장/로드 |
-| 5.3 | 디자인 토큰 추출 | Figma 변수/스타일 → CSS 변수/Tailwind 테마 자동 변환 |
-| 5.4 | 다중 파일 생성 | 컴포넌트 분할 출력 (예: TSX + CSS + test 동시 생성) |
-| 5.5 | 히스토리/버전 관리 | 생성 이력 저장, diff 비교, 롤백 |
-| 5.6 | Figma Plugin 연동 | MCP 서버 없이 Figma Plugin으로 직접 연동 |
-| 5.7 | 오프라인 모드 | 캐시된 Figma 데이터로 로컬 생성 |
-
----
-
-## 11. 코드 수정 상세 명세
-
-### 11.1 [P0] esbuild 타겟 수정
-
-**파일:** `esbuild.config.js`
-```diff
-- target: 'node18',
-+ target: 'node20',
-```
-
-### 11.2 [P0] Extension deactivate 리소스 정리
-
-**파일:** `extension.ts`
-```diff
-+ // deactivate에서 호출할 수 있도록 provider 참조 보관
-+ const providers = [setupProvider, promptProvider, logProvider];
-+
-  export function deactivate() {
-    Logger.info('system', 'Figma MCP Helper deactivated');
-+   // 모든 SidebarProvider의 WebviewMessageHandler 정리
-+   // (ScreenshotService 임시 파일 삭제 포함)
-    AgentFactory.clear();
-    Logger.clear();
-  }
-```
-**참고:** 현재 구조상 `deactivate()`가 `activate()` 스코프 밖에 있어 provider 참조에 접근 불가. 모듈 레벨 변수로 리팩터링 필요.
-
-### 11.3 [P0] 이중 에러 이벤트 방지
-
-**파일:** `WebviewMessageHandler.ts`
-```diff
-  } catch (e) {
-    const err = e as Error;
-+   // 핸들러가 이미 자체적으로 에러 이벤트를 보냈는지 확인
-+   // 핸들러 레벨 에러 이벤트와 중복 방지
--   this.post({ event: 'error', source, message: err.message });
-+   if (!(err instanceof HandledError)) {
-+     this.post({ event: 'error', source, message: err.message });
-+   }
-    Logger.error('system', err.message);
-  }
-```
-**또는** 각 핸들러가 에러를 직접 UI로 보내지 않고 throw하도록 통일.
-
-### 11.4 [P1] API 키 형식 검증
+**권장 조치:**
 
 ```typescript
-// 새로운 유틸리티 함수 추가
 function validateApiKeyFormat(agent: AgentType, key: string): boolean {
-  if (!key || key.trim().length === 0) return false;
+  if (!key.trim()) return false;
   if (agent === 'gemini' && !key.startsWith('AIza')) return false;
   if (agent === 'claude' && !key.startsWith('sk-ant-')) return false;
   return true;
 }
 ```
 
-### 11.5 [P1] 안전한 에러 추출
+저장 전에 명백히 잘못된 키를 거부한다.
+
+#### SEC-2 — MCP 엔드포인트 SSRF (중간)
+
+**파일:** `McpClient.ts:68-72`
+
+프로토콜은 검증된다(`http`/`https`만 허용). 그러나 내부/사설 IP를 포함한 임의의 호스트명(예: `http://192.168.1.1:9000`)이 허용된다. 공유 환경에서 확장 프로그램이 사용될 경우 서버 사이드 요청 위조(SSRF) 벡터가 된다.
+
+**권장 조치:** 기본적으로 `localhost` / `127.0.0.1`만 허용한다. 외부 호스트를 입력하면 사용자에게 명시적 확인을 요청한다.
+
+#### SEC-3 — UI 스캐폴딩에 `innerHTML` 사용 (낮음)
+
+**파일:** `AgentLayer.ts:223`, 모든 Layer 컴포넌트의 render 템플릿
+
+`render()` 메서드가 템플릿 리터럴을 통해 i18n 문자열을 `innerHTML`에 삽입한다. 이 문자열들은 하드코딩된 번역 테이블에서 오며 사용자 입력이 아니므로 실제 XSS 위험은 거의 없다. 그러나 이 패턴은 나쁜 선례가 된다.
+
+**권장 조치:** 변수(i18n 키 포함)에서 오는 문자열은 `innerHTML` 대신 DOM API(`createElement` + `textContent`)로 교체한다.
+
+---
+
+### 3.4 잠재적 결함
+
+#### POT-1 — 스트림 중단 시 부분 코드 표시 (높음)
+
+**파일:** `PromptCommandHandler.ts:69-80`
+
+스트리밍 중 `prompt.chunk` 이벤트가 UI에 순차적으로 전송된다. 스트림이 중간에 중단되면 UI의 `code-output` 요소에 이미 부분적인 코드가 표시된 상태이다. `PromptLayer`의 `onError` 핸들러는 이 부분 출력을 초기화하지 않는다.
+
+**권장 조치:** 취소 시 (a) 코드 출력 영역을 초기화하고 "취소됨" 플레이스홀더를 표시하거나, (b) 불완전한 출력임을 나타내는 배너를 시각적으로 표시한다.
+
+#### POT-2 — `getImage` 실패 시 빈 base64 반환 (중간)
+
+**파일:** `McpClient.ts:182-186`
 
 ```typescript
-// errors.ts에 추가
-export function toErrorMessage(e: unknown): string {
-  if (e instanceof Error) return e.message;
-  if (typeof e === 'string') return e;
-  return 'An unexpected error occurred';
-}
+return result.base64 || result.data || '';
 ```
-코드베이스 전체의 `(e as Error).message`를 `toErrorMessage(e)`로 교체.
+
+빈 문자열이 `ScreenshotService`로 조용히 반환되어 `.png` 파일에 0바이트를 기록하고 에디터에서 열린다. 사용자는 오류 메시지 없이 깨진 이미지를 보게 된다.
+
+**권장 조치:** 결과가 비어있을 때 `''`을 반환하는 대신 `ValidationError`를 던진다.
+
+#### POT-4 — AbortSignal이 Gemini SDK에 전달되지 않음 (중간)
+
+**파일:** `GeminiAgent.ts:126`
+
+```typescript
+const result = await model.generateContentStream(prompt);
+// signal은 yield된 청크 사이에서만 확인되며 SDK에 전달되지 않음
+```
+
+사용자가 중단해도 기저 HTTP 요청이 네트워크 레벨에서 취소되지 않는다. 서버는 모든 청크를 전송 완료할 때까지 스트리밍을 계속하여 API 쿼터가 낭비된다.
+
+**권장 조치:** SDK가 지원하는 경우 `generateContentStream`에 `AbortSignal`을 전달하거나, 중단 시 `result.stream.return()`으로 비동기 이터레이터를 종료한다.
 
 ---
 
-## 12. 의존성 감사
+### 3.5 성능
 
-### 12.1 런타임 의존성 (3개)
+#### PERF-1 — 청크당 IPC 메시지 2개 발송 (중간)
 
-| 패키지 | 버전 | 위험 | 비고 |
-|--------|------|------|------|
-| `@anthropic-ai/sdk` | ^0.78.0 | LOW | 최신 버전 유지 필요 |
-| `@google/generative-ai` | ^0.24.1 | LOW | 최신 버전 유지 필요 |
-| `@vscode/codicons` | ^0.0.44 | LOW | 안정적 |
+**파일:** `PromptCommandHandler.ts:74-76`
 
-### 12.2 주목할 사항
+```typescript
+this.post({ event: 'prompt.generating', progress });
+this.post({ event: 'prompt.chunk', text: chunk });
+```
 
-- **`serialize-javascript` 오버라이드**: `^7.0.4`로 강제 — 과거 보안 취약점(CVE) 대응으로 추정
-- **모든 의존성이 caret(`^`) 범위**: 마이너/패치 자동 업데이트 허용. 상용 환경에서는 `package-lock.json` 커밋 + `npm ci` 사용으로 재현성 보장 필요
-- **`module-alias`**: 경로 별칭 — 런타임 의존성이나 테스트 전용으로 보임. 프로덕션 번들에 불필요한 포함 여부 확인 필요
+스트리밍 청크마다 `postMessage` 호출이 두 번 발생한다. 일반적인 코드 생성에서 수백 개의 청크가 생성되면 IPC 오버헤드가 두 배가 된다.
 
----
+**권장 조치:** 진행률 업데이트를 청크 메시지에 통합한다.
 
-## 13. 문서화 현황
-
-| 항목 | 상태 | 상용화 요구 |
-|------|------|-----------|
-| README.md | ✅ 존재 | 마켓플레이스 상세 설명 보강 필요 |
-| CHANGELOG.md | ⚠️ 존재 여부 미확인 | 필수 — conventional-changelog 스크립트 활용 |
-| CONTRIBUTING.md | ❌ 없음 | 오픈소스 시 필수 |
-| API 문서 | ❌ 없음 | Agent 인터페이스 확장 시 필수 |
-| 사용자 가이드 | ❌ 없음 | 마켓플레이스 배포 시 필수 |
-| SECURITY.md | ✅ 존재 | 충분 |
-| LICENSE | ✅ MIT | 충분 |
+```typescript
+this.post({ event: 'prompt.chunk', text: chunk, progress });
+```
 
 ---
 
-## 14. 최종 권고
+### 3.6 CI/CD 미비 항목
 
-### 즉시 조치 (출시 차단)
-1. esbuild 타겟 버전 수정 (5분)
-2. `deactivate()` 리소스 정리 구현 (2시간)
-3. 이중 에러 이벤트 방지 (1시간)
-4. 스트림 중단 시 부분 코드 처리 (2시간)
+| 항목 | 심각도 | 권장 조치 |
+|------|--------|----------|
+| 브랜치 커버리지 게이트 없음 | 높음 | `c8` 임계값으로 브랜치 커버리지 85% 미만 PR 차단 |
+| CI에 `npm audit` 없음 | 높음 | lint 단계에 `npm audit --audit-level=high` 추가 |
+| GitHub Release 자동화 없음 | 중간 | 태그 푸시 시 VSIX 아티팩트 포함 릴리스 자동 생성 |
+| CodeQL / SAST 없음 | 중간 | GitHub CodeQL 액션 활성화 |
+| E2E 테스트가 CI에 없음 | 낮음 | 파이프라인에 Headless VS Code 테스트 러너 추가 |
 
-### 단기 조치 (출시 1주 전)
-5. API 키 형식 검증 (1시간)
-6. 안전한 에러 추출 유틸리티 도입 (2시간)
-7. `max_tokens` 동적화 (30분)
-8. CI에 `npm audit` 추가 (30분)
-9. 브랜치 커버리지 90%+ 달성 (1일)
+---
 
-### 중기 조치 (출시 후 1개월)
-10. 재시도 로직 도입
-11. 텔레메트리 연동
-12. E2E 테스트 CI 구축
-13. 사용자 문서 작성
-14. 성능 최적화 (chunk 배치, DOM 가상화)
+### 3.7 코드 품질
 
-### 결론
+#### QA-1 — ESLint `@typescript-eslint/no-explicit-any`가 `warn` (낮음)
 
-이 프로젝트는 **아키텍처 설계, 타입 안전성, 코드 조직화** 면에서 우수한 수준을 보여줍니다. 특히 discriminated union 기반의 메시지 타입 시스템과 커스텀 에러 계층은 상용 소프트웨어의 모범 사례입니다. 그러나 **리소스 정리, 에러 처리 일관성, 보안 검증, CI/CD 성숙도** 측면에서 상용 출시 전 개선이 필요합니다. Phase 1-2를 완료하면 마켓플레이스 정식 출시가 가능한 수준에 도달할 것으로 판단됩니다.
+프로덕션 코드에서 `any` 남용을 방지하려면 `error`로 변경해야 한다.
+
+#### QA-2 — `no-console`이 `off` (낮음)
+
+코드베이스 전체에서 올바르게 `Logger`를 사용하고 있지만 규칙이 강제되지 않는다. 실수로 남긴 `console.log`가 프로덕션에서 VS Code Output에 그대로 노출된다.
+
+#### QA-3 — `TOKEN_ESTIMATE_DIVISOR = 4` 주석 없음 (낮음)
+
+**파일:** `constants.ts:37`
+
+이 제수는 "문자 4개 ≈ 토큰 1개"라는 표준 휴리스틱을 구현한 것이다. 설명 주석이 없으면 이후 유지보수자가 임의의 매직 넘버로 오해할 수 있다.
+
+---
+
+## 4. 유지되는 강점 (변경 없음)
+
+v0.1.3에서 확인된 아래 강점들이 그대로 유지됨을 재확인.
+
+- **소스 코드에 `any` 없음** — discriminated union 메시지 타입으로 완전한 타입 안전성 확보
+- **Logger 추상화** — 모든 소스 파일에서 `console.log` 미사용
+- **Secrets Store** — API 키를 OS 암호화된 VS Code Secrets에 저장, 일반 설정에 평문 저장 없음
+- **CSP 정책** — 모든 웹뷰에 `script-src 'nonce-*'`, `default-src 'none'` 적용
+- **입력 검증** — 경로 사용 전 fileId/nodeId를 정규식으로 정제
+- **순환 버퍼 로거** — 고정 메모리, O(1) append 성능
+- **requestAnimationFrame 청크 배치 처리** — `insertAdjacentText` 패턴 (0.1.4 신규)
+- **Gemini 모델 목록 캐시** — 5분 TTL로 반복 API 호출 방지
+
+---
+
+## 5. 권장 조치 계획
+
+### Priority 0 — 출시 차단 항목
+
+| # | 파일 | 작업 |
+|---|------|------|
+| P0-1 | `PromptCommandHandler.ts` | 스트림 중단 시 부분 코드 초기화 또는 불완전 표시 (POT-1) |
+| P0-2 | `McpClient.ts` | `getImage`에서 빈 문자열 반환 대신 예외 던지기 (POT-2) |
+| P0-3 | CI workflow | 알려진 취약점 배포 방지를 위해 `npm audit --audit-level=high` 추가 |
+| P0-4 | CI workflow | 브랜치 커버리지 게이트 추가 (최소 85%) |
+
+### Priority 1 — 출시 전 권장
+
+| # | 파일 | 작업 |
+|---|------|------|
+| P1-1 | `errors.ts` | `toErrorMessage(e: unknown)` 추가 및 모든 `(e as Error).message` 교체 |
+| P1-2 | `AgentCommandHandler.ts` | 저장 전 API 키 형식 검증 |
+| P1-3 | `GeminiAgent.ts` | AbortSignal 전달 또는 취소 시 스트림 이터레이터 종료 |
+| P1-4 | `PromptCommandHandler.ts` | `prompt.generating` + `prompt.chunk`를 단일 메시지로 통합 |
+
+### Priority 2 — 출시 후 개선
+
+| # | 작업 |
+|---|------|
+| P2-1 | McpClient 및 에이전트 요청에 지수 백오프 네트워크 재시도 구현 |
+| P2-2 | MCP 엔드포인트 허용 목록 / 외부 호스트 확인 다이얼로그 |
+| P2-3 | VSIX 아티팩트 포함 GitHub Release 자동화 |
+| P2-4 | render 템플릿의 `innerHTML`을 안전한 DOM API로 교체 |
+| P2-5 | `dangerouslyAllowBrowser` 이유 설명 인라인 주석 추가 |
+
+---
+
+## 6. 결론
+
+버전 0.1.4는 이전 리뷰에서 확인된 버그 5건과 아키텍처 공백 2건(리소스 정리, 버전 하드코딩)을 모두 해결했다. 청크 렌더링 개선은 체감 가능한 성능 향상이다. 코드베이스는 종합 **8.0 / 10**으로 릴리스 후보 품질에 도달했다.
+
+Priority-0 항목 4건만이 마켓플레이스 출시를 위해 남은 유일한 차단 요소이며, 나머지 항목들은 출시 이후 패치에서 순차적으로 개선할 수 있다.
