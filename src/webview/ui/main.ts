@@ -16,7 +16,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function hasEvent<TEvent extends HostEvent>(
   handlers: MessageHandlerMap<TEvent>,
-  event: unknown
+  event: unknown,
 ): event is TEvent {
   return typeof event === 'string' && Object.hasOwn(handlers, event);
 }
