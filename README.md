@@ -12,6 +12,7 @@ Figma MCP Helper connects to Figma from the VS Code sidebar, lets you inspect fe
 
 - Supports a `local / remote` connection mode in the Setup sidebar
 - Connects to a local Figma Desktop MCP server from VS Code
+- Supports a remote Figma connection backed by OAuth and REST APIs
 - Fetches Figma file data from a shared Figma URL or MCP JSON payload
 - Captures screenshots for the selected Figma node
 - Generates code with Gemini or Claude
@@ -23,7 +24,7 @@ Figma MCP Helper connects to Figma from the VS Code sidebar, lets you inspect fe
 
 - VS Code 1.85 or later
 - For local mode: a running Figma Desktop MCP server
-- For planned remote mode: a Figma OAuth flow and REST-backed remote integration
+- For remote mode: access to the bundled OAuth worker and a valid Figma login
 - At least one AI API key:
   - Gemini: [Google AI Studio](https://aistudio.google.com)
   - Claude: [Anthropic Console](https://console.anthropic.com)
@@ -34,10 +35,21 @@ Figma MCP Helper connects to Figma from the VS Code sidebar, lets you inspect fe
 2. Open the **Figma MCP Helper** view from the activity bar.
 3. In **Setup**, choose `local` or `remote`.
 4. For `local`, confirm the MCP endpoint and connect to your Desktop MCP server.
-5. For `remote`, use **Auth Login** when the OAuth flow is configured.
+5. For `remote`, click **Auth Login**, finish the browser sign-in flow, then return to VS Code.
 6. Paste a Figma URL, then fetch the design data or screenshot.
 7. In **Agent**, choose Gemini or Claude, save your API key, and load a model.
 8. In **Prompt**, choose an output format and generate code.
+
+## Remote Mode
+
+Remote mode is implemented as `Figma OAuth + REST`.
+
+- Authentication is handled by the bundled worker at `https://vscode-figma-mcp-helper-workers.birdea.workers.dev`
+- After login, the extension stores the returned access token in VS Code secret storage
+- Design data and screenshots are fetched through the worker's REST endpoints
+- This mode is intended to match the existing local fetch/screenshot workflow, not to provide a generic remote MCP transport
+
+If you previously set `figma-mcp-helper.remoteMcpEndpoint` or `figma-mcp-helper.remoteMcpAuthUrl` to an older worker URL, remove those overrides so the default values can be used.
 
 ## Sidebar Workflow
 
@@ -91,5 +103,5 @@ The Log view shows extension activity and error details, and lets you clear, cop
 ## Known Scope
 
 - Local mode depends on an external Figma Desktop MCP server; it does not bundle or host one.
-- Remote mode is currently being developed as `Figma OAuth + REST parity` for the existing fetch/screenshot workflow, not as a full remote MCP transport implementation yet.
+- Remote mode is implemented as `Figma OAuth + REST` for the current fetch/screenshot workflow, not as a full remote MCP transport.
 - Output quality depends on the completeness of the MCP data, screenshot quality, prompt instructions, and selected AI model.
