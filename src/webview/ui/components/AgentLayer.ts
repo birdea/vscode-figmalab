@@ -31,7 +31,7 @@ export class AgentLayer {
   <div class="field-group stack-gap-sm">
     <div class="row row-space-between">
       <label for="api-key-input">API Key</label>
-      <a href="#" id="link-get-api-key" class="link-meta">${this.msg('agent.apiKeyHelp')}</a>
+      <button type="button" id="link-get-api-key" class="link-meta-btn">${this.msg('agent.apiKeyHelp')}</button>
     </div>
     <div class="row">
       <input type="password" id="api-key-input" placeholder="${this.msg('agent.apiKeyPlaceholder')}" />
@@ -40,7 +40,7 @@ export class AgentLayer {
   <div class="field-group stack-gap-sm">
     <div class="row row-space-between">
       <label for="model-select">${this.msg('agent.modelSelect')}</label>
-      <a href="#" id="link-get-model-info" class="link-meta">${this.msg('agent.refresh')}</a>
+      <button type="button" id="link-get-model-info" class="link-meta-btn">${this.msg('agent.refresh')}</button>
     </div>
     <div class="row">
       <select id="model-select">
@@ -70,15 +70,13 @@ export class AgentLayer {
       this.scheduleModelLoad();
     });
 
-    document.getElementById('link-get-api-key')?.addEventListener('click', (e) => {
-      e.preventDefault();
+    document.getElementById('link-get-api-key')?.addEventListener('click', () => {
       const agent = (document.getElementById('agent-select') as HTMLSelectElement)
         .value as AgentType;
       vscode.postMessage({ command: 'agent.getApiKeyHelp', agent });
     });
 
-    document.getElementById('link-get-model-info')?.addEventListener('click', (e) => {
-      e.preventDefault();
+    document.getElementById('link-get-model-info')?.addEventListener('click', () => {
       this.requestModelLoad(true);
     });
 
