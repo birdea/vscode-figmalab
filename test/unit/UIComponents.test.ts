@@ -190,11 +190,11 @@ suite('UI Components Consolidated', () => {
 
     test('switching back to local clears remote notice', () => {
       document.getElementById('btn-mode-remote')?.click();
-      layer.onError('Remote MCP support is planned for a future update.');
+      layer.onStatus(false, [], 'Remote MCP support is planned for a future update.');
 
       document.getElementById('btn-mode-local')?.click();
 
-      const notice = document.getElementById('figma-notice');
+      const notice = document.getElementById('figma-connection-notice');
       assert.strictEqual(notice?.textContent, '');
     });
 
@@ -206,13 +206,13 @@ suite('UI Components Consolidated', () => {
       assert.ok(guide?.textContent?.includes('2개'));
 
       layer.onStatus(false, [], 'Connect error');
-      const notice = document.getElementById('figma-notice');
+      const notice = document.getElementById('figma-connection-notice');
       assert.ok(notice?.textContent?.includes('Connect error'));
     });
 
     test('onStatus disconnected without error clears notice', () => {
       layer.onStatus(false, [], undefined);
-      const notice = document.getElementById('figma-notice');
+      const notice = document.getElementById('figma-connection-notice');
       assert.strictEqual(notice?.textContent, '');
     });
 
@@ -223,7 +223,7 @@ suite('UI Components Consolidated', () => {
       const screenshotBtn = document.getElementById('btn-screenshot') as HTMLButtonElement;
       screenshotBtn.disabled = false;
       screenshotBtn.click();
-      const notice = document.getElementById('figma-notice');
+      const notice = document.getElementById('figma-data-notice');
       assert.ok(notice?.textContent?.includes('연결'));
     });
 
@@ -246,7 +246,7 @@ suite('UI Components Consolidated', () => {
       const screenshotBtn = document.getElementById('btn-screenshot') as HTMLButtonElement;
       screenshotBtn.disabled = false; // force enable
       screenshotBtn.click();
-      const notice = document.getElementById('figma-notice');
+      const notice = document.getElementById('figma-data-notice');
       assert.ok(notice?.textContent?.includes('MCP'));
     });
 
@@ -254,7 +254,7 @@ suite('UI Components Consolidated', () => {
       const fetchBtn = document.getElementById('btn-fetch') as HTMLButtonElement;
       fetchBtn.disabled = false;
       fetchBtn.click();
-      const notice = document.getElementById('figma-notice');
+      const notice = document.getElementById('figma-data-notice');
       assert.ok(notice?.textContent?.includes('입력'));
     });
 
@@ -269,7 +269,7 @@ suite('UI Components Consolidated', () => {
 
     test('onError calls setNotice', () => {
       layer.onError('some error');
-      const notice = document.getElementById('figma-notice');
+      const notice = document.getElementById('figma-data-notice');
       assert.strictEqual(notice?.textContent, 'some error');
     });
 
@@ -278,7 +278,7 @@ suite('UI Components Consolidated', () => {
       document.getElementById('btn-connect')?.click();
       layer.onAuthStarted();
 
-      const notice = document.getElementById('figma-notice');
+      const notice = document.getElementById('figma-connection-notice');
       const connectBtn = document.getElementById('btn-connect') as HTMLButtonElement;
       assert.ok(notice?.textContent?.includes('브라우저'));
       assert.ok(!connectBtn.disabled);
