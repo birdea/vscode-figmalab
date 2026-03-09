@@ -188,6 +188,16 @@ suite('UI Components Consolidated', () => {
       assert.ok(postMessageStub.calledWithMatch({ command: 'figma.openSettings', mode: 'remote' }));
     });
 
+    test('switching back to local clears remote notice', () => {
+      document.getElementById('btn-mode-remote')?.click();
+      layer.onError('Remote MCP support is planned for a future update.');
+
+      document.getElementById('btn-mode-local')?.click();
+
+      const notice = document.getElementById('figma-notice');
+      assert.strictEqual(notice?.textContent, '');
+    });
+
     test('onStatus handles methods and error', () => {
       layer.onStatus(true, ['tool1', 'tool2'], undefined);
       const text = document.getElementById('figma-status-text');

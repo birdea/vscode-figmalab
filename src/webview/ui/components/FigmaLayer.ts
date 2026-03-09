@@ -188,6 +188,7 @@ export class FigmaLayer {
   private setConnectionMode(mode: ConnectionMode) {
     if (this.connectionMode === mode) return;
     this.connectionMode = mode;
+    this.clearNotice();
     this.syncConnectionModeUI();
     this.syncConnectButton();
     if (!this.connected) {
