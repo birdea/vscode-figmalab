@@ -387,6 +387,23 @@ suite('UI Components Consolidated', () => {
       assert.strictEqual(bar?.value, 50);
     });
 
+    test('appendLog and clearLog update prompt log area', () => {
+      layer.appendLog({
+        id: '1',
+        timestamp: '12:00:00Z',
+        level: 'info',
+        layer: 'prompt',
+        message: 'Request sent',
+        detail: 'html | claude',
+      });
+      const area = document.getElementById('prompt-log-area');
+      assert.ok(area?.textContent?.includes('Request sent'));
+      assert.ok(area?.textContent?.includes('html | claude'));
+
+      layer.clearLog();
+      assert.strictEqual(area?.textContent, '');
+    });
+
     test('onResult updates notice and clears generating state', () => {
       layer.onGenerateRequested();
       layer.onResult('const x = 1;');
@@ -417,6 +434,8 @@ suite('UI Components Consolidated', () => {
     });
 
     test('onGenerateRequested validation', () => {
+      const logArea = document.getElementById('prompt-log-area') as HTMLPreElement;
+      logArea.textContent = 'old log';
       (document.getElementById('use-user-prompt') as HTMLInputElement).checked = false;
       (document.getElementById('use-user-prompt') as HTMLInputElement).dispatchEvent(
         new window.Event('change'),
@@ -427,6 +446,7 @@ suite('UI Components Consolidated', () => {
       );
       (document.getElementById('use-mcp-data') as HTMLInputElement).checked = false;
       layer.onGenerateRequested();
+      assert.strictEqual(logArea.textContent, '');
       assert.ok(postMessageStub.calledWithMatch({ command: 'prompt.generate' }));
     });
 

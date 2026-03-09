@@ -85,6 +85,12 @@ export function init() {
           case 'prompt.generateRequested':
             layer.onGenerateRequested();
             break;
+          case 'prompt.logAppend':
+            layer.appendLog(msg.entry);
+            break;
+          case 'prompt.logClear':
+            layer.clearLog();
+            break;
           case 'prompt.streaming':
             layer.onStreaming(msg.progress, msg.text);
             break;

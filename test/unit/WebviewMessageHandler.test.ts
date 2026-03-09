@@ -44,6 +44,7 @@ suite('WebviewMessageHandler Comprehensive', () => {
       '1.0.0',
       'ko',
     );
+    sandbox.stub((handler as any).editorIntegration, 'openInEditor').resolves();
     Logger.initialize(asOutputChannel(createOutputChannelStub(sandbox)));
     const vscode = require('vscode');
     vscode.window.showInformationMessage.resetHistory();
@@ -301,10 +302,8 @@ suite('WebviewMessageHandler Comprehensive', () => {
   });
 
   test('handle editor.open', async () => {
-    const vscode = require('vscode');
-    vscode.workspace.openTextDocument.resolves({ show: sandbox.stub() });
     await handler.handle({ command: 'editor.open', code: 'code', language: 'js' });
-    assert.ok(vscode.workspace.openTextDocument.called);
+    assert.ok((handler as any).editorIntegration.openInEditor.calledWith('code', 'js'));
   });
 
   test('handle figma.screenshot', async () => {

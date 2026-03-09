@@ -26,6 +26,16 @@ export class PromptCommandHandler {
     this.webview.postMessage(msg);
   }
 
+  private postPromptLog(
+    level: 'info' | 'warn' | 'error' | 'success',
+    layer: 'prompt' | 'agent' | 'editor',
+    message: string,
+    detail?: string,
+  ) {
+    const entry = Logger.log(level, layer, message, detail);
+    this.post({ event: 'prompt.logAppend', entry });
+  }
+
   async generate(payload: PromptPayload) {
     if (this.isGenerating) {
       this.post({
@@ -52,6 +62,13 @@ export class PromptCommandHandler {
     };
 
     Logger.info('prompt', `Generating ${resolvedPayload.outputFormat} code with ${agent}:${model}`);
+    this.post({ event: 'prompt.logClear' });
+    this.postPromptLog(
+      'info',
+      'prompt',
+      `Starting ${resolvedPayload.outputFormat.toUpperCase()} generation`,
+      `${agent}:${model || 'default'} | userPrompt=${resolvedPayload.userPrompt ? 'yes' : 'no'} | mcpData=${resolvedPayload.mcpData ? 'yes' : 'no'}`,
+    );
     this.post({ event: 'prompt.streaming', progress: 0 });
     this.isGenerating = true;
     this.currentRequestId = payload.requestId ?? null;
@@ -66,12 +83,19 @@ export class PromptCommandHandler {
         resolvedPayload,
         this.abortController.signal,
       );
+      this.postPromptLog('info', 'agent', 'Request sent to AI agent');
       for await (const chunk of gen) {
         if (this.abortController.signal.aborted) {
           throw new UserCancelledError(USER_CANCELLED_CODE_GENERATION);
         }
         fullCode += chunk;
         progress = Math.min(PROGRESS_CAP, progress + 5);
+        this.postPromptLog(
+          'info',
+          'agent',
+          `Response chunk received (${chunk.length} chars)`,
+          this.summarizeChunk(chunk),
+        );
         this.post({ event: 'prompt.streaming', progress, text: chunk });
       }
 
@@ -79,6 +103,12 @@ export class PromptCommandHandler {
       await this.editorIntegration.openInEditor(
         fullCode,
         this.toVsCodeLanguage(resolvedPayload.outputFormat),
+        this.toSuggestedFilename(resolvedPayload.outputFormat),
+      );
+      this.postPromptLog(
+        'success',
+        'editor',
+        'Generated output opened in editor',
         this.toSuggestedFilename(resolvedPayload.outputFormat),
       );
       this.post({
@@ -101,6 +131,12 @@ export class PromptCommandHandler {
           this.toVsCodeLanguage(resolvedPayload.outputFormat),
           this.toSuggestedFilename(resolvedPayload.outputFormat),
         );
+        this.postPromptLog(
+          isCancelled ? 'warn' : 'error',
+          'editor',
+          'Partial output opened in editor',
+          `${this.toSuggestedFilename(resolvedPayload.outputFormat)} | ${errorMessage}`,
+        );
         this.post({
           event: 'prompt.result',
           code: fullCode,
@@ -110,6 +146,12 @@ export class PromptCommandHandler {
           progress,
         });
       } else {
+        this.postPromptLog(
+          isCancelled ? 'warn' : 'error',
+          'agent',
+          'Generation failed before any output was produced',
+          errorMessage,
+        );
         this.post({
           event: 'prompt.error',
           message: errorMessage,
@@ -183,6 +225,11 @@ export class PromptCommandHandler {
       default:
         return 'generated-ui.txt';
     }
+  }
+
+  private summarizeChunk(chunk: string): string {
+    const singleLine = chunk.replace(/\s+/g, ' ').trim();
+    return singleLine.length > 120 ? `${singleLine.slice(0, 117)}...` : singleLine;
   }
 
   getGeneratingState() {

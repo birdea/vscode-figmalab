@@ -103,6 +103,8 @@ export type HostToWebviewMessage =
   | { event: 'agent.modelsResult'; models: ModelInfo[] }
   | { event: 'prompt.generateRequested' }
   | { event: 'prompt.streaming'; progress: number; text?: string }
+  | { event: 'prompt.logAppend'; entry: LogEntry }
+  | { event: 'prompt.logClear' }
   | {
       event: 'prompt.result';
       code: string;

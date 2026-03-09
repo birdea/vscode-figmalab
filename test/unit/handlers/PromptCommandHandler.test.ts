@@ -163,6 +163,13 @@ suite('PromptCommandHandler', () => {
 
     await handler.generate({ outputFormat: 'html' });
 
+    assert.ok(webview.postMessage.calledWithMatch({ event: 'prompt.logClear' }));
+    assert.ok(
+      webview.postMessage.calledWithMatch({
+        event: 'prompt.logAppend',
+        entry: sinon.match({ message: sinon.match(/Request sent to AI agent/) }),
+      }),
+    );
     assert.ok(editorIntegration.openInEditor.calledWith('hello world', 'html'));
     assert.ok(
       webview.postMessage.calledWithMatch({
@@ -206,6 +213,12 @@ suite('PromptCommandHandler', () => {
 
     await handler.generate({ outputFormat: 'html' });
 
+    assert.ok(
+      webview.postMessage.calledWithMatch({
+        event: 'prompt.logAppend',
+        entry: sinon.match({ message: sinon.match(/Generation failed before any output/) }),
+      }),
+    );
     assert.ok(
       webview.postMessage.calledWithMatch({
         event: 'prompt.error',
@@ -321,6 +334,26 @@ suite('PromptCommandHandler', () => {
     await handler.generate({ outputFormat: 'kotlin' });
 
     assert.ok(editorIntegration.openInEditor.calledWith('@Composable fun Demo() {}', 'kotlin'));
+  });
+
+  test('generate logs partial editor open when stream breaks after output', async () => {
+    const agent = {
+      setApiKey: sandbox.stub().resolves(),
+      generateCode: async function* () {
+        yield 'hello';
+        throw new Error('stream broke');
+      },
+    };
+    sandbox.stub(AgentFactory, 'getAgent').returns(agent as any);
+
+    await handler.generate({ outputFormat: 'html' });
+
+    assert.ok(
+      webview.postMessage.calledWithMatch({
+        event: 'prompt.logAppend',
+        entry: sinon.match({ message: sinon.match(/Partial output opened in editor/) }),
+      }),
+    );
   });
 
   test('saveFile delegates to editor integration', async () => {

@@ -1,5 +1,5 @@
 import { vscode } from '../vscodeApi';
-import { PromptPayload } from '../../../types';
+import { LogEntry, OutputFormat, PromptPayload } from '../../../types';
 import { getDocumentLocale, t, UiLocale } from '../../../i18n';
 import { DEBOUNCE_MS } from '../../../constants';
 
@@ -53,6 +53,12 @@ export class PromptLayer {
     <button class="secondary hidden" id="btn-cancel-generate"><i class="codicon codicon-debug-stop"></i>${this.msg('prompt.cancel')}</button>
   </div>
   <div class="notice hidden" id="prompt-notice"></div>
+  <details class="minimal-options stack-gap-sm" id="prompt-log-panel" open>
+    <summary>${this.msg('prompt.log.title')}</summary>
+    <div class="log-shell">
+      <pre class="log-terminal prompt-log-terminal" id="prompt-log-area"></pre>
+    </div>
+  </details>
 </section>
 `;
   }
@@ -102,6 +108,7 @@ export class PromptLayer {
       requestId: this.nextRequestId(),
     };
 
+    this.clearLog();
     this.requestId = payload.requestId ?? null;
     this.setNotice('info', this.msg('prompt.notice.starting'));
     this.setGeneratingState(true);
@@ -211,6 +218,22 @@ export class PromptLayer {
     this.setNotice('error', this.toFriendlyError(message));
   }
 
+  appendLog(entry: LogEntry) {
+    const area = document.getElementById('prompt-log-area') as HTMLPreElement | null;
+    if (!area) return;
+
+    const line = this.formatLogEntry(entry);
+    area.textContent = `${area.textContent ?? ''}${area.textContent ? '\n' : ''}${line}`;
+    area.scrollTop = area.scrollHeight;
+  }
+
+  clearLog() {
+    const area = document.getElementById('prompt-log-area');
+    if (area) {
+      area.textContent = '';
+    }
+  }
+
   private setGeneratingState(generating: boolean) {
     this.isGenerating = generating;
     const generateBtn = document.getElementById('btn-generate') as HTMLButtonElement | null;
@@ -257,5 +280,15 @@ export class PromptLayer {
 
   private msg(key: string, params?: Record<string, string | number>) {
     return t(this.locale, key, params);
+  }
+
+  private formatLogEntry(entry: LogEntry): string {
+    const lines = [
+      `[${entry.timestamp}] [${entry.level.toUpperCase()}] [${entry.layer}] ${entry.message}`,
+    ];
+    if (entry.detail) {
+      lines.push(`  ${entry.detail}`);
+    }
+    return lines.join('\n');
   }
 }

@@ -20,15 +20,6 @@ export class EditorIntegration {
     });
 
     try {
-      await vscode.commands.executeCommand('editor.action.formatDocument');
-    } catch (error) {
-      Logger.warn(
-        'editor',
-        `Formatter unavailable for ${language}: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-
-    try {
       const wrapMode = vscode.workspace
         .getConfiguration('editor', typedDoc)
         .get<string>('wordWrap');
@@ -48,7 +39,7 @@ export class EditorIntegration {
   async saveAsNewFile(code: string, defaultName: string = 'generated'): Promise<void> {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     const documentsDir = path.join(os.homedir(), 'Documents');
-    const defaultUri = fs.existsSync(documentsDir)
+    const defaultUri = this.hasDocumentsDir(documentsDir)
       ? vscode.Uri.file(path.join(documentsDir, defaultName))
       : workspaceFolders
         ? vscode.Uri.joinPath(workspaceFolders[0].uri, defaultName)
@@ -97,5 +88,9 @@ export class EditorIntegration {
                 : 'txt';
 
     return `generated-${Date.now()}.${extension}`;
+  }
+
+  private hasDocumentsDir(documentsDir: string): boolean {
+    return fs.existsSync(documentsDir);
   }
 }

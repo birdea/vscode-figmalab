@@ -408,6 +408,23 @@ label {
   max-height: calc(10 * 1.5em + 12px);
 }
 
+.log-shell {
+  border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 45%, transparent);
+  border-radius: var(--figmalab-radius);
+  overflow: auto;
+  resize: vertical;
+  min-height: calc(4 * 1.5em + 14px);
+  max-height: calc(10 * 1.5em + 14px);
+}
+
+.prompt-log-terminal {
+  border: 0;
+  border-radius: 0;
+  min-height: calc(4 * 1.5em + 12px);
+  max-height: none;
+  margin: 0;
+}
+
 /* Code output */
 .code-output {
   background: var(--vscode-editor-background);
