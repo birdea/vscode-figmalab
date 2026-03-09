@@ -24,7 +24,9 @@ suite('PromptCommandHandler', () => {
       openInEditor: sandbox.stub().resolves(),
       openPreviewPanel: sandbox.stub(),
       openBrowserPreview: sandbox.stub(),
+      openGeneratedInEditor: sandbox.stub().resolves(),
       syncBrowserPreviewIfActive: sandbox.stub().resolves(),
+      setGeneratedOutputFormat: sandbox.stub(),
       saveAsNewFile: sandbox.stub().resolves(),
     };
     stateManager = new StateManager();
@@ -166,6 +168,7 @@ suite('PromptCommandHandler', () => {
 
     await handler.generate({ outputFormat: 'html' });
 
+    assert.ok(editorIntegration.setGeneratedOutputFormat.calledWith('html'));
     assert.ok(webview.postMessage.calledWithMatch({ event: 'prompt.logClear' }));
     assert.ok(editorIntegration.syncBrowserPreviewIfActive.calledWith('hello world', 'html'));
     assert.ok(
@@ -373,6 +376,11 @@ suite('PromptCommandHandler', () => {
   test('openBrowserPreview delegates to editor integration', async () => {
     await handler.openBrowserPreview('<div>preview</div>', 'html');
     assert.ok(editorIntegration.openBrowserPreview.calledWith('<div>preview</div>', 'html'));
+  });
+
+  test('openGeneratedEditor delegates to editor integration', async () => {
+    await handler.openGeneratedEditor();
+    assert.ok(editorIntegration.openGeneratedInEditor.calledOnce);
   });
 
   test('getGeneratingState reflects lifecycle changes', async () => {

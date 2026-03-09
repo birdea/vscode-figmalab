@@ -11,6 +11,15 @@ suite('EditorIntegration', () => {
   setup(() => {
     sandbox = sinon.createSandbox();
     integration = new EditorIntegration();
+    const vscode = require('vscode');
+    vscode.Uri.file.resetBehavior();
+    vscode.Uri.file.callsFake((value: string) => ({
+      scheme: 'file',
+      authority: '',
+      path: value,
+      fsPath: value,
+      toString: () => `file://${value}`,
+    }));
   });
 
   teardown(() => {
@@ -19,31 +28,31 @@ suite('EditorIntegration', () => {
 
   test('openInEditor calls workspace.openTextDocument', async () => {
     const vscode = require('vscode');
-    const editStub = sinon.stub().callsFake(async (callback: any) => {
-      const builder = { insert: sinon.stub() };
-      callback(builder);
-      return true;
+    const uri = { fsPath: '/tmp/generated.ts', toString: () => 'file:///tmp/generated.ts' };
+    vscode.Uri.file.returns(uri);
+    vscode.workspace.openTextDocument.resolves({
+      uri,
+      languageId: 'plaintext',
+      getText: () => 'const x = 1;',
     });
-    vscode.workspace.openTextDocument.resolves({ languageId: 'plaintext' });
-    vscode.window.showTextDocument.resolves({ edit: editStub });
+    vscode.window.showTextDocument.resolves({});
 
     await integration.openInEditor('const x = 1;', 'javascript', 'generated.ts');
     assert.ok(
-      vscode.workspace.openTextDocument.calledWithMatch(sinon.match.has('scheme', 'untitled')),
+      vscode.workspace.openTextDocument.calledWith(uri),
     );
+    assert.ok(vscode.workspace.fs.writeFile.calledOnce);
     assert.ok(vscode.languages.setTextDocumentLanguage.calledOnce);
     assert.ok(vscode.window.showTextDocument.calledOnce);
-    assert.ok(editStub.calledOnce);
     assert.ok(!vscode.commands.executeCommand.calledWith('editor.action.formatDocument'));
   });
 
   test('openInEditor enables word wrap when editor setting is off', async () => {
     const vscode = require('vscode');
-    const editStub = sinon.stub().resolves(true);
     const getStub = sinon.stub().withArgs('wordWrap').returns('off');
-    vscode.workspace.openTextDocument.resolves({ languageId: 'json' });
+    vscode.workspace.openTextDocument.resolves({ languageId: 'json', getText: () => '{"a":1}' });
     vscode.workspace.getConfiguration.returns({ get: getStub });
-    vscode.window.showTextDocument.resolves({ edit: editStub });
+    vscode.window.showTextDocument.resolves({});
 
     await integration.openInEditor('{"a":1}', 'json', 'data.json');
 
@@ -52,11 +61,10 @@ suite('EditorIntegration', () => {
 
   test('openInEditor skips language switch and word wrap toggle when not needed', async () => {
     const vscode = require('vscode');
-    const editStub = sinon.stub().resolves(true);
     const getStub = sinon.stub().withArgs('wordWrap').returns('on');
-    vscode.workspace.openTextDocument.resolves({ languageId: 'json' });
+    vscode.workspace.openTextDocument.resolves({ languageId: 'json', getText: () => '{"a":1}' });
     vscode.workspace.getConfiguration.returns({ get: getStub });
-    vscode.window.showTextDocument.resolves({ edit: editStub });
+    vscode.window.showTextDocument.resolves({});
     vscode.languages.setTextDocumentLanguage.resetHistory();
     vscode.commands.executeCommand.resetHistory();
 
@@ -68,20 +76,19 @@ suite('EditorIntegration', () => {
 
   test('openInEditor generates file extensions when no suggested name is provided', async () => {
     const vscode = require('vscode');
-    const editStub = sinon.stub().resolves(true);
     vscode.workspace.getConfiguration.returns({
       get: sinon.stub().withArgs('wordWrap').returns('on'),
     });
-    vscode.workspace.openTextDocument.resolves({ languageId: 'plaintext' });
-    vscode.window.showTextDocument.resolves({ edit: editStub });
+    vscode.workspace.openTextDocument.resolves({ languageId: 'plaintext', getText: () => '' });
+    vscode.window.showTextDocument.resolves({});
 
     await integration.openInEditor('html', 'html');
     await integration.openInEditor('scss', 'scss');
     await integration.openInEditor('tsx', 'typescriptreact');
 
-    const openedUris = vscode.workspace.openTextDocument
+    const openedUris = vscode.Uri.file
       .getCalls()
-      .map((call: sinon.SinonSpyCall) => call.args[0].toString());
+      .map((call: sinon.SinonSpyCall) => call.args[0] as string);
     assert.ok(openedUris.some((uri: string) => uri.endsWith('.html')));
     assert.ok(openedUris.some((uri: string) => uri.endsWith('.scss')));
     assert.ok(openedUris.some((uri: string) => uri.endsWith('.tsx')));
@@ -89,40 +96,37 @@ suite('EditorIntegration', () => {
 
   test('openInEditor generates json extension when no suggested name is provided', async () => {
     const vscode = require('vscode');
-    const editStub = sinon.stub().resolves(true);
     vscode.workspace.getConfiguration.returns({
       get: sinon.stub().withArgs('wordWrap').returns('on'),
     });
-    vscode.workspace.openTextDocument.resolves({ languageId: 'plaintext' });
-    vscode.window.showTextDocument.resolves({ edit: editStub });
+    vscode.workspace.openTextDocument.resolves({ languageId: 'plaintext', getText: () => '' });
+    vscode.window.showTextDocument.resolves({});
 
     await integration.openInEditor('{"a":1}', 'json');
 
-    const openedUri = vscode.workspace.openTextDocument.lastCall.args[0].toString();
+    const openedUri = vscode.Uri.file.lastCall.args[0];
     assert.ok(openedUri.endsWith('.json'));
   });
 
   test('openInEditor falls back to txt extension for unknown languages', async () => {
     const vscode = require('vscode');
-    const editStub = sinon.stub().resolves(true);
     vscode.workspace.getConfiguration.returns({
       get: sinon.stub().withArgs('wordWrap').returns('on'),
     });
-    vscode.workspace.openTextDocument.resolves({ languageId: 'plaintext' });
-    vscode.window.showTextDocument.resolves({ edit: editStub });
+    vscode.workspace.openTextDocument.resolves({ languageId: 'plaintext', getText: () => '' });
+    vscode.window.showTextDocument.resolves({});
 
     await integration.openInEditor('plain text', 'plaintext');
 
-    const openedUri = vscode.workspace.openTextDocument.lastCall.args[0].toString();
+    const openedUri = vscode.Uri.file.lastCall.args[0];
     assert.ok(openedUri.endsWith('.txt'));
   });
 
   test('openInEditor swallows word wrap lookup errors', async () => {
     const vscode = require('vscode');
-    const editStub = sinon.stub().resolves(true);
-    vscode.workspace.openTextDocument.resolves({ languageId: 'json' });
+    vscode.workspace.openTextDocument.resolves({ languageId: 'json', getText: () => '{"a":1}' });
     vscode.workspace.getConfiguration.throws(new Error('config error'));
-    vscode.window.showTextDocument.resolves({ edit: editStub });
+    vscode.window.showTextDocument.resolves({});
 
     await assert.doesNotReject(() => integration.openInEditor('{"a":1}', 'json', 'data.json'));
   });
@@ -237,6 +241,9 @@ suite('EditorIntegration', () => {
   test('openBrowserPreview delegates to browser preview service', async () => {
     const browserPreviewService = (integration as any).browserPreviewService;
     const openStub = sandbox.stub(browserPreviewService, 'open').resolves();
+    sandbox
+      .stub(integration as any, 'getLatestGeneratedDocument')
+      .resolves({ document: { getText: () => '<div>preview</div>' }, diskText: '' });
 
     await integration.openBrowserPreview('<div>preview</div>', 'html');
 
@@ -246,9 +253,45 @@ suite('EditorIntegration', () => {
   test('syncBrowserPreviewIfActive delegates to browser preview service', async () => {
     const browserPreviewService = (integration as any).browserPreviewService;
     const syncStub = sandbox.stub(browserPreviewService, 'syncIfActive').resolves();
+    sandbox
+      .stub(integration as any, 'getLatestGeneratedDocument')
+      .resolves({ document: { getText: () => '<div>preview</div>' }, diskText: '' });
 
     await integration.syncBrowserPreviewIfActive('<div>preview</div>', 'html');
 
     assert.ok(syncStub.calledWith('<div>preview</div>', 'html'));
+  });
+
+  test('openPreviewPanel uses latest open editor text over stale payload', async () => {
+    const vscode = require('vscode');
+    const previewPanel = {
+      webview: { cspSource: 'csp', html: '' },
+      title: '',
+      reveal: sandbox.stub(),
+      onDidDispose: sandbox.stub(),
+    };
+    vscode.window.createWebviewPanel.returns(previewPanel);
+    sandbox
+      .stub(integration as any, 'getLatestGeneratedDocument')
+      .resolves({ document: { getText: () => '<div>edited</div>' }, diskText: '' });
+
+    await integration.openPreviewPanel('<div>stale</div>', 'html');
+
+    assert.ok(previewPanel.webview.html.includes('&lt;div&gt;edited&lt;/div&gt;'));
+  });
+
+  test('openGeneratedInEditor focuses existing generated document', async () => {
+    const vscode = require('vscode');
+    const document = {
+      uri: { fsPath: '/tmp/generated-ui.html', toString: () => 'file:///tmp/generated-ui.html' },
+      getText: () => '<div>edited</div>',
+    };
+    sandbox
+      .stub(integration as any, 'getLatestGeneratedDocument')
+      .resolves({ document, diskText: '<div>edited</div>' });
+
+    await integration.openGeneratedInEditor();
+
+    assert.ok(vscode.window.showTextDocument.calledWith(document, { preview: false }));
   });
 });

@@ -10,6 +10,9 @@ import { PreviewPanelService } from './PreviewPanelService';
 export class EditorIntegration {
   private previewPanelService = new PreviewPanelService();
   private browserPreviewService: BrowserPreviewService;
+  private generatedDocumentUri: vscode.Uri | null = null;
+  private generatedOutputFormat: OutputFormat | undefined;
+  private generatedLanguage = 'plaintext';
 
   constructor(context?: Pick<vscode.ExtensionContext, 'extensionUri'>) {
     const extensionPath = context?.extensionUri.fsPath ?? process.cwd();
@@ -17,18 +20,16 @@ export class EditorIntegration {
   }
 
   async openInEditor(code: string, language = 'plaintext', suggestedName?: string): Promise<void> {
-    const doc = await vscode.workspace.openTextDocument(
-      vscode.Uri.parse(`untitled:${this.toUntitledName(suggestedName, language)}`),
-    );
+    const uri = await this.ensureGeneratedDocumentUri(language, suggestedName);
+    await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(code));
+    const doc = await vscode.workspace.openTextDocument(uri);
     const typedDoc =
       doc.languageId === language
         ? doc
         : await vscode.languages.setTextDocumentLanguage(doc, language);
     const editor = await vscode.window.showTextDocument(typedDoc, { preview: false });
-
-    await editor.edit((editBuilder) => {
-      editBuilder.insert(new vscode.Position(0, 0), code);
-    });
+    this.generatedDocumentUri = uri;
+    this.generatedLanguage = language;
 
     try {
       const wrapMode = vscode.workspace
@@ -79,17 +80,30 @@ export class EditorIntegration {
     vscode.window.showInformationMessage(`Saved: ${saveUri.fsPath}`);
   }
 
-  async openPreviewPanel(code: string, preferredFormat?: OutputFormat) {
-    await this.previewPanelService.open(code, preferredFormat);
-    Logger.success('editor', `Preview opened in editor area (${code.length} chars)`);
+  async openGeneratedInEditor() {
+    const { document } = await this.getLatestGeneratedDocument();
+    if (!document) {
+      throw new Error('No generated result is available yet.');
+    }
+
+    await vscode.window.showTextDocument(document, { preview: false });
+    Logger.success('editor', `Generated result focused in editor (${document.uri.fsPath})`);
   }
 
-  async openBrowserPreview(code: string, preferredFormat?: OutputFormat) {
-    await this.browserPreviewService.open(code, preferredFormat ?? 'tsx');
+  async openPreviewPanel(code?: string, preferredFormat?: OutputFormat) {
+    const resolved = await this.resolveGeneratedContent(code, preferredFormat);
+    await this.previewPanelService.open(resolved.code, resolved.format);
+    Logger.success('editor', `Preview opened in editor area (${resolved.code.length} chars)`);
   }
 
-  async syncBrowserPreviewIfActive(code: string, preferredFormat?: OutputFormat) {
-    await this.browserPreviewService.syncIfActive(code, preferredFormat);
+  async openBrowserPreview(code?: string, preferredFormat?: OutputFormat) {
+    const resolved = await this.resolveGeneratedContent(code, preferredFormat);
+    await this.browserPreviewService.open(resolved.code, resolved.format ?? 'tsx');
+  }
+
+  async syncBrowserPreviewIfActive(code?: string, preferredFormat?: OutputFormat) {
+    const resolved = await this.resolveGeneratedContent(code, preferredFormat);
+    await this.browserPreviewService.syncIfActive(resolved.code, resolved.format);
   }
 
   async dispose(): Promise<void> {
@@ -117,5 +131,69 @@ export class EditorIntegration {
 
   private hasDocumentsDir(documentsDir: string): boolean {
     return fs.existsSync(documentsDir);
+  }
+
+  private async ensureGeneratedDocumentUri(
+    language: string,
+    suggestedName?: string,
+  ): Promise<vscode.Uri> {
+    const filename = this.toUntitledName(suggestedName, language);
+    const dir = path.join(os.tmpdir(), 'figma-mcp-helper-generated');
+    await fs.promises.mkdir(dir, { recursive: true });
+    return vscode.Uri.file(path.join(dir, filename));
+  }
+
+  private async resolveGeneratedContent(code?: string, format?: OutputFormat) {
+    const latest = await this.getLatestGeneratedDocument();
+    const latestCode = latest.document?.getText() ?? latest.diskText;
+    if (latestCode && latestCode.trim()) {
+      return {
+        code: latestCode,
+        format: format ?? this.generatedOutputFormat,
+      };
+    }
+
+    if (!code?.trim()) {
+      throw new Error('No generated result is available yet.');
+    }
+
+    return {
+      code,
+      format,
+    };
+  }
+
+  private async getLatestGeneratedDocument(): Promise<{
+    document: vscode.TextDocument | null;
+    diskText: string;
+  }> {
+    if (!this.generatedDocumentUri) {
+      return { document: null, diskText: '' };
+    }
+
+    const openDocument =
+      vscode.workspace.textDocuments?.find(
+        (doc) => doc.uri.toString() === this.generatedDocumentUri?.toString(),
+      ) ?? null;
+    if (openDocument) {
+      return { document: openDocument, diskText: openDocument.getText() };
+    }
+
+    try {
+      const bytes = await vscode.workspace.fs.readFile(this.generatedDocumentUri);
+      const diskText = new TextDecoder().decode(bytes);
+      const reopened = await vscode.workspace.openTextDocument(this.generatedDocumentUri);
+      const typedDoc =
+        reopened.languageId === this.generatedLanguage
+          ? reopened
+          : await vscode.languages.setTextDocumentLanguage(reopened, this.generatedLanguage);
+      return { document: typedDoc, diskText };
+    } catch {
+      return { document: null, diskText: '' };
+    }
+  }
+
+  setGeneratedOutputFormat(format: OutputFormat | undefined) {
+    this.generatedOutputFormat = format;
   }
 }

@@ -127,6 +127,9 @@ export class WebviewMessageHandler {
         case 'preview.openBrowser':
           await this.promptHandler.openBrowserPreview(msg.code, msg.format);
           break;
+        case 'editor.openGeneratedResult':
+          await this.promptHandler.openGeneratedEditor();
+          break;
         case 'editor.open':
           await this.promptHandler.openEditor(msg.code, msg.language);
           break;

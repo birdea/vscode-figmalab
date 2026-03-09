@@ -48,9 +48,11 @@ const mockVscode = {
     }),
     onDidChangeConfiguration: sinon.stub().returns({ dispose: sinon.stub() }),
     openTextDocument: sinon.stub(),
+    textDocuments: [],
     workspaceFolders: undefined,
     fs: {
       writeFile: sinon.stub(),
+      readFile: sinon.stub(),
       delete: sinon.stub(),
     },
   },
@@ -73,7 +75,13 @@ const mockVscode = {
         toString: () => value,
       };
     }),
-    file: sinon.stub().returns({}),
+    file: sinon.stub().callsFake((value: string) => ({
+      scheme: 'file',
+      authority: '',
+      path: value,
+      fsPath: value,
+      toString: () => `file://${value}`,
+    })),
     joinPath: sinon.stub().returns({}),
   },
   commands: {

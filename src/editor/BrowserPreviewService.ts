@@ -5,9 +5,19 @@ import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { Logger } from '../logger/Logger';
+import { buildPreviewDocument } from '../preview/PreviewRenderer';
 import { OutputFormat } from '../types';
 
 const PREVIEW_HOST = '127.0.0.1';
+
+type BrowserPreviewMode = 'tsx-runtime' | 'html-static' | 'tailwind-static' | 'vue-static';
+
+interface BrowserPreviewArtifacts {
+  mode: BrowserPreviewMode;
+  html: string;
+  reactCode: string;
+  reason?: string;
+}
 
 export class BrowserPreviewService {
   private previewDir: string | null = null;
@@ -87,20 +97,18 @@ export class BrowserPreviewService {
       await fs.writeFile(path.join(this.previewDir, 'src', 'base.css'), this.getBaseCss(), 'utf8');
     }
 
+    await this.ensureDependencyLink(this.previewDir);
+
+    const preview = this.buildPreviewArtifacts(code, format);
     const srcDir = path.join(this.previewDir, 'src');
     await fs.writeFile(
       path.join(srcDir, 'generated-react.tsx'),
-      format === 'tsx' ? code : this.getReactStub(),
-      'utf8',
-    );
-    await fs.writeFile(
-      path.join(srcDir, 'generated-vue.vue'),
-      format === 'vue' ? code : this.getVueStub(),
+      preview.reactCode,
       'utf8',
     );
     await fs.writeFile(
       path.join(srcDir, 'generated-html.ts'),
-      this.getGeneratedHtmlModule(code, format),
+      this.getGeneratedHtmlModule(preview),
       'utf8',
     );
   }
@@ -225,6 +233,28 @@ export class BrowserPreviewService {
     return path.join(this.extensionPath, 'node_modules', 'vite', 'bin', 'vite.js');
   }
 
+  private async ensureDependencyLink(previewDir: string): Promise<void> {
+    const sourceNodeModulesDir = path.join(this.extensionPath, 'node_modules');
+    const targetNodeModulesDir = path.join(previewDir, 'node_modules');
+
+    try {
+      await fs.access(sourceNodeModulesDir);
+    } catch {
+      throw new Error(
+        `Browser preview dependencies are missing at ${sourceNodeModulesDir}. Run npm install first.`,
+      );
+    }
+
+    try {
+      await fs.lstat(targetNodeModulesDir);
+      return;
+    } catch {
+      // The preview workspace is new, so create the dependency link now.
+    }
+
+    await fs.symlink(sourceNodeModulesDir, targetNodeModulesDir, 'dir');
+  }
+
   private getIndexHtml(): string {
     return `<!doctype html>
 <html lang="en">
@@ -244,10 +274,14 @@ export class BrowserPreviewService {
   private getViteConfig(): string {
     return `import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import vue from '@vitejs/plugin-vue';
 
 export default defineConfig({
-  plugins: [react(), vue()],
+  plugins: [react()],
+  server: {
+    hmr: {
+      overlay: false,
+    },
+  },
 });
 `;
   }
@@ -255,10 +289,8 @@ export default defineConfig({
   private getMainEntry(): string {
     return `import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { createApp } from 'vue';
 import * as GeneratedReact from './generated-react';
-import GeneratedVue from './generated-vue.vue';
-import { generatedHtml, previewMode } from './generated-html';
+import { generatedHtml, previewMode, previewReason } from './generated-html';
 import './base.css';
 
 const appElement = document.getElementById('app');
@@ -267,7 +299,6 @@ if (!appElement) {
   throw new Error('Preview root element was not found.');
 }
 
-let vueApp = null;
 const reactRoot = createRoot(appElement);
 let tailwindLoader = null;
 
@@ -319,6 +350,17 @@ function applyHtmlMarkup(markup) {
   appElement.innerHTML = parsed.body?.innerHTML?.trim() ? parsed.body.innerHTML : markup;
 }
 
+function showRuntimeError(message) {
+  clearInjectedHeadNodes();
+  appElement.innerHTML = \`
+    <div style="padding: 24px; font-family: Inter, system-ui, sans-serif; color: #111827;">
+      <h1 style="margin: 0 0 12px; font-size: 18px;">Browser preview failed</h1>
+      <p style="margin: 0 0 12px; color: #4b5563;">\${previewReason || 'The generated code could not be rendered in browser preview mode.'}</p>
+      <pre style="white-space: pre-wrap; background: #f9fafb; border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px;">\${message}</pre>
+    </div>
+  \`;
+}
+
 function resolveReactExport() {
   if ('default' in GeneratedReact && GeneratedReact.default) {
     return GeneratedReact.default;
@@ -330,35 +372,27 @@ function resolveReactExport() {
 }
 
 async function renderPreview() {
-  reactRoot.render(React.createElement(React.Fragment));
-  if (vueApp) {
-    vueApp.unmount();
-    vueApp = null;
-  }
-
-  if (previewMode === 'tailwind') {
+  if (previewMode === 'tailwind-static') {
     await ensureTailwindLoaded();
     applyHtmlMarkup(generatedHtml);
     return;
   }
 
-  if (previewMode === 'html') {
+  if (previewMode === 'html-static' || previewMode === 'vue-static') {
     applyHtmlMarkup(generatedHtml);
     return;
   }
 
-  if (previewMode === 'vue') {
+  try {
+    clearInjectedHeadNodes();
     appElement.innerHTML = '';
-    vueApp = createApp(GeneratedVue);
-    vueApp.mount(appElement);
-    return;
+    const Component = resolveReactExport();
+    const element = React.isValidElement(Component) ? Component : React.createElement(Component);
+    reactRoot.render(element);
+  } catch (error) {
+    reactRoot.render(React.createElement(React.Fragment));
+    showRuntimeError(error instanceof Error ? error.message : String(error));
   }
-
-  clearInjectedHeadNodes();
-  appElement.innerHTML = '';
-  const Component = resolveReactExport();
-  const element = React.isValidElement(Component) ? Component : React.createElement(Component);
-  reactRoot.render(element);
 }
 
 renderPreview();
@@ -395,9 +429,10 @@ body {
 `;
   }
 
-  private getGeneratedHtmlModule(code: string, format: OutputFormat): string {
-    return `export const previewMode = ${JSON.stringify(format)};
-export const generatedHtml = ${JSON.stringify(code)};
+  private getGeneratedHtmlModule(preview: BrowserPreviewArtifacts): string {
+    return `export const previewMode = ${JSON.stringify(preview.mode)};
+export const generatedHtml = ${JSON.stringify(preview.html)};
+export const previewReason = ${JSON.stringify(preview.reason ?? '')};
 `;
   }
 
@@ -408,10 +443,76 @@ export const generatedHtml = ${JSON.stringify(code)};
 `;
   }
 
-  private getVueStub(): string {
-    return `<template>
-  <div></div>
-</template>
-`;
+  private buildPreviewArtifacts(code: string, format: OutputFormat): BrowserPreviewArtifacts {
+    if (format === 'html') {
+      return {
+        mode: 'html-static',
+        html: code,
+        reactCode: this.getReactStub(),
+      };
+    }
+
+    if (format === 'tailwind') {
+      return {
+        mode: 'tailwind-static',
+        html: code,
+        reactCode: this.getReactStub(),
+      };
+    }
+
+    if (format === 'vue') {
+      const preview = buildPreviewDocument(code, format);
+      return {
+        mode: 'vue-static',
+        html: preview.html,
+        reactCode: this.getReactStub(),
+        reason: preview.description,
+      };
+    }
+
+    const runtimeSupport = this.analyzeRuntimeSupport(code);
+    if (!runtimeSupport.supported) {
+      const preview = buildPreviewDocument(code, format);
+      return {
+        mode: 'html-static',
+        html: preview.html,
+        reactCode: this.getReactStub(),
+        reason: runtimeSupport.reason,
+      };
+    }
+
+    return {
+      mode: 'tsx-runtime',
+      html: '',
+      reactCode: code,
+    };
+  }
+
+  private analyzeRuntimeSupport(code: string): { supported: boolean; reason: string } {
+    const imports = [...code.matchAll(/import\s+(?:[\s\S]+?\s+from\s+)?['"]([^'"]+)['"]/g)].map(
+      (match) => match[1],
+    );
+    const unsupportedImports = imports.filter(
+      (specifier) =>
+        !specifier.startsWith('./') &&
+        !specifier.startsWith('../') &&
+        !specifier.startsWith('@/') &&
+        specifier !== 'react' &&
+        specifier !== 'react-dom' &&
+        specifier !== 'react-dom/client' &&
+        specifier !== 'react/jsx-runtime',
+    );
+
+    if (!unsupportedImports.length) {
+      return {
+        supported: true,
+        reason: '',
+      };
+    }
+
+    return {
+      supported: false,
+      reason: `Browser preview runtime supports React with local imports only. Unsupported imports: ${unsupportedImports.join(', ')}`,
+    };
   }
 }

@@ -193,6 +193,16 @@ textarea:disabled {
   align-items: center;
 }
 
+.prompt-action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prompt-secondary-actions {
+  align-items: stretch;
+}
+
 .btn-row-space-between {
   justify-content: space-between;
 }

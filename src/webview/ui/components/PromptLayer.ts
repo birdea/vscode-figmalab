@@ -50,12 +50,13 @@ export class PromptLayer {
     <span class="token-estimate" id="token-estimate">0.0KB / ~0 tok</span>
     <progress class="progress-track" id="prompt-progress" max="100" value="0" aria-label="${this.msg('prompt.progress.aria')}"></progress>
   </div>
-  <div class="btn-row row-space-between">
-    <div class="row">
+  <div class="prompt-action-group">
+    <div class="btn-row">
       <button class="primary" id="btn-generate"><i class="codicon codicon-play"></i>${this.msg('prompt.generate')}</button>
       <button class="secondary hidden" id="btn-cancel-generate"><i class="codicon codicon-debug-stop"></i>${this.msg('prompt.cancel')}</button>
     </div>
-    <div class="row">
+    <div class="btn-row prompt-secondary-actions">
+      <button class="secondary button-pseudo-disabled" id="btn-open-generated-editor" aria-disabled="true"><i class="codicon codicon-file-code"></i>${this.msg('prompt.openGeneratedEditor')}</button>
       <button class="secondary button-pseudo-disabled" id="btn-preview-open-panel" aria-disabled="true"><i class="codicon codicon-go-to-file"></i>${this.msg('prompt.preview.openPanel')}</button>
       <button class="secondary button-pseudo-disabled" id="btn-preview-open-browser" aria-disabled="true"><i class="codicon codicon-globe"></i>${this.msg('prompt.preview.openBrowser')}</button>
     </div>
@@ -87,6 +88,9 @@ export class PromptLayer {
     document
       .getElementById('btn-generate')
       ?.addEventListener('click', () => this.onGenerateRequested());
+    document
+      .getElementById('btn-open-generated-editor')
+      ?.addEventListener('click', () => this.onOpenGeneratedEditorRequested());
     document
       .getElementById('btn-preview-open-panel')
       ?.addEventListener('click', () => this.onOpenPreviewPanelRequested());
@@ -148,7 +152,7 @@ export class PromptLayer {
       return;
     }
 
-    vscode.postMessage({ command: 'preview.openPanel', code, format: this.lastFormat });
+    vscode.postMessage({ command: 'preview.openPanel', format: this.lastFormat });
     this.setNotice('info', this.msg('prompt.preview.openedPanel'));
   }
 
@@ -164,8 +168,24 @@ export class PromptLayer {
       return;
     }
 
-    vscode.postMessage({ command: 'preview.openBrowser', code, format: this.lastFormat });
+    vscode.postMessage({ command: 'preview.openBrowser', format: this.lastFormat });
     this.setNotice('info', this.msg('prompt.preview.openedBrowser'));
+  }
+
+  onOpenGeneratedEditorRequested() {
+    if (this.isGenerating) {
+      this.setNotice('info', this.msg('prompt.preview.generating'));
+      return;
+    }
+
+    const code = this.lastCode.trim() ? this.lastCode : '';
+    if (!code) {
+      this.setNotice('warn', this.msg('prompt.preview.empty'));
+      return;
+    }
+
+    vscode.postMessage({ command: 'editor.openGeneratedResult' });
+    this.setNotice('info', this.msg('prompt.openGeneratedEditorOpened'));
   }
 
   onCancelRequested() {
@@ -314,14 +334,19 @@ export class PromptLayer {
     const previewPanelBtn = document.getElementById(
       'btn-preview-open-panel',
     ) as HTMLButtonElement | null;
+    const openEditorBtn = document.getElementById(
+      'btn-open-generated-editor',
+    ) as HTMLButtonElement | null;
     const previewBrowserBtn = document.getElementById(
       'btn-preview-open-browser',
     ) as HTMLButtonElement | null;
-    if (!previewPanelBtn || !previewBrowserBtn) {
+    if (!previewPanelBtn || !previewBrowserBtn || !openEditorBtn) {
       return;
     }
 
     const enabled = !this.isGenerating && this.previewReady && !!this.lastCode.trim();
+    openEditorBtn.classList.toggle('button-pseudo-disabled', !enabled);
+    openEditorBtn.setAttribute('aria-disabled', String(!enabled));
     previewPanelBtn.classList.toggle('button-pseudo-disabled', !enabled);
     previewPanelBtn.setAttribute('aria-disabled', String(!enabled));
     previewBrowserBtn.classList.toggle('button-pseudo-disabled', !enabled);

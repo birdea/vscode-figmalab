@@ -455,17 +455,22 @@ suite('UI Components Consolidated', () => {
     });
 
     test('open preview button enables after result', () => {
+      const openEditorButton = document.getElementById(
+        'btn-open-generated-editor',
+      ) as HTMLButtonElement;
       const previewPanelButton = document.getElementById(
         'btn-preview-open-panel',
       ) as HTMLButtonElement;
       const previewBrowserButton = document.getElementById(
         'btn-preview-open-browser',
       ) as HTMLButtonElement;
+      assert.strictEqual(openEditorButton.getAttribute('aria-disabled'), 'true');
       assert.strictEqual(previewPanelButton.getAttribute('aria-disabled'), 'true');
       assert.strictEqual(previewBrowserButton.getAttribute('aria-disabled'), 'true');
 
       layer.onResult('<div>preview</div>', 'html');
 
+      assert.strictEqual(openEditorButton.getAttribute('aria-disabled'), 'false');
       assert.strictEqual(previewPanelButton.getAttribute('aria-disabled'), 'false');
       assert.strictEqual(previewBrowserButton.getAttribute('aria-disabled'), 'false');
     });
@@ -477,7 +482,6 @@ suite('UI Components Consolidated', () => {
       assert.ok(
         postMessageStub.calledWithMatch({
           command: 'preview.openPanel',
-          code: '<div>preview</div>',
           format: 'html',
         }),
       );
@@ -500,7 +504,6 @@ suite('UI Components Consolidated', () => {
       assert.ok(
         postMessageStub.calledWithMatch({
           command: 'preview.openBrowser',
-          code: '<div>preview</div>',
           format: 'html',
         }),
       );
@@ -514,6 +517,17 @@ suite('UI Components Consolidated', () => {
       const notice = document.getElementById('prompt-notice');
       assert.ok(notice?.textContent?.includes('진행 중'));
       assert.ok(!postMessageStub.calledWithMatch({ command: 'preview.openBrowser' }));
+    });
+
+    test('open generated editor posts host command', () => {
+      layer.onResult('<div>preview</div>', 'html');
+      document.getElementById('btn-open-generated-editor')?.click();
+
+      assert.ok(
+        postMessageStub.calledWithMatch({
+          command: 'editor.openGeneratedResult',
+        }),
+      );
     });
 
     test('onGenerateRequested validation', () => {

@@ -87,8 +87,9 @@ export type WebviewToHostMessage =
   | { command: 'prompt.generate'; payload: PromptPayload }
   | { command: 'prompt.cancel'; requestId?: string }
   | { command: 'prompt.estimate'; payload: PromptPayload }
-  | { command: 'preview.openPanel'; code: string; format?: OutputFormat }
-  | { command: 'preview.openBrowser'; code: string; format?: OutputFormat }
+  | { command: 'preview.openPanel'; code?: string; format?: OutputFormat }
+  | { command: 'preview.openBrowser'; code?: string; format?: OutputFormat }
+  | { command: 'editor.openGeneratedResult' }
   | { command: 'editor.open'; code: string; language?: string }
   | { command: 'editor.saveFile'; code: string; filename: string };
 

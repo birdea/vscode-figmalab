@@ -25,8 +25,10 @@ export const workspace = {
     update: sinon.stub(),
   }),
   openTextDocument: sinon.stub(),
+  textDocuments: [] as any[],
   fs: {
     writeFile: sinon.stub().resolves(),
+    readFile: sinon.stub().resolves(new Uint8Array()),
   },
 };
 

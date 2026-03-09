@@ -100,6 +100,7 @@ export class PromptCommandHandler {
       }
 
       this.post({ event: 'prompt.streaming', progress: 100 });
+      this.editorIntegration.setGeneratedOutputFormat(resolvedPayload.outputFormat);
       await this.editorIntegration.openInEditor(
         fullCode,
         this.toVsCodeLanguage(resolvedPayload.outputFormat),
@@ -130,6 +131,7 @@ export class PromptCommandHandler {
         errMessage === USER_CANCELLED_CODE_GENERATION;
       const errorMessage = isCancelled ? t(this.locale, 'host.prompt.cancelled') : errMessage;
       if (fullCode.length > 0) {
+        this.editorIntegration.setGeneratedOutputFormat(resolvedPayload.outputFormat);
         await this.editorIntegration.openInEditor(
           fullCode,
           this.toVsCodeLanguage(resolvedPayload.outputFormat),
@@ -209,6 +211,10 @@ export class PromptCommandHandler {
 
   async openBrowserPreview(code: string, format?: PromptPayload['outputFormat']) {
     await this.editorIntegration.openBrowserPreview(code, format);
+  }
+
+  async openGeneratedEditor() {
+    await this.editorIntegration.openGeneratedInEditor();
   }
 
   private toVsCodeLanguage(format: PromptPayload['outputFormat']): string {
