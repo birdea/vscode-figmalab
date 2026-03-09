@@ -4,10 +4,17 @@ import * as os from 'os';
 import * as path from 'path';
 import { Logger } from '../logger/Logger';
 import { OutputFormat } from '../types';
+import { BrowserPreviewService } from './BrowserPreviewService';
 import { PreviewPanelService } from './PreviewPanelService';
 
 export class EditorIntegration {
   private previewPanelService = new PreviewPanelService();
+  private browserPreviewService: BrowserPreviewService;
+
+  constructor(context?: Pick<vscode.ExtensionContext, 'extensionUri'>) {
+    const extensionPath = context?.extensionUri.fsPath ?? process.cwd();
+    this.browserPreviewService = new BrowserPreviewService(extensionPath);
+  }
 
   async openInEditor(code: string, language = 'plaintext', suggestedName?: string): Promise<void> {
     const doc = await vscode.workspace.openTextDocument(
@@ -75,6 +82,18 @@ export class EditorIntegration {
   async openPreviewPanel(code: string, preferredFormat?: OutputFormat) {
     await this.previewPanelService.open(code, preferredFormat);
     Logger.success('editor', `Preview opened in editor area (${code.length} chars)`);
+  }
+
+  async openBrowserPreview(code: string, preferredFormat?: OutputFormat) {
+    await this.browserPreviewService.open(code, preferredFormat ?? 'tsx');
+  }
+
+  async syncBrowserPreviewIfActive(code: string, preferredFormat?: OutputFormat) {
+    await this.browserPreviewService.syncIfActive(code, preferredFormat);
+  }
+
+  async dispose(): Promise<void> {
+    await this.browserPreviewService.dispose();
   }
 
   private toUntitledName(suggestedName: string | undefined, language: string): string {

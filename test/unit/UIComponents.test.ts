@@ -458,11 +458,16 @@ suite('UI Components Consolidated', () => {
       const previewPanelButton = document.getElementById(
         'btn-preview-open-panel',
       ) as HTMLButtonElement;
+      const previewBrowserButton = document.getElementById(
+        'btn-preview-open-browser',
+      ) as HTMLButtonElement;
       assert.strictEqual(previewPanelButton.getAttribute('aria-disabled'), 'true');
+      assert.strictEqual(previewBrowserButton.getAttribute('aria-disabled'), 'true');
 
       layer.onResult('<div>preview</div>', 'html');
 
       assert.strictEqual(previewPanelButton.getAttribute('aria-disabled'), 'false');
+      assert.strictEqual(previewBrowserButton.getAttribute('aria-disabled'), 'false');
     });
 
     test('open preview panel posts host command with latest code', () => {
@@ -486,6 +491,29 @@ suite('UI Components Consolidated', () => {
       const notice = document.getElementById('prompt-notice');
       assert.ok(notice?.textContent?.includes('진행 중'));
       assert.ok(!postMessageStub.calledWithMatch({ command: 'preview.openPanel' }));
+    });
+
+    test('open browser preview posts host command with latest code', () => {
+      layer.onResult('<div>preview</div>', 'html');
+      document.getElementById('btn-preview-open-browser')?.click();
+
+      assert.ok(
+        postMessageStub.calledWithMatch({
+          command: 'preview.openBrowser',
+          code: '<div>preview</div>',
+          format: 'html',
+        }),
+      );
+    });
+
+    test('open browser preview while generating shows progress notice', () => {
+      layer.onGenerateRequested();
+
+      document.getElementById('btn-preview-open-browser')?.click();
+
+      const notice = document.getElementById('prompt-notice');
+      assert.ok(notice?.textContent?.includes('진행 중'));
+      assert.ok(!postMessageStub.calledWithMatch({ command: 'preview.openBrowser' }));
     });
 
     test('onGenerateRequested validation', () => {

@@ -37,7 +37,7 @@ export class WebviewMessageHandler {
     });
     this.remoteApiClient = new RemoteFigmaApiClient();
     this.screenshotService = new ScreenshotService(this.mcpClient, locale);
-    this.editorIntegration = new EditorIntegration();
+    this.editorIntegration = new EditorIntegration(context);
     this.figmaHandler = new FigmaCommandHandler(
       webview,
       context,
@@ -124,6 +124,9 @@ export class WebviewMessageHandler {
         case 'preview.openPanel':
           await this.promptHandler.openPreviewPanel(msg.code, msg.format);
           break;
+        case 'preview.openBrowser':
+          await this.promptHandler.openBrowserPreview(msg.code, msg.format);
+          break;
         case 'editor.open':
           await this.promptHandler.openEditor(msg.code, msg.language);
           break;
@@ -147,6 +150,7 @@ export class WebviewMessageHandler {
   }
 
   async dispose(): Promise<void> {
+    await this.editorIntegration.dispose();
     await this.screenshotService.cleanupTempFiles();
   }
 }

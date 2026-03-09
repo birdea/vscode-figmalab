@@ -105,6 +105,10 @@ export class PromptCommandHandler {
         this.toVsCodeLanguage(resolvedPayload.outputFormat),
         this.toSuggestedFilename(resolvedPayload.outputFormat),
       );
+      await this.editorIntegration.syncBrowserPreviewIfActive(
+        fullCode,
+        resolvedPayload.outputFormat,
+      );
       this.postPromptLog(
         'success',
         'editor',
@@ -130,6 +134,10 @@ export class PromptCommandHandler {
           fullCode,
           this.toVsCodeLanguage(resolvedPayload.outputFormat),
           this.toSuggestedFilename(resolvedPayload.outputFormat),
+        );
+        await this.editorIntegration.syncBrowserPreviewIfActive(
+          fullCode,
+          resolvedPayload.outputFormat,
         );
         this.postPromptLog(
           isCancelled ? 'warn' : 'error',
@@ -197,6 +205,10 @@ export class PromptCommandHandler {
 
   async openPreviewPanel(code: string, format?: PromptPayload['outputFormat']) {
     await this.editorIntegration.openPreviewPanel(code, format);
+  }
+
+  async openBrowserPreview(code: string, format?: PromptPayload['outputFormat']) {
+    await this.editorIntegration.openBrowserPreview(code, format);
   }
 
   private toVsCodeLanguage(format: PromptPayload['outputFormat']): string {

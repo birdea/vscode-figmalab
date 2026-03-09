@@ -57,6 +57,7 @@ export class PromptLayer {
     </div>
     <div class="row">
       <button class="secondary button-pseudo-disabled" id="btn-preview-open-panel" aria-disabled="true"><i class="codicon codicon-go-to-file"></i>${this.msg('prompt.preview.openPanel')}</button>
+      <button class="secondary button-pseudo-disabled" id="btn-preview-open-browser" aria-disabled="true"><i class="codicon codicon-globe"></i>${this.msg('prompt.preview.openBrowser')}</button>
     </div>
   </div>
   <div class="notice hidden" id="prompt-notice"></div>
@@ -89,6 +90,9 @@ export class PromptLayer {
     document
       .getElementById('btn-preview-open-panel')
       ?.addEventListener('click', () => this.onOpenPreviewPanelRequested());
+    document
+      .getElementById('btn-preview-open-browser')
+      ?.addEventListener('click', () => this.onOpenBrowserPreviewRequested());
     document
       .getElementById('btn-cancel-generate')
       ?.addEventListener('click', () => this.onCancelRequested());
@@ -146,6 +150,22 @@ export class PromptLayer {
 
     vscode.postMessage({ command: 'preview.openPanel', code, format: this.lastFormat });
     this.setNotice('info', this.msg('prompt.preview.openedPanel'));
+  }
+
+  onOpenBrowserPreviewRequested() {
+    if (this.isGenerating) {
+      this.setNotice('info', this.msg('prompt.preview.generating'));
+      return;
+    }
+
+    const code = this.lastCode.trim() ? this.lastCode : '';
+    if (!code) {
+      this.setNotice('warn', this.msg('prompt.preview.empty'));
+      return;
+    }
+
+    vscode.postMessage({ command: 'preview.openBrowser', code, format: this.lastFormat });
+    this.setNotice('info', this.msg('prompt.preview.openedBrowser'));
   }
 
   onCancelRequested() {
@@ -294,13 +314,18 @@ export class PromptLayer {
     const previewPanelBtn = document.getElementById(
       'btn-preview-open-panel',
     ) as HTMLButtonElement | null;
-    if (!previewPanelBtn) {
+    const previewBrowserBtn = document.getElementById(
+      'btn-preview-open-browser',
+    ) as HTMLButtonElement | null;
+    if (!previewPanelBtn || !previewBrowserBtn) {
       return;
     }
 
     const enabled = !this.isGenerating && this.previewReady && !!this.lastCode.trim();
     previewPanelBtn.classList.toggle('button-pseudo-disabled', !enabled);
     previewPanelBtn.setAttribute('aria-disabled', String(!enabled));
+    previewBrowserBtn.classList.toggle('button-pseudo-disabled', !enabled);
+    previewBrowserBtn.setAttribute('aria-disabled', String(!enabled));
   }
 
   private setNotice(level: 'info' | 'success' | 'warn' | 'error', message: string) {

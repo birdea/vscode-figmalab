@@ -233,4 +233,22 @@ suite('EditorIntegration', () => {
     assert.ok(previewPanel.webview.html.includes('https://cdn.tailwindcss.com'));
     assert.ok(previewPanel.webview.html.includes('allow-scripts'));
   });
+
+  test('openBrowserPreview delegates to browser preview service', async () => {
+    const browserPreviewService = (integration as any).browserPreviewService;
+    const openStub = sandbox.stub(browserPreviewService, 'open').resolves();
+
+    await integration.openBrowserPreview('<div>preview</div>', 'html');
+
+    assert.ok(openStub.calledWith('<div>preview</div>', 'html'));
+  });
+
+  test('syncBrowserPreviewIfActive delegates to browser preview service', async () => {
+    const browserPreviewService = (integration as any).browserPreviewService;
+    const syncStub = sandbox.stub(browserPreviewService, 'syncIfActive').resolves();
+
+    await integration.syncBrowserPreviewIfActive('<div>preview</div>', 'html');
+
+    assert.ok(syncStub.calledWith('<div>preview</div>', 'html'));
+  });
 });

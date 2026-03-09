@@ -320,6 +320,20 @@ suite('WebviewMessageHandler Comprehensive', () => {
     assert.ok(previewSpy.calledWith('<div>preview</div>', 'html'));
   });
 
+  test('handle preview.openBrowser', async () => {
+    const previewSpy = sandbox
+      .stub((handler as any).editorIntegration, 'openBrowserPreview')
+      .resolves();
+
+    await handler.handle({
+      command: 'preview.openBrowser',
+      code: '<div>preview</div>',
+      format: 'html',
+    });
+
+    assert.ok(previewSpy.calledWith('<div>preview</div>', 'html'));
+  });
+
   test('handle figma.screenshot', async () => {
     sandbox.stub((handler as any).screenshotService, 'fetchScreenshot').resolves('img');
     sandbox.stub((handler as any).screenshotService, 'openInEditor').resolves();
