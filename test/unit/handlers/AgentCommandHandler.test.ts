@@ -107,7 +107,11 @@ suite('AgentCommandHandler', () => {
   test('getModelInfoHelp writes JSON document and opens it', async () => {
     const agent = {
       setApiKey: sandbox.stub().resolves(),
-      getModelInfo: sandbox.stub().resolves({ id: 'model-a', description: 'demo' }),
+      getModelInfo: sandbox.stub().resolves({
+        id: 'model-a',
+        description: 'demo',
+        documentationUrl: 'https://example.com/model-a',
+      }),
     };
     sandbox.stub(AgentFactory, 'getAgent').returns(agent as any);
     (vscode.workspace.openTextDocument as sinon.SinonStub).resolves({ uri: 'doc' });
@@ -118,7 +122,12 @@ suite('AgentCommandHandler', () => {
     assert.ok(
       (vscode.workspace.openTextDocument as sinon.SinonStub).calledWithMatch({
         language: 'json',
-        content: sinon.match(/"model-a"/),
+        content: sinon.match(/"requestedModelId": "model-a"/),
+      }),
+    );
+    assert.ok(
+      (vscode.workspace.openTextDocument as sinon.SinonStub).calledWithMatch({
+        content: sinon.match(/"documentationUrl": "https:\/\/example.com\/model-a"/),
       }),
     );
     assert.ok((vscode.window.showTextDocument as sinon.SinonStub).calledOnce);

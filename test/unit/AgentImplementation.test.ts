@@ -46,6 +46,7 @@ suite('Agent Implementations', () => {
               description: 'Latest Gemini model',
               inputTokenLimit: 1000000,
               outputTokenLimit: 8192,
+              supportedGenerationMethods: ['generateContent'],
             },
           ],
         });
@@ -54,6 +55,7 @@ suite('Agent Implementations', () => {
       assert.strictEqual(models.length, 1);
       assert.strictEqual(models[0].id, 'gemini-2.0-flash');
       assert.strictEqual(models[0].name, 'Gemini 2.0 Flash');
+      assert.deepStrictEqual(models[0].supportedGenerationMethods, ['generateContent']);
     });
 
     test('listModels failure', async () => {
@@ -71,23 +73,39 @@ suite('Agent Implementations', () => {
     test('getModelInfo returns specific model', async () => {
       await agent.setApiKey('test-key');
       nock('https://generativelanguage.googleapis.com')
-        .get('/v1beta/models')
+        .get('/v1beta/models/gemini-pro')
         .reply(200, {
-          models: [{ name: 'models/gemini-pro', displayName: 'Gemini Pro' }],
+          name: 'models/gemini-pro',
+          displayName: 'Gemini Pro',
+          description: 'Pro model',
+          inputTokenLimit: 30720,
+          outputTokenLimit: 2048,
+          supportedGenerationMethods: ['generateContent', 'countTokens'],
+          version: '001',
+          baseModelId: 'gemini-pro',
+          temperature: 1,
+          topP: 0.95,
+          topK: 40,
         });
 
       const info = await agent.getModelInfo('gemini-pro');
       assert.strictEqual(info.id, 'gemini-pro');
+      assert.strictEqual(info.version, '001');
+      assert.deepStrictEqual(info.supportedGenerationMethods, ['generateContent', 'countTokens']);
     });
 
     test('getModelInfo fallback when not found', async () => {
       await agent.setApiKey('test-key');
+      nock('https://generativelanguage.googleapis.com')
+        .get('/v1beta/models/unknown-model')
+        .reply(404, 'Not found');
       nock('https://generativelanguage.googleapis.com')
         .get('/v1beta/models')
         .reply(200, { models: [] });
 
       const info = await agent.getModelInfo('unknown-model');
       assert.strictEqual(info.id, 'unknown-model');
+      assert.strictEqual(info.provider, 'gemini');
     });
 
     test('generateCode handles errors', async () => {
@@ -152,11 +170,32 @@ suite('Agent Implementations', () => {
     test('getModelInfo returns correct model', async () => {
       const info = await agent.getModelInfo('claude-sonnet-4-6');
       assert.strictEqual(info.id, 'claude-sonnet-4-6');
+      assert.strictEqual(info.provider, 'claude');
     });
 
     test('default opus model exposes expanded output token limit', async () => {
       const info = await agent.getModelInfo('claude-opus-4-6');
       assert.strictEqual(info.outputTokenLimit, 32768);
+      assert.strictEqual(
+        info.documentationUrl,
+        'https://docs.anthropic.com/en/docs/about-claude/models/overview',
+      );
+    });
+
+    test('getModelInfo merges Anthropic API details when available', async () => {
+      await agent.setApiKey('test-key');
+      nock('https://api.anthropic.com').get('/v1/models/claude-sonnet-4-6').reply(200, {
+        id: 'claude-sonnet-4-6',
+        display_name: 'Claude Sonnet',
+        created_at: '2025-10-01T00:00:00Z',
+        type: 'model',
+      });
+
+      const info = await agent.getModelInfo('claude-sonnet-4-6');
+      assert.strictEqual(info.name, 'Claude Sonnet');
+      assert.strictEqual(info.createdAt, '2025-10-01T00:00:00Z');
+      assert.strictEqual(info.type, 'model');
+      assert.ok(info.metadataSource?.includes('claude-models-api'));
     });
 
     test('listModels uses configured catalog when provided', async () => {

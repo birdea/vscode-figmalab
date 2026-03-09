@@ -86,7 +86,9 @@ suite('WebviewMessageHandler Comprehensive', () => {
   });
 
   test('handle figma.openDesktopApp', async () => {
-    const openDesktopStub = sandbox.stub((handler as any).figmaHandler, 'openDesktopApp').resolves();
+    const openDesktopStub = sandbox
+      .stub((handler as any).figmaHandler, 'openDesktopApp')
+      .resolves();
     await handler.handle({ command: 'figma.openDesktopApp' });
     assert.ok(openDesktopStub.calledOnce);
   });

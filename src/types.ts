@@ -22,6 +22,26 @@ export interface ModelInfo {
   description?: string;
   inputTokenLimit?: number;
   outputTokenLimit?: number;
+  provider?: AgentType;
+  resourceName?: string;
+  apiModelName?: string;
+  baseModelId?: string;
+  version?: string;
+  displayName?: string;
+  documentationUrl?: string;
+  metadataSource?: string[];
+  supportedGenerationMethods?: string[];
+  thinking?: boolean;
+  temperature?: number;
+  maxTemperature?: number;
+  topP?: number;
+  topK?: number;
+  contextWindow?: number;
+  maxOutputTokens?: number;
+  createdAt?: string;
+  type?: string;
+  pricing?: Record<string, string>;
+  raw?: Record<string, unknown>;
 }
 
 // Prompt payload

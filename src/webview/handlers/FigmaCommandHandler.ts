@@ -57,7 +57,7 @@ export async function launchFigmaDesktopApp(
     }
   }
 
-  throw (lastError instanceof Error ? lastError : new Error('Failed to launch Figma Desktop'));
+  throw lastError instanceof Error ? lastError : new Error('Failed to launch Figma Desktop');
 }
 
 export class FigmaCommandHandler {

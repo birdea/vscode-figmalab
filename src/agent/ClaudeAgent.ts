@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import * as https from 'https';
 import * as vscode from 'vscode';
 import { PromptBuilder } from '../prompt/PromptBuilder';
 import { AgentType, ModelInfo, PromptPayload } from '../types';
@@ -14,6 +15,17 @@ interface ModelConfig {
   description?: unknown;
   inputTokenLimit?: unknown;
   outputTokenLimit?: unknown;
+  documentationUrl?: unknown;
+  contextWindow?: unknown;
+  maxOutputTokens?: unknown;
+  pricing?: unknown;
+}
+
+interface ClaudeApiModelResponse {
+  id: string;
+  display_name?: string;
+  created_at?: string;
+  type?: string;
 }
 
 const DEFAULT_CLAUDE_MODELS: ModelInfo[] = [
@@ -23,6 +35,11 @@ const DEFAULT_CLAUDE_MODELS: ModelInfo[] = [
     description: 'Most capable Claude',
     inputTokenLimit: 200000,
     outputTokenLimit: 32768,
+    provider: 'claude',
+    contextWindow: 200000,
+    maxOutputTokens: 32768,
+    documentationUrl: 'https://docs.anthropic.com/en/docs/about-claude/models/overview',
+    metadataSource: ['claude-static-catalog'],
   },
   {
     id: 'claude-sonnet-4-6',
@@ -30,6 +47,11 @@ const DEFAULT_CLAUDE_MODELS: ModelInfo[] = [
     description: 'Latest Claude Sonnet',
     inputTokenLimit: 200000,
     outputTokenLimit: 8192,
+    provider: 'claude',
+    contextWindow: 200000,
+    maxOutputTokens: 8192,
+    documentationUrl: 'https://docs.anthropic.com/en/docs/about-claude/models/overview',
+    metadataSource: ['claude-static-catalog'],
   },
   {
     id: 'claude-haiku-4-5-20251001',
@@ -37,6 +59,11 @@ const DEFAULT_CLAUDE_MODELS: ModelInfo[] = [
     description: 'Fast and efficient',
     inputTokenLimit: 200000,
     outputTokenLimit: 8192,
+    provider: 'claude',
+    contextWindow: 200000,
+    maxOutputTokens: 8192,
+    documentationUrl: 'https://docs.anthropic.com/en/docs/about-claude/models/overview',
+    metadataSource: ['claude-static-catalog'],
   },
 ];
 
@@ -72,11 +99,22 @@ export class ClaudeAgent extends BaseAgent {
             typeof model.name === 'string' && model.name.trim()
               ? model.name.trim()
               : model.id.trim(),
+          provider: 'claude',
           description: typeof model.description === 'string' ? model.description : undefined,
           inputTokenLimit:
             typeof model.inputTokenLimit === 'number' ? model.inputTokenLimit : undefined,
           outputTokenLimit:
             typeof model.outputTokenLimit === 'number' ? model.outputTokenLimit : undefined,
+          contextWindow: typeof model.contextWindow === 'number' ? model.contextWindow : undefined,
+          maxOutputTokens:
+            typeof model.maxOutputTokens === 'number' ? model.maxOutputTokens : undefined,
+          documentationUrl:
+            typeof model.documentationUrl === 'string' ? model.documentationUrl : undefined,
+          pricing:
+            model.pricing && typeof model.pricing === 'object'
+              ? (model.pricing as Record<string, string>)
+              : undefined,
+          metadataSource: ['claude-config'],
         };
       })
       .filter((model): model is ModelInfo => model !== null);
@@ -91,7 +129,32 @@ export class ClaudeAgent extends BaseAgent {
 
   async getModelInfo(modelId: string): Promise<ModelInfo> {
     const models = await this.listModels();
-    return models.find((m) => m.id === modelId) ?? { id: modelId, name: modelId };
+    const catalogInfo = models.find((m) => m.id === modelId);
+
+    if (!this.apiKey) {
+      return catalogInfo ?? this.toFallbackModelInfo(modelId);
+    }
+
+    try {
+      const remoteInfo = await this.requestModelInfo(modelId);
+      return {
+        ...(catalogInfo ?? this.toFallbackModelInfo(modelId)),
+        id: remoteInfo.id,
+        name: remoteInfo.display_name || catalogInfo?.name || remoteInfo.id,
+        displayName: remoteInfo.display_name || undefined,
+        createdAt: remoteInfo.created_at,
+        type: remoteInfo.type,
+        provider: 'claude',
+        documentationUrl:
+          catalogInfo?.documentationUrl ??
+          'https://docs.anthropic.com/en/docs/about-claude/models/overview',
+        metadataSource: [...new Set([...(catalogInfo?.metadataSource ?? []), 'claude-models-api'])],
+        raw: remoteInfo as unknown as Record<string, unknown>,
+      };
+    } catch (error) {
+      Logger.warn('agent', `Claude model detail fallback for ${modelId}: ${toErrorMessage(error)}`);
+      return catalogInfo ?? this.toFallbackModelInfo(modelId);
+    }
   }
 
   async *generateCode(payload: PromptPayload, signal?: AbortSignal): AsyncGenerator<string> {
@@ -129,5 +192,51 @@ export class ClaudeAgent extends BaseAgent {
       Logger.error('agent', `Claude generation failed: ${toErrorMessage(e)}`);
       throw e;
     }
+  }
+
+  private requestModelInfo(modelId: string): Promise<ClaudeApiModelResponse> {
+    return new Promise((resolve, reject) => {
+      const req = https
+        .request(
+          {
+            hostname: 'api.anthropic.com',
+            path: `/v1/models/${encodeURIComponent(modelId)}`,
+            method: 'GET',
+            headers: {
+              'x-api-key': this.apiKey,
+              'anthropic-version': '2023-06-01',
+            },
+          },
+          (res) => {
+            if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
+              res.resume();
+              reject(new Error(`Anthropic models API returned HTTP ${res.statusCode}`));
+              return;
+            }
+            let data = '';
+            res.on('data', (chunk) => (data += chunk));
+            res.on('end', () => {
+              try {
+                resolve(JSON.parse(data) as ClaudeApiModelResponse);
+              } catch {
+                reject(new Error(`Failed to parse Claude model info response: ${data}`));
+              }
+            });
+          },
+        )
+        .on('error', reject);
+
+      req.end();
+    });
+  }
+
+  private toFallbackModelInfo(modelId: string): ModelInfo {
+    return {
+      id: modelId,
+      name: modelId,
+      provider: 'claude',
+      documentationUrl: 'https://docs.anthropic.com/en/docs/about-claude/models/overview',
+      metadataSource: ['claude-fallback'],
+    };
   }
 }

@@ -10,10 +10,22 @@ import { UserCancelledError, toErrorMessage } from '../errors';
 
 interface GeminiModelEntry {
   name: string;
-  displayName: string;
-  description: string;
-  inputTokenLimit: number;
-  outputTokenLimit: number;
+  displayName?: string;
+  description?: string;
+  inputTokenLimit?: number;
+  outputTokenLimit?: number;
+  supportedGenerationMethods?: string[];
+  temperature?: number;
+  maxTemperature?: number;
+  topP?: number;
+  topK?: number;
+  version?: string;
+  baseModelId?: string;
+  thinking?: boolean;
+}
+
+interface GeminiModelsResponse {
+  models: GeminiModelEntry[];
 }
 
 export class GeminiAgent extends BaseAgent {
@@ -39,73 +51,44 @@ export class GeminiAgent extends BaseAgent {
       return this.modelsCache;
     }
 
-    return new Promise((resolve, reject) => {
-      const options: https.RequestOptions = {
-        hostname: 'generativelanguage.googleapis.com',
-        path: '/v1beta/models',
-        method: 'GET',
-        headers: {
-          'x-goog-api-key': this.apiKey,
-        },
-      };
+    const json = await this.requestJson<GeminiModelsResponse>('/v1beta/models');
+    if (!Array.isArray(json.models)) {
+      throw new Error('Unexpected response shape from Gemini models API');
+    }
 
-      const req = https
-        .request(options, (res) => {
-          if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
-            res.resume();
-            reject(new Error(`Gemini models API returned HTTP ${res.statusCode}`));
-            return;
-          }
-          let data = '';
-          res.on('data', (chunk) => (data += chunk));
-          res.on('end', () => {
-            try {
-              const json = JSON.parse(data) as unknown;
-              if (
-                typeof json !== 'object' ||
-                json === null ||
-                !Array.isArray((json as Record<string, unknown>).models)
-              ) {
-                reject(new Error('Unexpected response shape from Gemini models API'));
-                return;
-              }
-              const models: ModelInfo[] = (json as { models: GeminiModelEntry[] }).models
-                .filter((m) => m.name && m.name.includes('gemini'))
-                .map((m) => ({
-                  id: m.name.replace('models/', ''),
-                  name: m.displayName || m.name,
-                  description: m.description,
-                  inputTokenLimit: m.inputTokenLimit,
-                  outputTokenLimit: m.outputTokenLimit,
-                }))
-                .sort((a, b) => b.id.localeCompare(a.id)); // sort descending by id (e.g., gemini-2.0 > gemini-1.5)
+    const models: ModelInfo[] = json.models
+      .filter((m) => m.name && m.name.includes('gemini'))
+      .map((m) => this.toModelInfo(m))
+      .sort((a, b) => b.id.localeCompare(a.id)); // sort descending by id (e.g., gemini-2.0 > gemini-1.5)
 
-              this.modelsCache = models;
-              this.modelsCacheExpiry = Date.now() + GEMINI_MODELS_CACHE_TTL_MS;
-              Logger.info('agent', `Gemini models loaded: ${models.length}`);
-              resolve(models);
-            } catch {
-              reject(new Error(`Failed to parse models response: ${data}`));
-            }
-          });
-        })
-        .on('error', (e) => {
-          Logger.error('agent', `Failed to list Gemini models: ${e.message}`);
-          reject(e);
-        });
-
-      req.setTimeout(REQUEST_TIMEOUT_MS, () => {
-        req.destroy(new Error('Gemini models API request timed out'));
-      });
-      req.end();
-    });
+    this.modelsCache = models;
+    this.modelsCacheExpiry = Date.now() + GEMINI_MODELS_CACHE_TTL_MS;
+    Logger.info('agent', `Gemini models loaded: ${models.length}`);
+    return models;
   }
 
   async getModelInfo(modelId: string): Promise<ModelInfo> {
+    this.ensureApiKey();
+
+    try {
+      const entry = await this.requestJson<GeminiModelEntry>(
+        `/v1beta/models/${encodeURIComponent(modelId)}`,
+      );
+      return this.toModelInfo(entry);
+    } catch (error) {
+      Logger.warn('agent', `Gemini model detail fallback for ${modelId}: ${toErrorMessage(error)}`);
+    }
+
     const models = await this.listModels();
     const found = models.find((m) => m.id === modelId || m.id.includes(modelId));
     if (!found) {
-      return { id: modelId, name: modelId };
+      return {
+        id: modelId,
+        name: modelId,
+        provider: 'gemini',
+        documentationUrl: 'https://ai.google.dev/api/models',
+        metadataSource: ['gemini-models-api-fallback'],
+      };
     }
     return found;
   }
@@ -166,5 +149,73 @@ export class GeminiAgent extends BaseAgent {
       Logger.error('agent', `Gemini generation failed: ${toErrorMessage(e)}`);
       throw e;
     }
+  }
+
+  private requestJson<T>(path: string): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const options: https.RequestOptions = {
+        hostname: 'generativelanguage.googleapis.com',
+        path,
+        method: 'GET',
+        headers: {
+          'x-goog-api-key': this.apiKey,
+        },
+      };
+
+      const req = https
+        .request(options, (res) => {
+          if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
+            res.resume();
+            reject(new Error(`Gemini models API returned HTTP ${res.statusCode}`));
+            return;
+          }
+          let data = '';
+          res.on('data', (chunk) => (data += chunk));
+          res.on('end', () => {
+            try {
+              resolve(JSON.parse(data) as T);
+            } catch {
+              reject(new Error(`Failed to parse models response: ${data}`));
+            }
+          });
+        })
+        .on('error', (e) => {
+          Logger.error('agent', `Failed Gemini models API request ${path}: ${e.message}`);
+          reject(e);
+        });
+
+      req.setTimeout(REQUEST_TIMEOUT_MS, () => {
+        req.destroy(new Error('Gemini models API request timed out'));
+      });
+      req.end();
+    });
+  }
+
+  private toModelInfo(entry: GeminiModelEntry): ModelInfo {
+    const id = entry.name.replace('models/', '');
+    return {
+      id,
+      name: entry.displayName || id,
+      provider: 'gemini',
+      resourceName: entry.name,
+      apiModelName: id,
+      displayName: entry.displayName,
+      description: entry.description,
+      inputTokenLimit: entry.inputTokenLimit,
+      outputTokenLimit: entry.outputTokenLimit,
+      contextWindow: entry.inputTokenLimit,
+      maxOutputTokens: entry.outputTokenLimit,
+      supportedGenerationMethods: entry.supportedGenerationMethods,
+      temperature: entry.temperature,
+      maxTemperature: entry.maxTemperature,
+      topP: entry.topP,
+      topK: entry.topK,
+      version: entry.version,
+      baseModelId: entry.baseModelId,
+      thinking: entry.thinking,
+      documentationUrl: 'https://ai.google.dev/api/models',
+      metadataSource: ['gemini-models-api'],
+      raw: entry as Record<string, unknown>,
+    };
   }
 }

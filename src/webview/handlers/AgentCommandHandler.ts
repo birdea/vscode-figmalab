@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { AgentFactory } from '../../agent/AgentFactory';
 import { Logger } from '../../logger/Logger';
-import { AgentType, HostToWebviewMessage } from '../../types';
+import { AgentType, HostToWebviewMessage, ModelInfo } from '../../types';
 import { CONFIG_KEYS, getSecretStorageKey } from '../../constants';
 import { StateManager } from '../../state/StateManager';
 import { ValidationError, toErrorMessage } from '../../errors';
@@ -53,7 +53,7 @@ export class AgentCommandHandler {
       const modelInfo = await AgentFactory.getAgent(agent).getModelInfo(modelId);
       const doc = await vscode.workspace.openTextDocument({
         language: 'json',
-        content: JSON.stringify(modelInfo, null, 2),
+        content: JSON.stringify(this.toModelInfoDocument(agent, modelId, modelInfo), null, 2),
       });
       await vscode.window.showTextDocument(doc, { preview: false });
     } catch (e) {
@@ -122,5 +122,20 @@ export class AgentCommandHandler {
     if (!pattern.test(trimmed)) {
       throw new ValidationError(`Invalid API key format for ${agent}`);
     }
+  }
+
+  private toModelInfoDocument(agent: AgentType, modelId: string, modelInfo: ModelInfo) {
+    return {
+      requestedModelId: modelId,
+      provider: agent,
+      fetchedAt: new Date().toISOString(),
+      documentationUrl:
+        modelInfo.documentationUrl ??
+        (agent === 'gemini'
+          ? 'https://ai.google.dev/api/models'
+          : 'https://docs.anthropic.com/en/docs/about-claude/models/overview'),
+      metadataSource: modelInfo.metadataSource ?? [],
+      model: modelInfo,
+    };
   }
 }
