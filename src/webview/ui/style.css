@@ -295,9 +295,23 @@ label {
   display: block;
 }
 
-.link-meta {
+.link-meta,
+.link-meta-btn {
   font-size: 10px;
   color: var(--vscode-descriptionForeground);
+}
+
+.link-meta-btn {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  min-height: auto;
+  cursor: pointer;
+}
+
+.link-meta-btn:hover {
+  text-decoration: underline;
+  color: var(--vscode-textLink-foreground);
 }
 
 .notice {
