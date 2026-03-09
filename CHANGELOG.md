@@ -4,6 +4,14 @@ This project tracks release notes with `conventional-changelog`.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-03-09
+
+- Added generated UI preview actions for both the VS Code preview panel and a hot-reloading browser preview workflow.
+- Expanded AI provider support in the Agent panel to cover DeepSeek, Qwen, and OpenRouter alongside Gemini and Claude.
+- Tightened prompt-format guidance and output handling for `tsx`, `html`, `vue`, and `tailwind` generation paths.
+- Stripped stray markdown code fences from AI output before opening, previewing, or saving generated files.
+- Added regression coverage around prompt UX, preview behavior, and provider-specific generation flows.
+
 ## [0.4.0] - 2026-03-09
 
 - Updated the local Figma Desktop MCP integration for the current endpoint, header, SSE, and session handling requirements.
