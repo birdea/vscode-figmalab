@@ -208,10 +208,7 @@ export class FigmaCommandHandler {
 
     if (this.mcpClient.isConnected() && parsed.fileId) {
       try {
-        const data = await this.mcpClient.callTool('get_file', {
-          fileId: parsed.fileId,
-          nodeId: parsed.nodeId,
-        });
+        const data = await this.mcpClient.getDesignContext(parsed.fileId, parsed.nodeId);
         this.stateManager.setLastMcpData(data);
 
         const config = vscode.workspace.getConfiguration();
@@ -226,7 +223,7 @@ export class FigmaCommandHandler {
         const errMessage = toErrorMessage(e);
         Logger.error(
           'figma',
-          `MCP get_file failed for fileId=${parsed.fileId}, nodeId=${parsed.nodeId}: ${errMessage}`,
+          `MCP design context fetch failed for fileId=${parsed.fileId}, nodeId=${parsed.nodeId}: ${errMessage}`,
         );
         this.post({
           event: 'figma.dataFetchError',

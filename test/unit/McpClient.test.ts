@@ -7,7 +7,7 @@ const packageJson = require('../../package.json') as { version: string };
 
 suite('McpClient', () => {
   let client: McpClient;
-  const endpoint = 'http://localhost:3845';
+  const endpoint = 'http://127.0.0.1:3845/mcp';
 
   setup(() => {
     client = new McpClient(endpoint);
@@ -23,12 +23,21 @@ suite('McpClient', () => {
   });
 
   test('initialize success', async () => {
-    nock('http://localhost:3845')
-      .post('/', (body) => {
+    nock('http://127.0.0.1:3845')
+      .matchHeader('accept', (value) =>
+        typeof value === 'string' &&
+        value.includes('application/json') &&
+        value.includes('text/event-stream'),
+      )
+      .post('/mcp', (body) => {
         const initializeBody = body as { params?: { clientInfo?: { version?: string } } };
         return initializeBody.params?.clientInfo?.version === packageJson.version;
       })
-      .reply(200, { jsonrpc: '2.0', id: 1, result: { protocolVersion: '2024-11-05' } });
+      .reply(
+        200,
+        { jsonrpc: '2.0', id: 1, result: { protocolVersion: '2024-11-05' } },
+        { 'mcp-session-id': 'session-1' },
+      );
 
     const success = await client.initialize();
     assert.strictEqual(success, true);
@@ -36,8 +45,8 @@ suite('McpClient', () => {
   });
 
   test('initialize failure', async () => {
-    nock('http://localhost:3845')
-      .post('/')
+    nock('http://127.0.0.1:3845')
+      .post('/mcp')
       .reply(200, { jsonrpc: '2.0', id: 1, error: { code: -32603, message: 'Error' } });
 
     const success = await client.initialize();
@@ -46,23 +55,33 @@ suite('McpClient', () => {
   });
 
   test('listTools', async () => {
-    nock('http://localhost:3845')
-      .post('/')
+    nock('http://127.0.0.1:3845')
+      .post('/mcp')
+      .reply(200, { jsonrpc: '2.0', id: 1, result: {} }, { 'mcp-session-id': 'session-1' });
+
+    await client.initialize();
+
+    nock('http://127.0.0.1:3845')
+      .matchHeader('mcp-session-id', 'session-1')
+      .post('/mcp')
       .reply(200, {
         jsonrpc: '2.0',
-        id: 1,
-        result: { tools: [{ name: 'get_file' }] },
+        id: 2,
+        result: { tools: [{ name: 'get_design_context' }] },
       });
     const tools = await client.listTools();
-    assert.deepStrictEqual(tools, ['get_file']);
+    assert.deepStrictEqual(tools, ['get_design_context']);
   });
 
   test('callTool success', async () => {
-    nock('http://localhost:3845').post('/').reply(200, { jsonrpc: '2.0', id: 1, result: {} });
+    nock('http://127.0.0.1:3845')
+      .post('/mcp')
+      .reply(200, { jsonrpc: '2.0', id: 1, result: {} }, { 'mcp-session-id': 'session-1' });
     await client.initialize();
 
-    nock('http://localhost:3845')
-      .post('/')
+    nock('http://127.0.0.1:3845')
+      .matchHeader('mcp-session-id', 'session-1')
+      .post('/mcp')
       .reply(200, {
         jsonrpc: '2.0',
         id: 2,
@@ -72,30 +91,63 @@ suite('McpClient', () => {
     assert.deepStrictEqual(result, { data: 'ok' });
   });
 
-  test('getImage', async () => {
-    nock('http://localhost:3845').post('/').reply(200, { jsonrpc: '2.0', id: 1, result: {} });
+  test('getDesignContext prefers modern MCP tool and normalizes nodeId', async () => {
+    nock('http://127.0.0.1:3845')
+      .post('/mcp')
+      .reply(200, { jsonrpc: '2.0', id: 1, result: {} }, { 'mcp-session-id': 'session-1' });
     await client.initialize();
 
-    nock('http://localhost:3845')
-      .post('/')
+    nock('http://127.0.0.1:3845')
+      .matchHeader('mcp-session-id', 'session-1')
+      .post('/mcp', (body) => {
+        const payload = body as {
+          params?: { name?: string; arguments?: { fileKey?: string; nodeId?: string } };
+        };
+        return (
+          payload.params?.name === 'get_design_context' &&
+          payload.params?.arguments?.fileKey === 'FILE123' &&
+          payload.params?.arguments?.nodeId === '4-5'
+        );
+      })
       .reply(200, {
         jsonrpc: '2.0',
         id: 2,
-        result: { base64: 'imgdata' },
+        result: {
+          content: [{ type: 'text', text: '{"name":"Modern Frame"}' }],
+        },
+      });
+
+    const result = await client.getDesignContext('FILE123', '4:5');
+    assert.deepStrictEqual(result, { name: 'Modern Frame' });
+  });
+
+  test('getImage', async () => {
+    nock('http://127.0.0.1:3845')
+      .post('/mcp')
+      .reply(200, { jsonrpc: '2.0', id: 1, result: {} }, { 'mcp-session-id': 'session-1' });
+    await client.initialize();
+
+    nock('http://127.0.0.1:3845')
+      .matchHeader('mcp-session-id', 'session-1')
+      .post('/mcp')
+      .reply(200, {
+        jsonrpc: '2.0',
+        id: 2,
+        result: { content: [{ type: 'image', data: 'imgdata', mimeType: 'image/png' }] },
       });
     const img = await client.getImage('file', 'node');
     assert.strictEqual(img, 'imgdata');
   });
 
   test('request error handling', async () => {
-    nock('http://localhost:3845').post('/').replyWithError('Network error');
+    nock('http://127.0.0.1:3845').post('/mcp').replyWithError('Network error');
 
     const success = await client.initialize();
     assert.strictEqual(success, false);
   });
 
   test('initialize failure on non-2xx HTTP status', async () => {
-    nock('http://localhost:3845').post('/').reply(500, { error: 'server failure' });
+    nock('http://127.0.0.1:3845').post('/mcp').reply(500, { error: 'server failure' });
 
     const success = await client.initialize();
     assert.strictEqual(success, false);
@@ -103,7 +155,7 @@ suite('McpClient', () => {
   });
 
   test('parse error handling', async () => {
-    nock('http://localhost:3845').post('/').reply(200, 'invalid json');
+    nock('http://127.0.0.1:3845').post('/mcp').reply(200, 'invalid json');
 
     const success = await client.initialize();
     assert.strictEqual(success, false);
@@ -111,7 +163,7 @@ suite('McpClient', () => {
   });
 
   test('callTool throws if not initialized', async () => {
-    const uninitClient = new McpClient('http://localhost:3845');
+    const uninitClient = new McpClient('http://127.0.0.1:3845/mcp');
     try {
       await uninitClient.callTool('any');
       assert.fail('Should throw');
@@ -158,23 +210,25 @@ suite('McpClient', () => {
   });
 
   test('sendRequest retries transient failures up to success', async () => {
-    nock('http://localhost:3845')
-      .post('/')
+    nock('http://127.0.0.1:3845')
+      .post('/mcp')
       .replyWithError('temporary outage')
-      .post('/')
-      .reply(200, { jsonrpc: '2.0', id: 1, result: { tools: [{ name: 'get_file' }] } });
+      .post('/mcp')
+      .reply(200, { jsonrpc: '2.0', id: 1, result: { tools: [{ name: 'get_design_context' }] } });
 
     const tools = await client.listTools();
 
-    assert.deepStrictEqual(tools, ['get_file']);
+    assert.deepStrictEqual(tools, ['get_design_context']);
   });
 
   test('callTool rejects JSON-RPC id mismatch', async () => {
-    nock('http://localhost:3845').post('/').reply(200, { jsonrpc: '2.0', id: 1, result: {} });
+    nock('http://127.0.0.1:3845')
+      .post('/mcp')
+      .reply(200, { jsonrpc: '2.0', id: 1, result: {} });
     await client.initialize();
 
-    nock('http://localhost:3845')
-      .post('/')
+    nock('http://127.0.0.1:3845')
+      .post('/mcp')
       .reply(200, {
         jsonrpc: '2.0',
         id: 999,
@@ -204,7 +258,7 @@ suite('McpClient', () => {
     client.setEndpoint('http://localhost');
 
     nock('http://localhost:3845')
-      .post('/')
+      .post('/mcp')
       .reply(200, { jsonrpc: '2.0', id: 1, result: { protocolVersion: '2024-11-05' } });
 
     const success = await client.initialize();
@@ -213,15 +267,17 @@ suite('McpClient', () => {
   });
 
   test('listTools returns empty array when tools is missing from response', async () => {
-    nock('http://localhost:3845').post('/').reply(200, { jsonrpc: '2.0', id: 1, result: {} });
+    nock('http://127.0.0.1:3845')
+      .post('/mcp')
+      .reply(200, { jsonrpc: '2.0', id: 1, result: {} });
 
     const tools = await client.listTools();
     assert.deepStrictEqual(tools, []);
   });
 
   test('listTools returns empty array when tools is null', async () => {
-    nock('http://localhost:3845')
-      .post('/')
+    nock('http://127.0.0.1:3845')
+      .post('/mcp')
       .reply(200, { jsonrpc: '2.0', id: 1, result: { tools: null } });
 
     const tools = await client.listTools();
@@ -229,11 +285,13 @@ suite('McpClient', () => {
   });
 
   test('callTool accepts string JSON-RPC id', async () => {
-    nock('http://localhost:3845').post('/').reply(200, { jsonrpc: '2.0', id: 1, result: {} });
+    nock('http://127.0.0.1:3845')
+      .post('/mcp')
+      .reply(200, { jsonrpc: '2.0', id: 1, result: {} });
     await client.initialize();
 
-    nock('http://localhost:3845')
-      .post('/')
+    nock('http://127.0.0.1:3845')
+      .post('/mcp')
       .reply(200, { jsonrpc: '2.0', id: '2', result: { data: 'ok' } });
 
     const result = await client.callTool('get_file', { fileId: '123' });
@@ -241,30 +299,131 @@ suite('McpClient', () => {
   });
 
   test('getImage falls back to data field when base64 absent', async () => {
-    nock('http://localhost:3845').post('/').reply(200, { jsonrpc: '2.0', id: 1, result: {} });
+    nock('http://127.0.0.1:3845')
+      .post('/mcp')
+      .reply(200, { jsonrpc: '2.0', id: 1, result: {} });
     await client.initialize();
 
-    nock('http://localhost:3845')
-      .post('/')
+    nock('http://127.0.0.1:3845')
+      .post('/mcp')
       .reply(200, { jsonrpc: '2.0', id: 2, result: { data: 'fallback' } });
     const img = await client.getImage('file', 'node');
     assert.strictEqual(img, 'fallback');
   });
 
-  test('getImage throws when neither base64 nor data is present', async () => {
-    nock('http://localhost:3845').post('/').reply(200, { jsonrpc: '2.0', id: 1, result: {} });
+  test('getImage falls back to legacy get_image when modern tool is unavailable', async () => {
+    nock('http://127.0.0.1:3845').post('/mcp').reply(200, { jsonrpc: '2.0', id: 1, result: {} });
     await client.initialize();
 
-    nock('http://localhost:3845').post('/').reply(200, { jsonrpc: '2.0', id: 2, result: {} });
+    nock('http://127.0.0.1:3845')
+      .post('/mcp')
+      .reply(200, {
+        jsonrpc: '2.0',
+        id: 2,
+        error: { code: -32601, message: 'Method not found' },
+      })
+      .post('/mcp')
+      .reply(200, {
+        jsonrpc: '2.0',
+        id: 3,
+        result: { base64: 'legacy-image' },
+      });
+
+    const img = await client.getImage('file', '4:5');
+    assert.strictEqual(img, 'legacy-image');
+  });
+
+  test('getDesignContext falls back to legacy get_file with hyphen nodeId', async () => {
+    nock('http://127.0.0.1:3845').post('/mcp').reply(200, { jsonrpc: '2.0', id: 1, result: {} });
+    await client.initialize();
+
+    nock('http://127.0.0.1:3845')
+      .post('/mcp')
+      .reply(200, {
+        jsonrpc: '2.0',
+        id: 2,
+        error: { code: -32601, message: 'Method not found' },
+      })
+      .post('/mcp')
+      .reply(200, {
+        jsonrpc: '2.0',
+        id: 3,
+        error: { code: -32601, message: 'Method not found' },
+      })
+      .post('/mcp', (body) => {
+        const payload = body as {
+          params?: { name?: string; arguments?: { fileKey?: string; nodeId?: string } };
+        };
+        return (
+          payload.params?.name === 'get_file' &&
+          payload.params?.arguments?.fileKey === 'FILE123' &&
+          payload.params?.arguments?.nodeId === '4-5'
+        );
+      })
+      .reply(200, {
+        jsonrpc: '2.0',
+        id: 4,
+        result: { document: { name: 'Legacy Frame' } },
+      });
+
+    const result = await client.getDesignContext('FILE123', '4:5');
+    assert.deepStrictEqual(result, { document: { name: 'Legacy Frame' } });
+  });
+
+  test('getImage throws when neither base64 nor data is present', async () => {
+    nock('http://127.0.0.1:3845')
+      .post('/mcp')
+      .reply(200, { jsonrpc: '2.0', id: 1, result: {} });
+    await client.initialize();
+
+    nock('http://127.0.0.1:3845')
+      .post('/mcp')
+      .reply(200, { jsonrpc: '2.0', id: 2, result: {} });
     await assert.rejects(() => client.getImage('file', 'node'), /returned no image data/);
   });
 
   test('sendRequest does not retry validation failures', async () => {
-    nock('http://localhost:3845').post('/').reply(200, 'not-json');
+    nock('http://127.0.0.1:3845').post('/mcp').reply(200, 'not-json');
 
     const success = await client.initialize();
 
     assert.strictEqual(success, false);
     assert.ok(nock.isDone());
+  });
+
+  test('constructor normalizes local root endpoint to /mcp', async () => {
+    client = new McpClient('http://localhost:3845');
+
+    nock('http://localhost:3845')
+      .post('/mcp')
+      .reply(
+        200,
+        { jsonrpc: '2.0', id: 1, result: { protocolVersion: '2024-11-05' } },
+        { 'mcp-session-id': 'session-1' },
+      );
+
+    const success = await client.initialize();
+
+    assert.strictEqual(success, true);
+    assert.strictEqual(client.isConnected(), true);
+  });
+
+  test('initialize accepts SSE-wrapped JSON-RPC response', async () => {
+    nock('http://127.0.0.1:3845')
+      .post('/mcp')
+      .reply(
+        200,
+        [
+          'event: message',
+          'data: {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2024-11-05"}}',
+          '',
+        ].join('\n'),
+        { 'Content-Type': 'text/event-stream', 'mcp-session-id': 'session-1' },
+      );
+
+    const success = await client.initialize();
+
+    assert.strictEqual(success, true);
+    assert.strictEqual(client.isConnected(), true);
   });
 });

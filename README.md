@@ -79,7 +79,7 @@ The Log view shows extension activity and error details, and lets you clear, cop
 | `figma-mcp-helper.defaultAgent`            | `gemini`                                                                           | Default AI provider used by the Agent panel                               |
 | `figma-mcp-helper.defaultModel`            | `""`                                                                               | Default model ID synced from the Agent panel                              |
 | `figma-mcp-helper.mcpConnectionMode`       | `local`                                                                            | Preferred Setup connection mode (`local` Desktop MCP or `remote` auth)    |
-| `figma-mcp-helper.mcpEndpoint`             | `http://localhost:3845`                                                            | Figma MCP server endpoint                                                 |
+| `figma-mcp-helper.mcpEndpoint`             | `http://127.0.0.1:3845/mcp`                                                        | Figma MCP server endpoint                                                 |
 | `figma-mcp-helper.remoteMcpEndpoint`       | `https://vscode-figma-mcp-helper-workers.birdea.workers.dev`                       | Default remote endpoint for the OAuth/REST remote mode                    |
 | `figma-mcp-helper.remoteMcpAuthUrl`        | `https://vscode-figma-mcp-helper-workers.birdea.workers.dev/api/figma/oauth/start` | Default authentication URL used by the **Auth Login** action              |
 | `figma-mcp-helper.openFetchedDataInEditor` | `false`                                                                            | Automatically open fetched MCP JSON in an editor after a successful fetch |
