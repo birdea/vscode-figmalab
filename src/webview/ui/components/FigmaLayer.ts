@@ -36,6 +36,7 @@ export class FigmaLayer {
     <button class="primary" id="btn-connect"><i class="codicon codicon-plug"></i>${this.msg('figma.connect')}</button>
   </div>
   <div class="notice info hidden" id="figma-guide"></div>
+  <div class="notice hidden" id="figma-connection-notice"></div>
 </section>
 <section class="panel panel-compact">
   <div class="section-heading">
@@ -48,7 +49,7 @@ export class FigmaLayer {
     <button class="primary" id="btn-fetch"><i class="codicon codicon-cloud-download"></i>${this.msg('figma.fetchData')}</button>
     <button class="secondary" id="btn-screenshot"><i class="codicon codicon-device-camera"></i>${this.msg('figma.screenshot')}</button>
   </div>
-  <div class="notice hidden" id="figma-notice"></div>
+  <div class="notice hidden" id="figma-data-notice"></div>
   <pre class="code-output" id="figma-data-preview"></pre>
   <img class="screenshot-preview" id="figma-screenshot-preview" alt="${this.msg('figma.screenshotAlt')}" />
 </section>
@@ -63,10 +64,10 @@ export class FigmaLayer {
     document.getElementById('btn-fetch')?.addEventListener('click', () => {
       const mcpData = dataInput?.value.trim() ?? '';
       if (!mcpData) {
-        this.setNotice('warn', this.msg('figma.warn.enterData'));
+        this.setDataNotice('warn', this.msg('figma.warn.enterData'));
         return;
       }
-      this.setNotice('info', this.msg('figma.info.loadingData'));
+      this.setDataNotice('info', this.msg('figma.info.loadingData'));
       vscode.postMessage({ command: 'figma.fetchData', mcpData });
     });
 
@@ -89,14 +90,14 @@ export class FigmaLayer {
     document.getElementById('btn-screenshot')?.addEventListener('click', () => {
       const mcpData = dataInput?.value.trim() ?? '';
       if (!mcpData) {
-        this.setNotice('warn', this.msg('figma.warn.enterDataForScreenshot'));
+        this.setDataNotice('warn', this.msg('figma.warn.enterDataForScreenshot'));
         return;
       }
       if (!this.connected) {
-        this.setNotice('warn', this.msg('figma.warn.connectBeforeScreenshot'));
+        this.setDataNotice('warn', this.msg('figma.warn.connectBeforeScreenshot'));
         return;
       }
-      this.setNotice('info', this.msg('figma.info.generatingScreenshot'));
+      this.setDataNotice('info', this.msg('figma.info.generatingScreenshot'));
       vscode.postMessage({ command: 'figma.screenshot', mcpData });
     });
 
@@ -135,14 +136,14 @@ export class FigmaLayer {
       } else {
         text.textContent = this.msg('figma.statusDisconnected');
         if (error) {
-          this.setNotice('error', error);
+          this.setConnectionNotice('error', error);
           this.setGuideMessage(
             this.connectionMode === 'remote'
               ? this.msg('figma.guide.remoteLogin')
               : this.msg('figma.guide.checkServer'),
           );
         } else {
-          this.clearNotice();
+          this.clearConnectionNotice();
           this.setGuideMessage(
             this.connectionMode === 'remote' ? this.msg('figma.guide.remoteLogin') : '',
           );
@@ -162,7 +163,7 @@ export class FigmaLayer {
     const text = this.stringifyForPreview(data);
     preview.textContent = text;
     preview.classList.add('visible');
-    this.setNotice('success', this.msg('figma.success.dataLoaded'));
+    this.setDataNotice('success', this.msg('figma.success.dataLoaded'));
   }
 
   onScreenshotResult(base64: string) {
@@ -171,24 +172,25 @@ export class FigmaLayer {
 
     img.src = `data:image/png;base64,${base64}`;
     img.classList.add('visible');
-    this.setNotice('success', this.msg('figma.success.screenshotLoaded'));
+    this.setDataNotice('success', this.msg('figma.success.screenshotLoaded'));
   }
 
   onAuthStarted() {
     this.connecting = false;
     this.syncConnectButton();
-    this.setNotice('info', this.msg('figma.info.remoteAuthStarted'));
+    this.setConnectionNotice('info', this.msg('figma.info.remoteAuthStarted'));
     this.setGuideMessage(this.msg('figma.guide.remoteLogin'));
   }
 
   onError(message: string) {
-    this.setNotice('error', message);
+    this.setDataNotice('error', message);
   }
 
   private setConnectionMode(mode: ConnectionMode) {
     if (this.connectionMode === mode) return;
     this.connectionMode = mode;
-    this.clearNotice();
+    this.clearConnectionNotice();
+    this.clearDataNotice();
     this.syncConnectionModeUI();
     this.syncConnectButton();
     if (!this.connected) {
@@ -217,8 +219,12 @@ export class FigmaLayer {
     }
   }
 
-  private setNotice(level: 'info' | 'success' | 'warn' | 'error', message: string) {
-    const notice = document.getElementById('figma-notice');
+  private setNotice(
+    elementId: 'figma-connection-notice' | 'figma-data-notice',
+    level: 'info' | 'success' | 'warn' | 'error',
+    message: string,
+  ) {
+    const notice = document.getElementById(elementId);
     if (!notice) return;
     if (!message) {
       notice.className = 'notice hidden';
@@ -229,6 +235,14 @@ export class FigmaLayer {
     notice.textContent = message;
   }
 
+  private setConnectionNotice(level: 'info' | 'success' | 'warn' | 'error', message: string) {
+    this.setNotice('figma-connection-notice', level, message);
+  }
+
+  private setDataNotice(level: 'info' | 'success' | 'warn' | 'error', message: string) {
+    this.setNotice('figma-data-notice', level, message);
+  }
+
   private setGuideMessage(message: string) {
     const guide = document.getElementById('figma-guide');
     if (!guide) return;
@@ -236,8 +250,12 @@ export class FigmaLayer {
     guide.textContent = message;
   }
 
-  private clearNotice() {
-    this.setNotice('info', '');
+  private clearConnectionNotice() {
+    this.setConnectionNotice('info', '');
+  }
+
+  private clearDataNotice() {
+    this.setDataNotice('info', '');
   }
 
   private syncConnectButton() {
