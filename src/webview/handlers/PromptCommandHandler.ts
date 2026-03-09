@@ -55,7 +55,9 @@ export class PromptCommandHandler {
     }
 
     const requestedScreenshot =
-      payload.screenshotData === undefined ? this.stateManager.getLastScreenshot() : payload.screenshotData;
+      payload.screenshotData === undefined
+        ? this.stateManager.getLastScreenshot()
+        : payload.screenshotData;
     const supportsScreenshot = this.agentSupportsScreenshot(agent);
     const resolvedPayload = {
       ...payload,
@@ -205,7 +207,9 @@ export class PromptCommandHandler {
       ...payload,
       mcpData: payload.mcpData === undefined ? this.stateManager.getLastMcpData() : payload.mcpData,
       screenshotData:
-        payload.screenshotData === undefined ? this.stateManager.getLastScreenshot() : payload.screenshotData,
+        payload.screenshotData === undefined
+          ? this.stateManager.getLastScreenshot()
+          : payload.screenshotData,
     };
     const estimate = builder.estimate(resolvedPayload);
     this.post({ event: 'prompt.estimateResult', tokens: estimate.tokens, kb: estimate.kb });

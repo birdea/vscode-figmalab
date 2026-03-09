@@ -335,10 +335,7 @@ suite('Agent Implementations', () => {
       assert.strictEqual(chunks.join(''), 'ok');
       assert.strictEqual(streamStub.firstCall.args[0].system, 'Claude edited prompt');
       assert.strictEqual(streamStub.firstCall.args[0].messages[0].content[1].type, 'image');
-      assert.strictEqual(
-        streamStub.firstCall.args[0].messages[0].content[1].source.data,
-        'img64',
-      );
+      assert.strictEqual(streamStub.firstCall.args[0].messages[0].content[1].source.data, 'img64');
     });
   });
 
@@ -403,14 +400,14 @@ suite('Agent Implementations', () => {
         .post('/api/v1/chat/completions', (body) => {
           assert.strictEqual(body.messages[0].content, 'Visible edited prompt');
           assert.strictEqual(body.messages[1].content[1].type, 'image_url');
-          assert.ok(body.messages[1].content[1].image_url.url.includes('data:image/png;base64,img64'));
+          assert.ok(
+            body.messages[1].content[1].image_url.url.includes('data:image/png;base64,img64'),
+          );
           return true;
         })
-        .reply(
-          200,
-          'data: {"choices":[{"delta":{"content":"ok"}}]}\n\ndata: [DONE]\n',
-          { 'Content-Type': 'text/event-stream' },
-        );
+        .reply(200, 'data: {"choices":[{"delta":{"content":"ok"}}]}\n\ndata: [DONE]\n', {
+          'Content-Type': 'text/event-stream',
+        });
 
       const chunks: string[] = [];
       for await (const chunk of agent.generateCode({

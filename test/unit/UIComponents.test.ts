@@ -589,9 +589,7 @@ suite('UI Components Consolidated', () => {
 
     test('output format preview updates when the selected format changes', () => {
       const outputFormat = document.getElementById('output-format') as HTMLSelectElement;
-      const formatPreview = document.getElementById(
-        'format-prompt-preview',
-      ) as HTMLTextAreaElement;
+      const formatPreview = document.getElementById('format-prompt-preview') as HTMLTextAreaElement;
 
       outputFormat.value = 'vue';
       outputFormat.dispatchEvent(new (global as any).window.Event('change'));

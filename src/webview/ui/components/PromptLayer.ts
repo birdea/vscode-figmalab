@@ -123,12 +123,7 @@ export class PromptLayer {
     const useScreenshotDataEl = document.getElementById(
       'use-screenshot-data',
     ) as HTMLInputElement | null;
-    if (
-      !userPromptEl ||
-      !outputFormatEl ||
-      !useMcpDataEl ||
-      !useScreenshotDataEl
-    ) {
+    if (!userPromptEl || !outputFormatEl || !useMcpDataEl || !useScreenshotDataEl) {
       return;
     }
 
@@ -221,13 +216,7 @@ export class PromptLayer {
       const outputFormatEl = document.getElementById('output-format') as HTMLSelectElement | null;
       const estimateEl = document.getElementById('token-estimate');
 
-      if (
-        !useMcpDataEl ||
-        !useScreenshotDataEl ||
-        !userPromptEl ||
-        !outputFormatEl ||
-        !estimateEl
-      )
+      if (!useMcpDataEl || !useScreenshotDataEl || !userPromptEl || !outputFormatEl || !estimateEl)
         return;
 
       estimateEl.textContent = this.msg('prompt.notice.calculating');
@@ -393,7 +382,9 @@ export class PromptLayer {
   }
 
   private updateFormatPromptPreview(format: OutputFormat) {
-    const previewEl = document.getElementById('format-prompt-preview') as HTMLTextAreaElement | null;
+    const previewEl = document.getElementById(
+      'format-prompt-preview',
+    ) as HTMLTextAreaElement | null;
     if (!previewEl) return;
     previewEl.value = getFormatPromptPreview(format);
   }
