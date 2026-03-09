@@ -117,13 +117,13 @@ export class EditorIntegration {
         ? 'json'
         : language === 'typescriptreact'
           ? 'tsx'
-        : language === 'vue'
-          ? 'vue'
-        : language === 'html'
-          ? 'html'
-          : language === 'scss'
-              ? 'scss'
-              : 'txt';
+          : language === 'vue'
+            ? 'vue'
+            : language === 'html'
+              ? 'html'
+              : language === 'scss'
+                ? 'scss'
+                : 'txt';
 
     return `generated-${Date.now()}.${extension}`;
   }

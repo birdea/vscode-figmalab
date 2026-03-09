@@ -315,11 +315,13 @@ suite('Agent Implementations', () => {
     test('generateCode includes upstream OpenRouter error details', async () => {
       await agent.setApiKey('test-key');
 
-      nock('https://openrouter.ai').post('/api/v1/chat/completions').reply(400, {
-        error: {
-          message: 'No endpoints found for deepseek/deepseek-coder.',
-        },
-      });
+      nock('https://openrouter.ai')
+        .post('/api/v1/chat/completions')
+        .reply(400, {
+          error: {
+            message: 'No endpoints found for deepseek/deepseek-coder.',
+          },
+        });
 
       const gen = agent.generateCode({
         outputFormat: 'tsx' as any,
