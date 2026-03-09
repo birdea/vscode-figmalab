@@ -17,5 +17,8 @@
   "configuration.remoteMcpEndpoint.description": "Endpoint reserved for the planned remote auth-backed mode after authentication is completed",
   "configuration.remoteMcpAuthUrl.description": "Authentication URL opened by the Auth Login action for the planned remote mode",
   "configuration.openFetchedDataInEditor.description": "Legacy compatibility setting. Fetched MCP JSON currently opens in a VS Code editor by default",
-  "configuration.claudeModels.description": "Claude model catalog used in the Agent panel"
+  "configuration.claudeModels.description": "Claude model catalog used in the Agent panel",
+  "configuration.deepseekModels.description": "DeepSeek model catalog used in the Agent panel",
+  "configuration.qwenModels.description": "Qwen model catalog used in the Agent panel",
+  "configuration.openrouterModels.description": "OpenRouter model catalog used in the Agent panel"
 }

@@ -1,5 +1,5 @@
 // Agent types
-export type AgentType = 'gemini' | 'claude';
+export type AgentType = 'gemini' | 'claude' | 'deepseek' | 'qwen' | 'openrouter';
 export type ConnectionMode = 'local' | 'remote';
 export type OutputFormat = 'html' | 'tsx' | 'vue' | 'tailwind';
 export type LogLevel = 'info' | 'warn' | 'error' | 'success';

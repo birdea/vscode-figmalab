@@ -22,16 +22,35 @@ export const CONFIG_KEYS = {
   REMOTE_MCP_AUTH_URL: 'figma-mcp-helper.remoteMcpAuthUrl',
   OPEN_FETCH_RESULT_IN_EDITOR: 'figma-mcp-helper.openFetchedDataInEditor',
   CLAUDE_MODELS: 'figma-mcp-helper.claudeModels',
+  DEEPSEEK_MODELS: 'figma-mcp-helper.deepseekModels',
+  QWEN_MODELS: 'figma-mcp-helper.qwenModels',
+  OPENROUTER_MODELS: 'figma-mcp-helper.openrouterModels',
 } as const;
 
 export const SECRET_KEYS = {
   GEMINI_API_KEY: 'figma-mcp-helper.geminiApiKey',
   CLAUDE_API_KEY: 'figma-mcp-helper.claudeApiKey',
+  DEEPSEEK_API_KEY: 'figma-mcp-helper.deepseekApiKey',
+  QWEN_API_KEY: 'figma-mcp-helper.qwenApiKey',
+  OPENROUTER_API_KEY: 'figma-mcp-helper.openrouterApiKey',
   REMOTE_FIGMA_AUTH: 'figma-mcp-helper.remoteFigmaAuth',
 } as const;
 
 export function getSecretStorageKey(agent: AgentType): string {
-  return agent === 'gemini' ? SECRET_KEYS.GEMINI_API_KEY : SECRET_KEYS.CLAUDE_API_KEY;
+  switch (agent) {
+    case 'gemini':
+      return SECRET_KEYS.GEMINI_API_KEY;
+    case 'claude':
+      return SECRET_KEYS.CLAUDE_API_KEY;
+    case 'deepseek':
+      return SECRET_KEYS.DEEPSEEK_API_KEY;
+    case 'qwen':
+      return SECRET_KEYS.QWEN_API_KEY;
+    case 'openrouter':
+      return SECRET_KEYS.OPENROUTER_API_KEY;
+    default:
+      return SECRET_KEYS.GEMINI_API_KEY;
+  }
 }
 
 export const DEFAULT_MCP_ENDPOINT = 'http://127.0.0.1:3845/mcp';

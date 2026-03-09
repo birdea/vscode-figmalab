@@ -139,11 +139,17 @@
           "type": "string",
           "enum": [
             "gemini",
-            "claude"
+            "claude",
+            "deepseek",
+            "qwen",
+            "openrouter"
           ],
           "enumDescriptions": [
             "Google Gemini",
-            "Anthropic Claude"
+            "Anthropic Claude",
+            "DeepSeek",
+            "Alibaba Qwen",
+            "OpenRouter"
           ],
           "default": "gemini",
           "description": "%configuration.defaultAgent.description%"
@@ -208,6 +214,142 @@
             }
           ],
           "description": "%configuration.claudeModels.description%",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "name"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "inputTokenLimit": {
+                "type": "number"
+              },
+              "outputTokenLimit": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "figma-mcp-helper.deepseekModels": {
+          "type": "array",
+          "default": [
+            {
+              "id": "deepseek-coder",
+              "name": "DeepSeek Coder",
+              "description": "Best for coding",
+              "inputTokenLimit": 64000,
+              "outputTokenLimit": 4096
+            },
+            {
+              "id": "deepseek-chat",
+              "name": "DeepSeek Chat",
+              "description": "General purpose",
+              "inputTokenLimit": 64000,
+              "outputTokenLimit": 4096
+            }
+          ],
+          "description": "%configuration.deepseekModels.description%",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "name"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "inputTokenLimit": {
+                "type": "number"
+              },
+              "outputTokenLimit": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "figma-mcp-helper.qwenModels": {
+          "type": "array",
+          "default": [
+            {
+              "id": "qwen-plus",
+              "name": "Qwen Plus",
+              "description": "Balanced performance",
+              "inputTokenLimit": 32000,
+              "outputTokenLimit": 2048
+            },
+            {
+              "id": "qwen-turbo",
+              "name": "Qwen Turbo",
+              "description": "Fast and efficient",
+              "inputTokenLimit": 32000,
+              "outputTokenLimit": 2048
+            }
+          ],
+          "description": "%configuration.qwenModels.description%",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "name"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "inputTokenLimit": {
+                "type": "number"
+              },
+              "outputTokenLimit": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "figma-mcp-helper.openrouterModels": {
+          "type": "array",
+          "default": [
+            {
+              "id": "google/gemini-2.0-flash-001",
+              "name": "Gemini 2.0 Flash (via OpenRouter)",
+              "inputTokenLimit": 1000000,
+              "outputTokenLimit": 8192
+            },
+            {
+              "id": "anthropic/claude-3.5-sonnet",
+              "name": "Claude 3.5 Sonnet (via OpenRouter)",
+              "inputTokenLimit": 200000,
+              "outputTokenLimit": 8192
+            },
+            {
+              "id": "deepseek/deepseek-coder",
+              "name": "DeepSeek Coder (via OpenRouter)",
+              "inputTokenLimit": 64000,
+              "outputTokenLimit": 4096
+            }
+          ],
+          "description": "%configuration.openrouterModels.description%",
           "items": {
             "type": "object",
             "required": [

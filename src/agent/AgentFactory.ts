@@ -2,6 +2,7 @@ import { AgentType } from '../types';
 import { IAgent } from './BaseAgent';
 import { GeminiAgent } from './GeminiAgent';
 import { ClaudeAgent } from './ClaudeAgent';
+import { OpenAIAgent } from './OpenAIAgent';
 
 export class AgentFactory {
   private static instances: Map<AgentType, IAgent> = new Map();
@@ -23,6 +24,10 @@ export class AgentFactory {
         return new GeminiAgent();
       case 'claude':
         return new ClaudeAgent();
+      case 'deepseek':
+      case 'qwen':
+      case 'openrouter':
+        return new OpenAIAgent(type);
       default:
         throw new Error(`Unsupported agent type: ${type}`);
     }

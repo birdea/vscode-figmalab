@@ -21,6 +21,9 @@ export class AgentCommandHandler {
     let url = '';
     if (agent === 'gemini') url = 'https://aistudio.google.com/app/apikey';
     else if (agent === 'claude') url = 'https://console.anthropic.com/settings/keys';
+    else if (agent === 'deepseek') url = 'https://platform.deepseek.com/api_keys';
+    else if (agent === 'qwen') url = 'https://dashscope.console.aliyun.com/apiKey';
+    else if (agent === 'openrouter') url = 'https://openrouter.ai/keys';
 
     if (url) {
       await vscode.env.openExternal(vscode.Uri.parse(url));
@@ -118,22 +121,34 @@ export class AgentCommandHandler {
       return;
     }
 
-    const pattern = agent === 'gemini' ? /^AIza[0-9A-Za-z_-]{20,}$/ : /^sk-ant-[A-Za-z0-9_-]{20,}$/;
-    if (!pattern.test(trimmed)) {
-      throw new ValidationError(`Invalid API key format for ${agent}`);
+    if (agent === 'gemini') {
+      if (!/^AIza[0-9A-Za-z_-]{20,}$/.test(trimmed)) {
+        throw new ValidationError(`Invalid API key format for Gemini`);
+      }
+    } else if (agent === 'claude') {
+      if (!/^sk-ant-[A-Za-z0-9_-]{20,}$/.test(trimmed)) {
+        throw new ValidationError(`Invalid API key format for Claude`);
+      }
+    } else {
+      // For DeepSeek, Qwen, OpenRouter, we allow a more general sk- pattern or any non-empty string
+      if (trimmed.length < 10) {
+        throw new ValidationError(`API key for ${agent} seems too short`);
+      }
     }
   }
 
   private toModelInfoDocument(agent: AgentType, modelId: string, modelInfo: ModelInfo) {
+    let defaultDocUrl = 'https://ai.google.dev/api/models';
+    if (agent === 'claude') defaultDocUrl = 'https://docs.anthropic.com/en/docs/about-claude/models/overview';
+    else if (agent === 'deepseek') defaultDocUrl = 'https://api-docs.deepseek.com/';
+    else if (agent === 'qwen') defaultDocUrl = 'https://help.aliyun.com/zh/dashscope/developer-reference/compatibility-of-openai-with-dashscope';
+    else if (agent === 'openrouter') defaultDocUrl = 'https://openrouter.ai/docs';
+
     return {
       requestedModelId: modelId,
       provider: agent,
       fetchedAt: new Date().toISOString(),
-      documentationUrl:
-        modelInfo.documentationUrl ??
-        (agent === 'gemini'
-          ? 'https://ai.google.dev/api/models'
-          : 'https://docs.anthropic.com/en/docs/about-claude/models/overview'),
+      documentationUrl: modelInfo.documentationUrl ?? defaultDocUrl,
       metadataSource: modelInfo.metadataSource ?? [],
       model: modelInfo,
     };
