@@ -36,8 +36,18 @@ function copyStyle() {
   if (!fs.existsSync('dist')) fs.mkdirSync('dist', { recursive: true });
   fs.copyFileSync('src/webview/ui/style.css', 'dist/style.css');
   const codiconsDir = path.join('node_modules', '@vscode', 'codicons', 'dist');
-  fs.copyFileSync(path.join(codiconsDir, 'codicon.css'), 'dist/codicon.css');
-  fs.copyFileSync(path.join(codiconsDir, 'codicon.ttf'), 'dist/codicon.ttf');
+  const codiconCss = path.join(codiconsDir, 'codicon.css');
+  const codiconFont = path.join(codiconsDir, 'codicon.ttf');
+
+  if (fs.existsSync(codiconCss) && fs.existsSync(codiconFont)) {
+    fs.copyFileSync(codiconCss, 'dist/codicon.css');
+    fs.copyFileSync(codiconFont, 'dist/codicon.ttf');
+    return;
+  }
+
+  // Allow the extension bundle to build even if codicon assets are unavailable locally.
+  fs.writeFileSync('dist/codicon.css', '');
+  console.warn('Codicon assets not found in node_modules; building without bundled codicon styles.');
 }
 
 function cleanupProductionArtifacts() {

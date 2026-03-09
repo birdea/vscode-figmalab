@@ -164,7 +164,7 @@
         },
         "figma-mcp-helper.mcpEndpoint": {
           "type": "string",
-          "default": "http://localhost:3845",
+          "default": "http://127.0.0.1:3845/mcp",
           "description": "%configuration.mcpEndpoint.description%"
         },
         "figma-mcp-helper.remoteMcpEndpoint": {

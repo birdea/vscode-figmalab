@@ -34,6 +34,7 @@ suite('FigmaCommandHandler', () => {
       initialize: sandbox.stub().resolves(true),
       listTools: sandbox.stub().resolves(['get_file']),
       isConnected: sandbox.stub().returns(true),
+      getDesignContext: sandbox.stub().resolves({ name: 'Frame' }),
       callTool: sandbox.stub().resolves({ name: 'Frame' }),
     };
     remoteApiClient = {
@@ -304,13 +305,13 @@ suite('FigmaCommandHandler', () => {
     );
   });
 
-  test('fetchData calls get_file when connected and fileId exists', async () => {
+  test('fetchData calls getDesignContext when connected and fileId exists', async () => {
     const getStub = sandbox.stub().returns(false);
     (vscode.workspace.getConfiguration as sinon.SinonStub).returns({ get: getStub });
 
     await handler.fetchData('https://figma.com/file/ABCDE/demo?node-id=1-2');
 
-    assert.ok(mcpClient.callTool.calledWith('get_file', { fileId: 'ABCDE', nodeId: '1:2' }));
+    assert.ok(mcpClient.getDesignContext.calledWith('ABCDE', '1:2'));
     assert.ok(
       webview.postMessage.calledWithMatch({ event: 'figma.dataResult', data: { name: 'Frame' } }),
     );
@@ -441,7 +442,7 @@ suite('FigmaCommandHandler', () => {
   });
 
   test('fetchData maps ECONNREFUSED errors to friendly message', async () => {
-    mcpClient.callTool.rejects(new Error('ECONNREFUSED'));
+    mcpClient.getDesignContext.rejects(new Error('ECONNREFUSED'));
 
     await handler.fetchData('https://figma.com/file/ABCDE/demo?node-id=1-2');
 
