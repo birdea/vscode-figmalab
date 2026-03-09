@@ -193,7 +193,11 @@ export class FigmaCommandHandler {
       try {
         const data = await this.mcpClient.getDesignContext(parsed.fileId, parsed.nodeId);
         this.stateManager.setLastMcpData(data);
-        await this.editorIntegration.openInEditor(JSON.stringify(data, null, 2), 'json');
+        await this.editorIntegration.openInEditor(
+          JSON.stringify(data, null, 2),
+          'json',
+          'figma-design-data.json',
+        );
 
         this.post({ event: 'figma.dataResult', data });
       } catch (e) {
@@ -213,7 +217,11 @@ export class FigmaCommandHandler {
         'figma',
         'MCP not connected - returning local URL parse result only. Connect to MCP for full Figma data.',
       );
-      await this.editorIntegration.openInEditor(JSON.stringify(parsed, null, 2), 'json');
+      await this.editorIntegration.openInEditor(
+        JSON.stringify(parsed, null, 2),
+        'json',
+        'figma-design-data.json',
+      );
       this.post({ event: 'figma.dataResult', data: parsed });
     }
   }

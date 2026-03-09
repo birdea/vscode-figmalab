@@ -14,15 +14,35 @@ suite('EditorIntegration', () => {
 
   test('openInEditor calls workspace.openTextDocument', async () => {
     const vscode = require('vscode');
-    vscode.workspace.openTextDocument.resolves({ show: sinon.stub() });
+    const editStub = sinon.stub().callsFake(async (callback: any) => {
+      const builder = { insert: sinon.stub() };
+      callback(builder);
+      return true;
+    });
+    vscode.workspace.openTextDocument.resolves({ languageId: 'plaintext' });
+    vscode.window.showTextDocument.resolves({ edit: editStub });
 
-    await integration.openInEditor('const x = 1;', 'javascript');
+    await integration.openInEditor('const x = 1;', 'javascript', 'generated.ts');
     assert.ok(
-      vscode.workspace.openTextDocument.calledWithMatch({
-        language: 'javascript',
-        content: 'const x = 1;',
-      }),
+      vscode.workspace.openTextDocument.calledWithMatch(sinon.match.has('scheme', 'untitled')),
     );
+    assert.ok(vscode.languages.setTextDocumentLanguage.calledOnce);
+    assert.ok(vscode.window.showTextDocument.calledOnce);
+    assert.ok(editStub.calledOnce);
+    assert.ok(vscode.commands.executeCommand.calledWith('editor.action.formatDocument'));
+  });
+
+  test('openInEditor enables word wrap when editor setting is off', async () => {
+    const vscode = require('vscode');
+    const editStub = sinon.stub().resolves(true);
+    const getStub = sinon.stub().withArgs('wordWrap').returns('off');
+    vscode.workspace.openTextDocument.resolves({ languageId: 'json' });
+    vscode.workspace.getConfiguration.returns({ get: getStub });
+    vscode.window.showTextDocument.resolves({ edit: editStub });
+
+    await integration.openInEditor('{"a":1}', 'json', 'data.json');
+
+    assert.ok(vscode.commands.executeCommand.calledWith('editor.action.toggleWordWrap'));
   });
 
   test('saveAsNewFile calls showInformationMessage', async () => {

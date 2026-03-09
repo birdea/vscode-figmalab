@@ -30,6 +30,13 @@ export const workspace = {
   },
 };
 
+export const languages = {
+  setTextDocumentLanguage: sinon.stub().callsFake(async (doc: any, language: string) => ({
+    ...doc,
+    languageId: language,
+  })),
+};
+
 export const commands = {
   executeCommand: sinon.stub().resolves(),
   registerCommand: sinon.stub(),
@@ -67,6 +74,13 @@ export const ViewColumn = {
   One: 1,
   Two: 2,
 };
+
+export class Position {
+  constructor(
+    public line: number,
+    public character: number,
+  ) {}
+}
 
 export class EventEmitter {
   event = sinon.stub();

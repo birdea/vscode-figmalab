@@ -54,6 +54,12 @@ const mockVscode = {
       delete: sinon.stub(),
     },
   },
+  languages: {
+    setTextDocumentLanguage: sinon.stub().callsFake(async (doc: any, language: string) => ({
+      ...doc,
+      languageId: language,
+    })),
+  },
   Uri: {
     parse: sinon.stub().callsFake((value: string) => {
       const parsed = new URL(value);
@@ -85,6 +91,12 @@ const mockVscode = {
   ViewColumn: {
     One: 1,
     Two: 2,
+  },
+  Position: class {
+    constructor(
+      public line: number,
+      public character: number,
+    ) {}
   },
   EventEmitter: class {
     event = sinon.stub();

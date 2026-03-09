@@ -79,6 +79,7 @@ export class PromptCommandHandler {
       await this.editorIntegration.openInEditor(
         fullCode,
         this.toVsCodeLanguage(resolvedPayload.outputFormat),
+        this.toSuggestedFilename(resolvedPayload.outputFormat),
       );
       this.post({
         event: 'prompt.result',
@@ -98,6 +99,7 @@ export class PromptCommandHandler {
         await this.editorIntegration.openInEditor(
           fullCode,
           this.toVsCodeLanguage(resolvedPayload.outputFormat),
+          this.toSuggestedFilename(resolvedPayload.outputFormat),
         );
         this.post({
           event: 'prompt.result',
@@ -164,6 +166,22 @@ export class PromptCommandHandler {
         return 'kotlin';
       default:
         return 'plaintext';
+    }
+  }
+
+  private toSuggestedFilename(format: PromptPayload['outputFormat']): string {
+    switch (format) {
+      case 'tsx':
+        return 'generated-ui.tsx';
+      case 'html':
+      case 'tailwind':
+        return 'generated-ui.html';
+      case 'scss':
+        return 'generated-ui.scss';
+      case 'kotlin':
+        return 'GeneratedUi.kt';
+      default:
+        return 'generated-ui.txt';
     }
   }
 

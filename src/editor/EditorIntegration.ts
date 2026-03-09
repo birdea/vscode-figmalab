@@ -5,12 +5,43 @@ import * as path from 'path';
 import { Logger } from '../logger/Logger';
 
 export class EditorIntegration {
-  async openInEditor(code: string, language = 'plaintext'): Promise<void> {
-    const doc = await vscode.workspace.openTextDocument({
-      language,
-      content: code,
+  async openInEditor(code: string, language = 'plaintext', suggestedName?: string): Promise<void> {
+    const doc = await vscode.workspace.openTextDocument(
+      vscode.Uri.parse(`untitled:${this.toUntitledName(suggestedName, language)}`),
+    );
+    const typedDoc =
+      doc.languageId === language
+        ? doc
+        : await vscode.languages.setTextDocumentLanguage(doc, language);
+    const editor = await vscode.window.showTextDocument(typedDoc, { preview: false });
+
+    await editor.edit((editBuilder) => {
+      editBuilder.insert(new vscode.Position(0, 0), code);
     });
-    await vscode.window.showTextDocument(doc, { preview: false });
+
+    try {
+      await vscode.commands.executeCommand('editor.action.formatDocument');
+    } catch (error) {
+      Logger.warn(
+        'editor',
+        `Formatter unavailable for ${language}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
+    try {
+      const wrapMode = vscode.workspace
+        .getConfiguration('editor', typedDoc)
+        .get<string>('wordWrap');
+      if (wrapMode === 'off') {
+        await vscode.commands.executeCommand('editor.action.toggleWordWrap');
+      }
+    } catch (error) {
+      Logger.warn(
+        'editor',
+        `Word wrap update failed for ${language}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
     Logger.success('editor', `Generated code opened in editor (${code.length} chars)`);
   }
 
@@ -45,5 +76,26 @@ export class EditorIntegration {
     await vscode.window.showTextDocument(saveUri);
     Logger.success('editor', `Code saved: ${saveUri.fsPath}`);
     vscode.window.showInformationMessage(`Saved: ${saveUri.fsPath}`);
+  }
+
+  private toUntitledName(suggestedName: string | undefined, language: string): string {
+    if (suggestedName?.trim()) {
+      return suggestedName.trim();
+    }
+
+    const extension =
+      language === 'json'
+        ? 'json'
+        : language === 'typescriptreact'
+          ? 'tsx'
+          : language === 'html'
+            ? 'html'
+            : language === 'scss'
+              ? 'scss'
+              : language === 'kotlin'
+                ? 'kt'
+                : 'txt';
+
+    return `generated-${Date.now()}.${extension}`;
   }
 }
