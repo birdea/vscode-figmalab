@@ -88,6 +88,7 @@ export type WebviewToHostMessage =
   | { command: 'prompt.cancel'; requestId?: string }
   | { command: 'prompt.estimate'; payload: PromptPayload }
   | { command: 'preview.openPanel'; code: string; format?: OutputFormat }
+  | { command: 'preview.openBrowser'; code: string; format?: OutputFormat }
   | { command: 'editor.open'; code: string; language?: string }
   | { command: 'editor.saveFile'; code: string; filename: string };
 
