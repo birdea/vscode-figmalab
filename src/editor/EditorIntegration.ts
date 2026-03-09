@@ -73,8 +73,8 @@ export class EditorIntegration {
     vscode.window.showInformationMessage(`Saved: ${saveUri.fsPath}`);
   }
 
-  openPreviewPanel(code: string, preferredFormat?: OutputFormat) {
-    this.previewPanelService.open(code, preferredFormat);
+  async openPreviewPanel(code: string, preferredFormat?: OutputFormat) {
+    await this.previewPanelService.open(code, preferredFormat);
     Logger.success('editor', `Preview opened in editor area (${code.length} chars)`);
   }
 

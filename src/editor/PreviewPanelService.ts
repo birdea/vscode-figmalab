@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
 import { OutputFormat } from '../types';
-import { buildPreviewDocument, buildPreviewPanelHtml } from '../preview/PreviewRenderer';
+import { buildPreviewPanelContent } from '../preview/PreviewRuntimeBuilder';
 
 export class PreviewPanelService {
   private panel: vscode.WebviewPanel | null = null;
 
-  open(code: string, preferredFormat?: OutputFormat) {
+  async open(code: string, preferredFormat?: OutputFormat) {
     const column =
       vscode.window.activeTextEditor?.viewColumn === vscode.ViewColumn.One
         ? vscode.ViewColumn.Two
@@ -17,7 +17,7 @@ export class PreviewPanelService {
         'Generated UI Preview',
         column,
         {
-          enableScripts: false,
+          enableScripts: true,
           retainContextWhenHidden: true,
         },
       );
@@ -28,8 +28,8 @@ export class PreviewPanelService {
       this.panel.reveal(column, true);
     }
 
-    const preview = buildPreviewDocument(code, preferredFormat);
-    this.panel.webview.html = buildPreviewPanelHtml(preview, this.panel.webview.cspSource);
+    const preview = await buildPreviewPanelContent(code, this.panel.webview.cspSource, preferredFormat);
+    this.panel.webview.html = preview.html;
     this.panel.title = `Generated UI Preview · ${preview.title}`;
   }
 }

@@ -10,7 +10,7 @@ const extensionConfig = {
   entryPoints: ['src/extension.ts'],
   bundle: true,
   outfile: 'dist/extension.js',
-  external: ['vscode'],
+  external: ['vscode', 'esbuild'],
   format: 'cjs',
   platform: 'node',
   sourcemap: !isProduction,

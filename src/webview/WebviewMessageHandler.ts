@@ -119,7 +119,7 @@ export class WebviewMessageHandler {
           this.promptHandler.estimate(msg.payload);
           break;
         case 'preview.openPanel':
-          this.promptHandler.openPreviewPanel(msg.code, msg.format);
+          await this.promptHandler.openPreviewPanel(msg.code, msg.format);
           break;
         case 'editor.open':
           await this.promptHandler.openEditor(msg.code, msg.language);

@@ -195,8 +195,8 @@ export class PromptCommandHandler {
     await this.editorIntegration.saveAsNewFile(code, filename);
   }
 
-  openPreviewPanel(code: string, format?: PromptPayload['outputFormat']) {
-    this.editorIntegration.openPreviewPanel(code, format);
+  async openPreviewPanel(code: string, format?: PromptPayload['outputFormat']) {
+    await this.editorIntegration.openPreviewPanel(code, format);
   }
 
   private toVsCodeLanguage(format: PromptPayload['outputFormat']): string {

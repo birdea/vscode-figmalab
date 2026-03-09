@@ -362,8 +362,8 @@ suite('PromptCommandHandler', () => {
     assert.ok(editorIntegration.saveAsNewFile.calledWith('body', 'demo.ts'));
   });
 
-  test('openPreviewPanel delegates to editor integration', () => {
-    handler.openPreviewPanel('<div>preview</div>', 'html');
+  test('openPreviewPanel delegates to editor integration', async () => {
+    await handler.openPreviewPanel('<div>preview</div>', 'html');
     assert.ok(editorIntegration.openPreviewPanel.calledWith('<div>preview</div>', 'html'));
   });
 

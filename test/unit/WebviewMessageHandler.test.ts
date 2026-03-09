@@ -307,7 +307,9 @@ suite('WebviewMessageHandler Comprehensive', () => {
   });
 
   test('handle preview.openPanel', async () => {
-    const previewSpy = sandbox.stub((handler as any).editorIntegration, 'openPreviewPanel');
+    const previewSpy = sandbox
+      .stub((handler as any).editorIntegration, 'openPreviewPanel')
+      .resolves();
 
     await handler.handle({
       command: 'preview.openPanel',

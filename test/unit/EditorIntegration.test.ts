@@ -181,7 +181,7 @@ suite('EditorIntegration', () => {
     assert.strictEqual(saveArgs.defaultUri, undefined);
   });
 
-  test('openPreviewPanel creates and updates a preview webview panel', () => {
+  test('openPreviewPanel creates and updates a preview webview panel', async () => {
     const vscode = require('vscode');
     const previewPanel = {
       webview: { cspSource: 'csp', html: '' },
@@ -191,10 +191,31 @@ suite('EditorIntegration', () => {
     };
     vscode.window.createWebviewPanel.returns(previewPanel);
 
-    integration.openPreviewPanel('<div>preview</div>', 'html');
+    await integration.openPreviewPanel('<div>preview</div>', 'html');
 
     assert.ok(vscode.window.createWebviewPanel.calledOnce);
-    assert.ok(previewPanel.webview.html.includes('Generated UI Preview'));
+    assert.ok(previewPanel.title.includes('HTML Preview'));
+    assert.ok(previewPanel.webview.html.includes('<iframe'));
     assert.ok(previewPanel.webview.html.includes('&lt;div&gt;preview&lt;/div&gt;'));
+  });
+
+  test('openPreviewPanel builds runtime preview for tsx input', async () => {
+    const vscode = require('vscode');
+    const previewPanel = {
+      webview: { cspSource: 'csp', html: '' },
+      title: '',
+      reveal: sandbox.stub(),
+      onDidDispose: sandbox.stub(),
+    };
+    vscode.window.createWebviewPanel.returns(previewPanel);
+
+    await integration.openPreviewPanel(
+      "import React from 'react'; export default function App(){ return <div className=\"bg-white\">preview</div>; }",
+      'tsx',
+    );
+
+    assert.ok(previewPanel.title.includes('React / TSX Preview'));
+    assert.ok(previewPanel.webview.html.includes('runtime-error'));
+    assert.ok(previewPanel.webview.html.includes('preview'));
   });
 });
