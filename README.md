@@ -4,11 +4,11 @@ Turn Figma screens into implementation-ready code inside VS Code.
 
 Figma MCP Helper connects VS Code to a Figma Desktop MCP server, fetches design context from a Figma URL, and generates code with Gemini, Claude, DeepSeek, Qwen, or OpenRouter without leaving your editor.
 
-`v0.5.4` highlights:
+`v0.5.5` highlights:
 
-- Release packaging now builds and publishes platform-specific VSIX artifacts for macOS, Windows, and Linux.
-- Marketplace releases can ship the correct preview runtime dependencies for each platform target.
-- Browser preview documentation now reflects the platform-specific release pipeline.
+- Release automation now builds platform-specific VSIX artifacts across macOS, Windows, and Linux runners.
+- Windows Marketplace packaging now uses the correct shell for release metadata generation.
+- Browser preview release notes now reflect the hardened cross-platform distribution pipeline.
 
 ![Figma MCP Helper screenshot](images/screenshot-1.png)
 

@@ -4,6 +4,12 @@ This project tracks release notes with `conventional-changelog`.
 
 ## [Unreleased]
 
+## [0.5.5] - 2026-03-10
+
+- Hardened the platform-specific release workflow so Windows packaging uses `bash` for release metadata generation.
+- Kept the Marketplace distribution pipeline aligned across `darwin-arm64`, `darwin-x64`, `linux-x64`, and `win32-x64` VSIX outputs.
+- Refreshed the README release highlights to match the latest cross-platform release automation changes.
+
 ## [0.5.4] - 2026-03-10
 
 - Switched the release workflow to build, attach, and publish platform-specific VSIX packages for `darwin-arm64`, `darwin-x64`, `linux-x64`, and `win32-x64`.
