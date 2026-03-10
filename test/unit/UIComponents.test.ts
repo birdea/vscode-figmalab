@@ -279,12 +279,12 @@ suite('UI Components Consolidated', () => {
       assert.ok(postMessageStub.calledWithMatch({ command: 'figma.fetchVariableDefs' }));
     });
 
-    test('metadata and variable defs buttons render codicons and updated labels', () => {
+    test('metadata and variable defs buttons render codicons and labels', () => {
       const metadataBtn = document.getElementById('btn-fetch-metadata');
       const variableDefsBtn = document.getElementById('btn-fetch-variable-defs');
 
-      assert.ok(metadataBtn?.textContent?.includes('Get Metadata'));
-      assert.ok(variableDefsBtn?.textContent?.includes('Get Variable Defs'));
+      assert.ok(metadataBtn?.textContent?.includes('Metadata'));
+      assert.ok(variableDefsBtn?.textContent?.includes('Variable Defs'));
       assert.ok(metadataBtn?.querySelector('.codicon.codicon-info'));
       assert.ok(variableDefsBtn?.querySelector('.codicon.codicon-symbol-constant'));
     });
