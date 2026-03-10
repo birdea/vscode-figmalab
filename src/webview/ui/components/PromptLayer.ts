@@ -161,7 +161,7 @@ export class PromptLayer {
     }
 
     vscode.postMessage({ command: 'preview.openPanel', format: this.lastFormat });
-    this.setNotice('info', this.msg('prompt.preview.openedPanel'));
+    this.setNotice('info', this.msg('prompt.preview.openingPanel'));
   }
 
   onOpenBrowserPreviewRequested() {
@@ -177,7 +177,7 @@ export class PromptLayer {
     }
 
     vscode.postMessage({ command: 'preview.openBrowser', format: this.lastFormat });
-    this.setNotice('info', this.msg('prompt.preview.openedBrowser'));
+    this.setNotice('info', this.msg('prompt.preview.openingBrowser'));
   }
 
   onOpenGeneratedEditorRequested() {
@@ -313,6 +313,20 @@ export class PromptLayer {
       return;
     }
     this.setNotice('error', this.toFriendlyError(message));
+  }
+
+  onPreviewOpened(requested: 'panel' | 'browser', opened: 'panel' | 'browser') {
+    if (requested === 'browser' && opened === 'panel') {
+      this.setNotice('info', this.msg('prompt.preview.browserFallback'));
+      return;
+    }
+
+    this.setNotice(
+      'success',
+      opened === 'browser'
+        ? this.msg('prompt.preview.openedBrowser')
+        : this.msg('prompt.preview.openedPanel'),
+    );
   }
 
   appendLog(entry: LogEntry) {

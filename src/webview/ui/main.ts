@@ -91,6 +91,9 @@ export function init() {
           case 'prompt.logClear':
             layer.clearLog();
             break;
+          case 'prompt.previewOpened':
+            layer.onPreviewOpened(msg.requested, msg.opened);
+            break;
           case 'prompt.streaming':
             layer.onStreaming(msg.progress, msg.text);
             break;

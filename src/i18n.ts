@@ -133,9 +133,13 @@ const messages: Record<UiLocale, Record<string, MessageValue>> = {
     'prompt.preview.empty': 'Generate code first to open a preview.',
     'prompt.preview.generating':
       'Code generation is still in progress. Open the preview after it completes.',
+    'prompt.preview.openingPanel': 'Opening preview...',
+    'prompt.preview.openingBrowser': 'Opening browser preview...',
     'prompt.preview.openedPanel': 'Preview opened.',
     'prompt.preview.openedBrowser':
       'Browser preview opened. Future generations will hot-update the same page.',
+    'prompt.preview.browserFallback':
+      'Browser preview is unavailable in this packaged installation. Opened the Preview Panel instead.',
     'prompt.cancel': 'Cancel',
     'prompt.log.title': 'Request / Response Log',
     'prompt.resultTitle': 'Generated Result',
@@ -286,9 +290,13 @@ const messages: Record<UiLocale, Record<string, MessageValue>> = {
     'prompt.preview.openBrowser': '브라우저에서 열기',
     'prompt.preview.empty': '먼저 코드를 생성해야 프리뷰를 열 수 있습니다.',
     'prompt.preview.generating': '코드 생성이 아직 진행 중입니다. 완료 후 프리뷰를 여세요.',
+    'prompt.preview.openingPanel': '프리뷰를 여는 중입니다...',
+    'prompt.preview.openingBrowser': '브라우저 프리뷰를 여는 중입니다...',
     'prompt.preview.openedPanel': '프리뷰를 열었습니다.',
     'prompt.preview.openedBrowser':
       '브라우저 프리뷰를 열었습니다. 이후 생성 결과는 같은 페이지에 HMR로 반영됩니다.',
+    'prompt.preview.browserFallback':
+      '패키지 설치본에서는 브라우저 프리뷰를 사용할 수 없어 Preview Panel로 대신 열었습니다.',
     'prompt.cancel': '취소',
     'prompt.log.title': '요청 / 응답 로그',
     'prompt.resultTitle': '생성 결과',

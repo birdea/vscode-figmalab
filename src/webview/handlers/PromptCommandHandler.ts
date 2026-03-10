@@ -226,11 +226,13 @@ export class PromptCommandHandler {
   }
 
   async openPreviewPanel(code?: string, format?: PromptPayload['outputFormat']) {
-    await this.editorIntegration.openPreviewPanel(code, format);
+    const opened = await this.editorIntegration.openPreviewPanel(code, format);
+    this.post({ event: 'prompt.previewOpened', requested: 'panel', opened });
   }
 
   async openBrowserPreview(code?: string, format?: PromptPayload['outputFormat']) {
-    await this.editorIntegration.openBrowserPreview(code, format);
+    const opened = await this.editorIntegration.openBrowserPreview(code, format);
+    this.post({ event: 'prompt.previewOpened', requested: 'browser', opened });
   }
 
   async openGeneratedEditor() {

@@ -22,8 +22,8 @@ suite('PromptCommandHandler', () => {
     };
     editorIntegration = {
       openInEditor: sandbox.stub().resolves(),
-      openPreviewPanel: sandbox.stub(),
-      openBrowserPreview: sandbox.stub(),
+      openPreviewPanel: sandbox.stub().resolves('panel'),
+      openBrowserPreview: sandbox.stub().resolves('browser'),
       openGeneratedInEditor: sandbox.stub().resolves(),
       syncBrowserPreviewIfActive: sandbox.stub().resolves(),
       setGeneratedOutputFormat: sandbox.stub(),
@@ -416,11 +416,25 @@ suite('PromptCommandHandler', () => {
   test('openPreviewPanel delegates to editor integration', async () => {
     await handler.openPreviewPanel('<div>preview</div>', 'html');
     assert.ok(editorIntegration.openPreviewPanel.calledWith('<div>preview</div>', 'html'));
+    assert.ok(
+      webview.postMessage.calledWithMatch({
+        event: 'prompt.previewOpened',
+        requested: 'panel',
+        opened: 'panel',
+      }),
+    );
   });
 
   test('openBrowserPreview delegates to editor integration', async () => {
     await handler.openBrowserPreview('<div>preview</div>', 'html');
     assert.ok(editorIntegration.openBrowserPreview.calledWith('<div>preview</div>', 'html'));
+    assert.ok(
+      webview.postMessage.calledWithMatch({
+        event: 'prompt.previewOpened',
+        requested: 'browser',
+        opened: 'browser',
+      }),
+    );
   });
 
   test('openGeneratedEditor delegates to editor integration', async () => {

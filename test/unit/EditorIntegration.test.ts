@@ -272,9 +272,31 @@ suite('EditorIntegration', () => {
       .stub(integration as any, 'getLatestGeneratedDocument')
       .resolves({ document: { getText: () => '<div>preview</div>' }, diskText: '' });
 
-    await integration.openBrowserPreview('<div>preview</div>', 'html');
+    const opened = await integration.openBrowserPreview('<div>preview</div>', 'html');
 
     assert.ok(openStub.calledWith('<div>preview</div>', 'html'));
+    assert.strictEqual(opened, 'browser');
+  });
+
+  test('openBrowserPreview falls back to preview panel in packaged installations', async () => {
+    const browserPreviewService = (integration as any).browserPreviewService;
+    sandbox
+      .stub(browserPreviewService, 'open')
+      .rejects(
+        new Error(
+          'Browser preview is unavailable in this packaged installation. Use the Preview Panel instead.',
+        ),
+      );
+    const previewPanelService = (integration as any).previewPanelService;
+    const openPanelStub = sandbox.stub(previewPanelService, 'open').resolves();
+    sandbox
+      .stub(integration as any, 'getLatestGeneratedDocument')
+      .resolves({ document: { getText: () => '<div>preview</div>' }, diskText: '' });
+
+    const opened = await integration.openBrowserPreview('<div>preview</div>', 'html');
+
+    assert.ok(openPanelStub.calledWith('<div>preview</div>', 'html'));
+    assert.strictEqual(opened, 'panel');
   });
 
   test('syncBrowserPreviewIfActive delegates to browser preview service', async () => {

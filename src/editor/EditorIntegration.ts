@@ -4,8 +4,13 @@ import * as os from 'os';
 import * as path from 'path';
 import { Logger } from '../logger/Logger';
 import { OutputFormat } from '../types';
-import { BrowserPreviewService } from './BrowserPreviewService';
+import {
+  BrowserPreviewService,
+  isBrowserPreviewUnavailableError,
+} from './BrowserPreviewService';
 import { PreviewPanelService } from './PreviewPanelService';
+
+export type PreviewOpenTarget = 'browser' | 'panel';
 
 export class EditorIntegration {
   private previewPanelService = new PreviewPanelService();
@@ -87,15 +92,36 @@ export class EditorIntegration {
     Logger.success('editor', `Generated result focused in editor (${document.uri.fsPath})`);
   }
 
-  async openPreviewPanel(code?: string, preferredFormat?: OutputFormat) {
+  async openPreviewPanel(
+    code?: string,
+    preferredFormat?: OutputFormat,
+  ): Promise<PreviewOpenTarget> {
     const resolved = await this.resolveGeneratedContent(code, preferredFormat);
     await this.previewPanelService.open(resolved.code, resolved.format);
     Logger.success('editor', `Preview opened in editor area (${resolved.code.length} chars)`);
+    return 'panel';
   }
 
-  async openBrowserPreview(code?: string, preferredFormat?: OutputFormat) {
+  async openBrowserPreview(
+    code?: string,
+    preferredFormat?: OutputFormat,
+  ): Promise<PreviewOpenTarget> {
     const resolved = await this.resolveGeneratedContent(code, preferredFormat);
-    await this.browserPreviewService.open(resolved.code, resolved.format ?? 'tsx');
+    try {
+      await this.browserPreviewService.open(resolved.code, resolved.format ?? 'tsx');
+      return 'browser';
+    } catch (error) {
+      if (!isBrowserPreviewUnavailableError(error)) {
+        throw error;
+      }
+
+      await this.previewPanelService.open(resolved.code, resolved.format);
+      Logger.info(
+        'editor',
+        'Browser preview is unavailable in this packaged installation; opened the Preview Panel instead.',
+      );
+      return 'panel';
+    }
   }
 
   async syncBrowserPreviewIfActive(code?: string, preferredFormat?: OutputFormat) {

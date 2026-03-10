@@ -540,6 +540,13 @@ suite('UI Components Consolidated', () => {
       assert.ok(!postMessageStub.calledWithMatch({ command: 'preview.openBrowser' }));
     });
 
+    test('preview fallback notice is shown when browser preview opens in panel mode', () => {
+      layer.onPreviewOpened('browser', 'panel');
+
+      const notice = document.getElementById('prompt-notice');
+      assert.ok(notice?.textContent?.includes('Preview Panel'));
+    });
+
     test('open generated editor posts host command', () => {
       layer.onResult('<div>preview</div>', 'html');
       document.getElementById('btn-open-generated-editor')?.click();

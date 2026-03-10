@@ -4,6 +4,7 @@ export type ConnectionMode = 'local' | 'remote';
 export type OutputFormat = 'html' | 'tsx' | 'vue' | 'tailwind';
 export type LogLevel = 'info' | 'warn' | 'error' | 'success';
 export type LayerType = 'figma' | 'agent' | 'prompt' | 'editor' | 'system';
+export type PreviewTarget = 'panel' | 'browser';
 
 // Log entry
 export interface LogEntry {
@@ -115,6 +116,7 @@ export type HostToWebviewMessage =
   | { event: 'prompt.streaming'; progress: number; text?: string }
   | { event: 'prompt.logAppend'; entry: LogEntry }
   | { event: 'prompt.logClear' }
+  | { event: 'prompt.previewOpened'; requested: PreviewTarget; opened: PreviewTarget }
   | {
       event: 'prompt.result';
       code: string;
