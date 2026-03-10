@@ -4,7 +4,11 @@ This project tracks release notes with `conventional-changelog`.
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-03-10
+
 - Packaged the browser preview runtime dependencies into the macOS VSIX so `Open In Browser` works after installation.
+- Hardened preview panel runtime resolution against incorrect workspace-root and static script execution cases.
+- Added explicit prompt-layer status updates when browser preview falls back to the Preview Panel.
 - Added a Marketplace screenshot and refreshed the README / image documentation to match the current sidebar workflow.
 
 ## [0.5.1] - 2026-03-10
