@@ -4,11 +4,13 @@ This project tracks release notes with `conventional-changelog`.
 
 ## [Unreleased]
 
+- Packaged the browser preview runtime dependencies into the macOS VSIX so `Open In Browser` works after installation.
+- Added a Marketplace screenshot and refreshed the README / image documentation to match the current sidebar workflow.
+
 ## [0.5.1] - 2026-03-10
 
 - Fixed the Marketplace package so the extension activates correctly after installation instead of failing on startup.
 - Deferred the `esbuild` preview dependency to runtime only when the preview panel is opened, removing the packaged-install activation failure.
-- Clarified that browser preview currently requires a development-style install with local preview dependencies, while the VS Code preview panel remains available in packaged releases.
 
 ## [0.5.0] - 2026-03-09
 

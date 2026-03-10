@@ -2,117 +2,46 @@
 
 Turn Figma screens into implementation-ready code inside VS Code.
 
-Figma MCP Helper connects to Figma from the VS Code sidebar, opens fetched design data and generated output in the VS Code editor, and generates implementation-ready code with Gemini, Claude, DeepSeek, Qwen, or OpenRouter without leaving your workspace.
+Figma MCP Helper connects VS Code to a Figma Desktop MCP server, fetches design context from a Figma URL, and generates code with Gemini, Claude, DeepSeek, Qwen, or OpenRouter without leaving your editor.
 
 ![Figma MCP Helper screenshot](images/screenshot-1.png)
 
-> `v0.5.1`: fixes the Marketplace startup failure from `v0.5.0` and clarifies the current browser preview limitation in packaged installs.
+The screenshot above shows the current sidebar workflow for Setup, Prompt, and Log in a single VS Code session.
 
-## What It Does
+Demo video: [YouTube quick guide](https://www.youtube.com/watch?v=_zxHVuY8A9Q)
 
-- Supports a `local / remote` connection mode in the Setup sidebar
-- Connects to a local Figma Desktop MCP server from VS Code
-- Keeps the planned remote mode UI visible without enabling the unfinished workflow
-- Fetches Figma file data from a shared Figma URL or MCP JSON payload
-- Captures screenshots for the selected Figma node
-- Generates code with Gemini, Claude, DeepSeek, Qwen, or OpenRouter
-- Streams generation progress and supports cancellation
-- Opens fetched design data and generated output directly in the VS Code editor
-- Opens generated UI in a VS Code preview panel
-- Supports a hot-reloading browser preview in development-style installs where local preview dependencies are available
-- Shows a live generation log inside the Prompt view
-- Saves generated output as a new file when needed
-- Strips stray markdown fences from generated code before preview and editor actions
-- Keeps an in-extension activity log for troubleshooting
+## Why It Matters
+
+- Fetch Figma design data and screenshots directly from the VS Code sidebar
+- Generate `tsx`, `html`, `vue`, or `tailwind` output from the same workspace
+- Open fetched data and generated code in the editor immediately
+- Preview results inside VS Code and keep logs for troubleshooting
+- Use either the Preview Panel or the browser preview workflow on macOS packaged installs
 
 ## Requirements
 
-- VS Code 1.85 or later
-- For local mode: a running Figma Desktop MCP server
-- At least one AI API key:
-  - Gemini: [Google AI Studio](https://aistudio.google.com)
-  - Claude: [Anthropic Console](https://console.anthropic.com)
-  - DeepSeek: [DeepSeek Platform](https://platform.deepseek.com/api_keys)
-  - Qwen: [DashScope Console](https://dashscope.console.aliyun.com/apiKey)
-  - OpenRouter: [OpenRouter Keys](https://openrouter.ai/keys)
+- VS Code 1.85+
+- A running Figma Desktop MCP server
+- At least one API key:
+  - [Google AI Studio](https://aistudio.google.com)
+  - [Anthropic Console](https://console.anthropic.com)
+  - [DeepSeek Platform](https://platform.deepseek.com/api_keys)
+  - [DashScope Console](https://dashscope.console.aliyun.com/apiKey)
+  - [OpenRouter Keys](https://openrouter.ai/keys)
 
 ## Quick Start
 
-1. Install the extension.
-2. Open the **Figma MCP Helper** view from the activity bar.
-3. In **Setup**, choose `local`.
-4. Confirm the MCP endpoint and connect to your Desktop MCP server.
-5. Paste a Figma URL, then fetch the design data or screenshot.
-6. In **Agent**, choose a provider, save your API key, and load a model.
-7. In **Prompt**, choose an output format and generate code.
-8. Open the result in the editor or VS Code preview panel.
+1. Install the extension and open **Figma MCP Helper** from the activity bar.
+2. In **Setup**, select `local` and connect to your Figma Desktop MCP endpoint.
+3. Paste a Figma URL and fetch the design data or screenshot.
+4. In **Agent**, choose a provider, save your API key, and load a model.
+5. In **Prompt**, select an output format and generate code.
+6. Open the result in the editor, preview panel, or browser preview.
 
-## Remote Mode
+## Current Scope
 
-Remote mode is intentionally not active in the current release.
-
-- The `Remote` toggle remains visible so the planned workflow is discoverable
-- Clicking **Auth Login** shows an inline "planned for a future update" notice
-- Remote fetch and screenshot actions are also blocked with the same notice
-- The current production workflow is `local` mode through the Figma Desktop MCP server
-
-## Sidebar Workflow
-
-### Setup
-
-The Setup view has two sections:
-
-- **Figma**: choose a connection mode, connect to the local MCP server, paste a Figma URL or payload, fetch structured data, and capture screenshots
-- **Agent**: choose the AI provider, save credentials, and load an available model
-
-### Prompt
-
-Use the Prompt view to generate output from the fetched Figma context.
-
-- Output formats: `tsx`, `html`, `vue`, `tailwind`
-- Optional controls: include or exclude the free-form prompt and fetched MCP data
-- Result actions: open the generated file in the editor, launch a VS Code preview panel, launch a browser preview with hot updates when local preview dependencies are available, review the live prompt log, or save as a new file
-
-### Log
-
-The Log view shows extension activity and error details, and lets you clear, copy, or save logs.
-
-## Settings
-
-| Setting                                    | Default                                                                            | Description                                                                             |
-| ------------------------------------------ | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `figma-mcp-helper.defaultAgent`            | `gemini`                                                                           | Default AI provider used by the Agent panel                                             |
-| `figma-mcp-helper.defaultModel`            | `""`                                                                               | Default model ID synced from the Agent panel                                            |
-| `figma-mcp-helper.mcpConnectionMode`       | `local`                                                                            | Preferred Setup connection mode (`local` Desktop MCP or `remote` auth)                  |
-| `figma-mcp-helper.mcpEndpoint`             | `http://127.0.0.1:3845/mcp`                                                        | Figma MCP server endpoint                                                               |
-| `figma-mcp-helper.remoteMcpEndpoint`       | `https://vscode-figma-mcp-helper-workers.birdea.workers.dev`                       | Reserved for the planned remote mode workflow                                           |
-| `figma-mcp-helper.remoteMcpAuthUrl`        | `https://vscode-figma-mcp-helper-workers.birdea.workers.dev/api/figma/oauth/start` | Reserved for the planned remote auth flow                                               |
-| `figma-mcp-helper.openFetchedDataInEditor` | `false`                                                                            | Legacy compatibility setting; fetched MCP JSON currently opens in the editor by default |
-| `figma-mcp-helper.claudeModels`            | built-in list                                                                      | Claude model catalog shown in the Agent panel                                           |
-| `figma-mcp-helper.deepseekModels`          | built-in list                                                                      | DeepSeek model catalog shown in the Agent panel                                         |
-| `figma-mcp-helper.qwenModels`              | built-in list                                                                      | Qwen model catalog shown in the Agent panel                                             |
-| `figma-mcp-helper.openrouterModels`        | built-in list                                                                      | OpenRouter model catalog shown in the Agent panel                                       |
-
-## Commands
-
-- `Figma MCP Helper: Generate Code`
-- `Connect MCP`
-- `Generate Code`
-- `Clear Logs`
-- `Copy Logs`
-- `Save Logs`
-
-## Notes
-
-- API keys are stored through the VS Code secret storage API.
-- The extension UI follows your VS Code display language automatically.
-- Korean (`ko`) and English are supported. Other locales fall back to English.
-- Browser preview uses a local Vite runtime and reuses the same page for future generations when the required preview dependencies are present.
-
-## Known Scope
-
-- Local mode depends on an external Figma Desktop MCP server; it does not bundle or host one.
-- Remote mode UI is visible, but the workflow itself is deferred for a future update.
-- Browser preview is not bundled into the Marketplace VSIX yet; packaged installs should use the VS Code preview panel.
-- Preview fidelity depends on the requested output format; React gets runtime preview while HTML, Tailwind, and Vue use static or hybrid preview paths.
-- Output quality depends on the completeness of the MCP data, screenshot quality, prompt instructions, and selected AI model.
+- The production workflow is `local` mode through the Figma Desktop MCP server.
+- `Remote` mode is visible in the UI, but not active yet.
+- Marketplace installs on macOS can open generated results in either the VS Code preview panel or the browser preview workflow.
+- API keys are stored in VS Code secret storage.
+- The UI supports Korean and English.
