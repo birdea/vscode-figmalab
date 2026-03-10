@@ -8,7 +8,6 @@ coverage/**
 src/**
 test/**
 out/**
-node_modules/**
 .prettier*
 .gitignore
 .DS_Store
