@@ -131,10 +131,9 @@ async function loadEsbuild(): Promise<EsbuildModule> {
         return dynamicRequire('esbuild') as EsbuildModule;
       }
 
-      const dynamicImport = new Function(
-        'specifier',
-        'return import(specifier)',
-      ) as (specifier: string) => Promise<EsbuildModule>;
+      const dynamicImport = new Function('specifier', 'return import(specifier)') as (
+        specifier: string,
+      ) => Promise<EsbuildModule>;
       return dynamicImport('esbuild');
     });
   }
