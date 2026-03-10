@@ -151,6 +151,7 @@ export class FigmaLayer {
       text.classList.toggle('status-text-error', !connected);
       if (connected) {
         text.textContent = this.msg('figma.statusConnected');
+        this.clearConnectionNotice();
       } else {
         text.textContent = this.msg('figma.statusDisconnected');
         if (error) {

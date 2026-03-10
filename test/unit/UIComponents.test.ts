@@ -242,6 +242,14 @@ suite('UI Components Consolidated', () => {
       assert.strictEqual(notice?.textContent, '');
     });
 
+    test('onStatus connected clears previous connection error notice', () => {
+      layer.onStatus(false, [], 'Connect error');
+      layer.onStatus(true, ['tool1'], undefined);
+
+      const notice = document.getElementById('figma-connection-notice');
+      assert.strictEqual(notice?.textContent, '');
+    });
+
     test('screenshot button click when not connected shows warn', () => {
       const mcpInput = document.getElementById('mcp-data') as HTMLTextAreaElement;
       mcpInput.value = 'https://figma.com/file/abc/test?node-id=1:2';
