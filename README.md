@@ -6,7 +6,7 @@ Figma MCP Helper connects to Figma from the VS Code sidebar, opens fetched desig
 
 ![Figma MCP Helper screenshot](images/screenshot-1.png)
 
-> `v0.5.0`: browser and in-panel preview actions are available, additional OpenAI-compatible providers are supported, and generated output is cleaned up before previewing or saving.
+> `v0.5.1`: fixes the Marketplace startup failure from `v0.5.0` and clarifies the current browser preview limitation in packaged installs.
 
 ## What It Does
 
@@ -18,7 +18,8 @@ Figma MCP Helper connects to Figma from the VS Code sidebar, opens fetched desig
 - Generates code with Gemini, Claude, DeepSeek, Qwen, or OpenRouter
 - Streams generation progress and supports cancellation
 - Opens fetched design data and generated output directly in the VS Code editor
-- Opens generated UI in a VS Code preview panel or a hot-reloading browser preview
+- Opens generated UI in a VS Code preview panel
+- Supports a hot-reloading browser preview in development-style installs where local preview dependencies are available
 - Shows a live generation log inside the Prompt view
 - Saves generated output as a new file when needed
 - Strips stray markdown fences from generated code before preview and editor actions
@@ -44,7 +45,7 @@ Figma MCP Helper connects to Figma from the VS Code sidebar, opens fetched desig
 5. Paste a Figma URL, then fetch the design data or screenshot.
 6. In **Agent**, choose a provider, save your API key, and load a model.
 7. In **Prompt**, choose an output format and generate code.
-8. Open the result in the editor, VS Code preview, or browser preview.
+8. Open the result in the editor or VS Code preview panel.
 
 ## Remote Mode
 
@@ -70,7 +71,7 @@ Use the Prompt view to generate output from the fetched Figma context.
 
 - Output formats: `tsx`, `html`, `vue`, `tailwind`
 - Optional controls: include or exclude the free-form prompt and fetched MCP data
-- Result actions: open the generated file in the editor, launch a VS Code preview panel, launch a browser preview with hot updates, review the live prompt log, or save as a new file
+- Result actions: open the generated file in the editor, launch a VS Code preview panel, launch a browser preview with hot updates when local preview dependencies are available, review the live prompt log, or save as a new file
 
 ### Log
 
@@ -106,11 +107,12 @@ The Log view shows extension activity and error details, and lets you clear, cop
 - API keys are stored through the VS Code secret storage API.
 - The extension UI follows your VS Code display language automatically.
 - Korean (`ko`) and English are supported. Other locales fall back to English.
-- Browser preview uses a local Vite runtime and reuses the same page for future generations.
+- Browser preview uses a local Vite runtime and reuses the same page for future generations when the required preview dependencies are present.
 
 ## Known Scope
 
 - Local mode depends on an external Figma Desktop MCP server; it does not bundle or host one.
 - Remote mode UI is visible, but the workflow itself is deferred for a future update.
+- Browser preview is not bundled into the Marketplace VSIX yet; packaged installs should use the VS Code preview panel.
 - Preview fidelity depends on the requested output format; React gets runtime preview while HTML, Tailwind, and Vue use static or hybrid preview paths.
 - Output quality depends on the completeness of the MCP data, screenshot quality, prompt instructions, and selected AI model.

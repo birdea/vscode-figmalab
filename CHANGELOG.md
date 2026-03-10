@@ -4,6 +4,12 @@ This project tracks release notes with `conventional-changelog`.
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-03-10
+
+- Fixed the Marketplace package so the extension activates correctly after installation instead of failing on startup.
+- Deferred the `esbuild` preview dependency to runtime only when the preview panel is opened, removing the packaged-install activation failure.
+- Clarified that browser preview currently requires a development-style install with local preview dependencies, while the VS Code preview panel remains available in packaged releases.
+
 ## [0.5.0] - 2026-03-09
 
 - Added generated UI preview actions for both the VS Code preview panel and a hot-reloading browser preview workflow.
