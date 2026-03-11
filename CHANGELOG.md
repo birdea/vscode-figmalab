@@ -4,6 +4,13 @@ This project tracks release notes with `conventional-changelog`.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-03-11
+
+- Restored prompt progress visibility with a stable full-width progress bar and clearer inline status placement.
+- Expanded prompt metrics with model-context details and toned the metric typography down to match the surrounding UI.
+- Refined Figma action ordering and prompt labeling for a cleaner Setup and Prompt sidebar workflow.
+- Hardened remote Figma auth session cleanup and added focused regression coverage around saved-session recovery.
+
 ## [0.5.5] - 2026-03-10
 
 - Hardened the platform-specific release workflow so Windows packaging uses `bash` for release metadata generation.
