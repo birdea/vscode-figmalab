@@ -289,7 +289,7 @@ suite('UI Components Consolidated', () => {
       assert.ok(variableDefsBtn?.querySelector('.codicon.codicon-symbol-constant'));
     });
 
-    test('variable defs and screenshot buttons render in the updated order', () => {
+    test('metadata and variable defs buttons render in the updated order', () => {
       const actionRow = document.querySelector('.btn-row.btn-row-space-between .row');
       const buttonIds = Array.from(actionRow?.querySelectorAll('button') ?? []).map(
         (button) => button.id,
@@ -297,8 +297,8 @@ suite('UI Components Consolidated', () => {
 
       assert.deepStrictEqual(buttonIds, [
         'btn-fetch',
-        'btn-fetch-variable-defs',
         'btn-fetch-metadata',
+        'btn-fetch-variable-defs',
         'btn-screenshot',
       ]);
     });
