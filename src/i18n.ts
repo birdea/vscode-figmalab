@@ -143,7 +143,7 @@ const messages: Record<UiLocale, Record<string, MessageValue>> = {
     'prompt.includeMetadata': 'Metadata',
     'prompt.includeScreenshotData': 'Include screenshot data',
     'prompt.outputFormat': 'Output Format',
-    'prompt.outputFormatPrompt': 'Attached Output Format Rules',
+    'prompt.outputFormatPrompt': "Output Format's Prompt",
     'prompt.userPrompt': 'User Prompt',
     'prompt.metrics.data': 'Prompt data',
     'prompt.metrics.estimate': 'Estimated tokens',
