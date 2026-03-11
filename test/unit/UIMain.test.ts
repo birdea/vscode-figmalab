@@ -43,6 +43,16 @@ suite('UI Main Initialization', () => {
     dispatch({ event: 'unknown.event' }); // no-op branch
   });
 
+  test('setup section keeps fetch error notice visible on data fetch failure', () => {
+    setupDom('setup');
+    MainModule.init();
+
+    dispatch({ event: 'figma.dataFetchError', message: 'fetch failed', fallbackData: {} });
+
+    const notice = dom.window.document.getElementById('figma-data-notice');
+    assert.strictEqual(notice?.textContent, 'fetch failed');
+  });
+
   test('prompt section — all message branches', () => {
     setupDom('prompt');
     MainModule.init();
