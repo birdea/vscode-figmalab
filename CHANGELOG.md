@@ -4,6 +4,12 @@ This project tracks release notes with `conventional-changelog`.
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-03-11
+
+- Consolidated the Prompt metric area into a single board so selected-model stats read as one grouped layout.
+- Compressed Prompt metric spacing and tuned the typography for denser one-line label/value presentation.
+- Refreshed the README release highlights to match the `v0.6.1` sidebar metric polish.
+
 ## [0.6.0] - 2026-03-11
 
 - Restored prompt progress visibility with a stable full-width progress bar and clearer inline status placement.
