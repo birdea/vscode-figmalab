@@ -51,14 +51,10 @@ export class FigmaLayer {
     <div class="row">
       <button class="primary" id="btn-fetch"><i class="codicon codicon-cloud-download"></i>${this.msg('figma.fetchData')}</button>
       <button class="primary" id="btn-screenshot"><i class="codicon codicon-device-camera"></i>${this.msg('figma.screenshot')}</button>
-    </div>
-    <button class="secondary" id="btn-clear-data"><i class="codicon codicon-trash"></i>${this.msg('figma.clear')}</button>
-  </div>
-  <div class="btn-row">
-    <div class="row">
       <button class="secondary" id="btn-fetch-metadata"><i class="codicon codicon-info"></i>${this.msg('figma.metadata')}</button>
       <button class="secondary" id="btn-fetch-variable-defs"><i class="codicon codicon-symbol-constant"></i>${this.msg('figma.variableDefs')}</button>
     </div>
+    <button class="secondary" id="btn-clear-data"><i class="codicon codicon-trash"></i>${this.msg('figma.clear')}</button>
   </div>
   <div class="notice hidden" id="figma-data-notice"></div>
 </section>

@@ -289,6 +289,18 @@ suite('UI Components Consolidated', () => {
       assert.ok(variableDefsBtn?.querySelector('.codicon.codicon-symbol-constant'));
     });
 
+    test('metadata and variable defs buttons render immediately after screenshot', () => {
+      const actionRow = document.querySelector('.btn-row.btn-row-space-between .row');
+      const buttonIds = Array.from(actionRow?.querySelectorAll('button') ?? []).map((button) => button.id);
+
+      assert.deepStrictEqual(buttonIds, [
+        'btn-fetch',
+        'btn-screenshot',
+        'btn-fetch-metadata',
+        'btn-fetch-variable-defs',
+      ]);
+    });
+
     test('screenshot click when connected with data sends message', () => {
       layer.onStatus(true, ['get_image']); // set connected = true
       const mcpInput = document.getElementById('mcp-data') as HTMLTextAreaElement;
@@ -336,6 +348,7 @@ suite('UI Components Consolidated', () => {
       layer.onError('some error');
       const notice = document.getElementById('figma-data-notice');
       assert.strictEqual(notice?.textContent, 'some error');
+      assert.ok(notice?.classList.contains('error'));
     });
 
     test('onAuthStarted clears loading state and shows remote guide', () => {
