@@ -490,9 +490,15 @@ suite('UI Components Consolidated', () => {
     test('onModelsResult updates selected model max token display', () => {
       layer.onAgentState('claude', 'sonnet', true);
       postMessageStub.resetHistory();
-      layer.onModelsResult([{ id: 'sonnet', name: 'Sonnet', outputTokenLimit: 8192 }]);
+      layer.onModelsResult([
+        { id: 'sonnet', name: 'Sonnet', inputTokenLimit: 200000, outputTokenLimit: 8192 },
+      ]);
       assert.strictEqual(
-        document.getElementById('prompt-model-max-tokens')?.textContent,
+        document.getElementById('prompt-model-max-input-tokens')?.textContent,
+        '200,000 tok',
+      );
+      assert.strictEqual(
+        document.getElementById('prompt-model-max-output-tokens')?.textContent,
         '8,192 tok',
       );
     });

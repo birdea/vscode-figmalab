@@ -3,6 +3,7 @@ import { AgentType, ScreenshotAsset } from '../types';
 export class StateManager {
   private currentAgent: AgentType = 'gemini';
   private currentModel = '';
+  private agentStateInitialized = false;
   private lastDesignContextData: unknown = null;
   private lastMetadata: unknown = null;
   private lastMcpInput = '';
@@ -15,6 +16,7 @@ export class StateManager {
   setAgent(agent: AgentType) {
     this.currentAgent = agent;
     this.currentModel = '';
+    this.agentStateInitialized = true;
   }
 
   getModel(): string {
@@ -23,6 +25,11 @@ export class StateManager {
 
   setModel(model: string) {
     this.currentModel = model;
+    this.agentStateInitialized = true;
+  }
+
+  hasAgentState(): boolean {
+    return this.agentStateInitialized;
   }
 
   getLastDesignContextData(): unknown {
@@ -88,5 +95,6 @@ export class StateManager {
   resetAgentState() {
     this.currentAgent = 'gemini';
     this.currentModel = '';
+    this.agentStateInitialized = true;
   }
 }

@@ -33,15 +33,18 @@ export class AgentCommandHandler {
   async getState() {
     const savedAgent = this.context.globalState.get<AgentType>(CONFIG_KEYS.DEFAULT_AGENT, 'gemini');
     const savedModel = this.context.globalState.get<string>(CONFIG_KEYS.DEFAULT_MODEL, '');
-    const key = await this.context.secrets.get(getSecretStorageKey(savedAgent));
-
-    this.stateManager.setAgent(savedAgent);
-    this.stateManager.setModel(savedModel);
+    if (!this.stateManager.hasAgentState()) {
+      this.stateManager.setAgent(savedAgent);
+      this.stateManager.setModel(savedModel);
+    }
+    const agent = this.stateManager.getAgent();
+    const model = this.stateManager.getModel();
+    const key = await this.context.secrets.get(getSecretStorageKey(agent));
 
     this.post({
       event: 'agent.state',
-      agent: savedAgent,
-      model: savedModel,
+      agent,
+      model,
       hasApiKey: Boolean(key),
     });
   }

@@ -21,6 +21,14 @@ export class PromptLayer {
   private currentModel = '';
   private modelCatalog: ModelInfo[] = [];
   private readonly locale: UiLocale = getDocumentLocale();
+  private readonly requestAgentState = () => {
+    vscode.postMessage({ command: 'agent.getState' });
+  };
+  private readonly handleVisibilityChange = () => {
+    if (!document.hidden) {
+      this.requestAgentState();
+    }
+  };
 
   render(): string {
     return `
@@ -72,18 +80,19 @@ export class PromptLayer {
   <div class="prompt-metrics stack-gap-sm" id="token-estimate">
     <div class="prompt-metric-card">
       <span class="prompt-metric-label">${this.msg('prompt.metrics.data')}</span>
-      <span class="prompt-metric-equals">=</span>
       <strong class="prompt-metric-value" id="prompt-data-size">0.0KB</strong>
     </div>
     <div class="prompt-metric-card">
       <span class="prompt-metric-label">${this.msg('prompt.metrics.estimate')}</span>
-      <span class="prompt-metric-equals">=</span>
       <strong class="prompt-metric-value" id="prompt-estimated-tokens">~0 tok</strong>
     </div>
     <div class="prompt-metric-card">
-      <span class="prompt-metric-label">${this.msg('prompt.metrics.max')}</span>
-      <span class="prompt-metric-equals">=</span>
-      <strong class="prompt-metric-value" id="prompt-model-max-tokens">-</strong>
+      <span class="prompt-metric-label">${this.msg('prompt.metrics.maxInput')}</span>
+      <strong class="prompt-metric-value" id="prompt-model-max-input-tokens">-</strong>
+    </div>
+    <div class="prompt-metric-card">
+      <span class="prompt-metric-label">${this.msg('prompt.metrics.maxOutput')}</span>
+      <strong class="prompt-metric-value" id="prompt-model-max-output-tokens">-</strong>
     </div>
   </div>
   <div class="prompt-action-group">
@@ -143,7 +152,9 @@ export class PromptLayer {
     this.updateFormatPromptPreview((outputFormatEl?.value as OutputFormat | undefined) ?? 'tsx');
     this.refreshModelMetrics();
     this.updateEstimate();
-    vscode.postMessage({ command: 'agent.getState' });
+    this.requestAgentState();
+    window.addEventListener('focus', this.requestAgentState);
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
   }
 
   onGenerateRequested() {
@@ -455,14 +466,21 @@ export class PromptLayer {
   }
 
   private refreshModelMetrics() {
-    const modelMaxTokensEl = document.getElementById('prompt-model-max-tokens');
-    if (!modelMaxTokensEl) {
+    const modelMaxInputTokensEl = document.getElementById('prompt-model-max-input-tokens');
+    const modelMaxOutputTokensEl = document.getElementById('prompt-model-max-output-tokens');
+    if (!modelMaxInputTokensEl || !modelMaxOutputTokensEl) {
       return;
     }
 
     const modelInfo = this.modelCatalog.find((entry) => entry.id === this.currentModel);
-    const maxTokens = modelInfo?.maxOutputTokens ?? modelInfo?.outputTokenLimit ?? null;
-    modelMaxTokensEl.textContent = maxTokens ? `${maxTokens.toLocaleString()} tok` : '-';
+    const maxInputTokens = modelInfo?.inputTokenLimit ?? modelInfo?.contextWindow ?? null;
+    const maxOutputTokens = modelInfo?.maxOutputTokens ?? modelInfo?.outputTokenLimit ?? null;
+    modelMaxInputTokensEl.textContent = maxInputTokens
+      ? `${maxInputTokens.toLocaleString()} tok`
+      : '-';
+    modelMaxOutputTokensEl.textContent = maxOutputTokens
+      ? `${maxOutputTokens.toLocaleString()} tok`
+      : '-';
   }
 
   private toFriendlyError(message: string): string {

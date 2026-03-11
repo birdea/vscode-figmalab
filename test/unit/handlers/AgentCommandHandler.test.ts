@@ -74,6 +74,23 @@ suite('AgentCommandHandler', () => {
     assert.ok(webview.postMessage.calledWithMatch({ event: 'agent.state', hasApiKey: false }));
   });
 
+  test('getState keeps the current in-memory selection after setup changes', async () => {
+    context.globalState.get.withArgs('figma-mcp-helper.defaultAgent', 'gemini').returns('gemini');
+    context.globalState.get.withArgs('figma-mcp-helper.defaultModel', '').returns('saved-model');
+    stateManager.setAgent('claude');
+    stateManager.setModel('claude-3');
+
+    await handler.getState();
+
+    assert.ok(
+      webview.postMessage.calledWithMatch({
+        event: 'agent.state',
+        agent: 'claude',
+        model: 'claude-3',
+      }),
+    );
+  });
+
   test('getModelInfoHelp applies saved key before loading model info', async () => {
     const agent = {
       setApiKey: sandbox.stub().resolves(),
