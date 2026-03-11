@@ -115,17 +115,6 @@ export async function activate(context: vscode.ExtensionContext) {
       await vscode.env.clipboard.writeText(Logger.toText());
       vscode.window.showInformationMessage(t(locale, 'system.logCopied'));
     }),
-    vscode.commands.registerCommand('figma-mcp-helper.log.save', async () => {
-      const uri = await vscode.window.showSaveDialog({
-        filters: { JSON: ['json'], Text: ['txt'] },
-        saveLabel: t(locale, 'system.saveLog'),
-      });
-      if (uri) {
-        const content = uri.fsPath.endsWith('.json') ? Logger.toJson() : Logger.toText();
-        await vscode.workspace.fs.writeFile(uri, Buffer.from(content));
-        vscode.window.showInformationMessage(t(locale, 'system.logSaved', { path: uri.fsPath }));
-      }
-    }),
     outputChannel,
   );
 

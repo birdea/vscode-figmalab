@@ -53,7 +53,11 @@ export class PromptBuilder {
     const lines: string[] = [getFormatPromptPreview(payload.outputFormat), ''];
 
     if (payload.mcpData !== undefined && payload.mcpData !== null) {
-      lines.push('=== Figma Design Data (MCP) ===');
+      lines.push(
+        payload.mcpDataKind === 'metadata'
+          ? '=== Figma Metadata (MCP) ==='
+          : '=== Figma Design Context (MCP) ===',
+      );
       lines.push(
         typeof payload.mcpData === 'string'
           ? payload.mcpData

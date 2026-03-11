@@ -199,6 +199,30 @@ textarea:disabled {
   gap: 12px;
 }
 
+.prompt-primary-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.prompt-generate-buttons {
+  flex: 0 0 auto;
+}
+
+.prompt-generate-status {
+  flex: 1;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.prompt-inline-status {
+  margin-top: 0;
+}
+
 .prompt-secondary-actions {
   align-items: stretch;
 }
@@ -216,6 +240,67 @@ textarea:disabled {
   font-size: 11px;
   line-height: 1.45;
   opacity: 0.9;
+}
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.choice-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 45%, transparent);
+  border-radius: var(--figmalab-radius);
+  background: color-mix(
+    in srgb,
+    var(--vscode-editorWidget-background, var(--vscode-editor-background)) 70%,
+    transparent
+  );
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.choice-card:has(input:checked) {
+  border-color: color-mix(in srgb, var(--vscode-focusBorder) 55%, transparent);
+  background: color-mix(in srgb, var(--vscode-button-background) 12%, transparent);
+}
+
+.choice-card input {
+  margin: 0;
+}
+
+.prompt-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.prompt-metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 45%, transparent);
+  border-radius: var(--figmalab-radius);
+  background: color-mix(
+    in srgb,
+    var(--vscode-editorWidget-background, var(--vscode-editor-background)) 62%,
+    transparent
+  );
+}
+
+.prompt-metric-label {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.prompt-metric-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--vscode-foreground);
 }
 
 .btn-row-space-between {
@@ -393,22 +478,10 @@ label {
   color: var(--vscode-editorError-foreground);
 }
 
-.token-estimate {
-  font-size: 10px;
-  color: var(--vscode-descriptionForeground);
-}
-
-.progress-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
 .progress-track {
   appearance: none;
-  flex: 1;
-  min-width: 80px;
+  width: 100%;
+  min-width: 120px;
   height: 3px;
   border: 0;
   background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
@@ -545,4 +618,23 @@ a:hover {
 /* Vertical spacing between sibling elements */
 #app > * + * {
   margin-top: var(--figmalab-gap);
+}
+
+@media (max-width: 720px) {
+  .prompt-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .prompt-primary-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .prompt-generate-buttons {
+    width: 100%;
+  }
+
+  .prompt-generate-status {
+    width: 100%;
+  }
 }

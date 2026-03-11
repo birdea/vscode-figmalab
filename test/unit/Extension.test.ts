@@ -35,8 +35,6 @@ suite('Extension Comprehensive', () => {
     vscode.commands.registerCommand = sandbox.stub();
     vscode.window.registerWebviewViewProvider = sandbox.stub();
     vscode.commands.executeCommand = sandbox.stub();
-    vscode.window.showSaveDialog = sandbox.stub();
-    vscode.workspace.fs.writeFile = sandbox.stub().resolves();
     sandbox.stub(SidebarProvider.prototype, 'dispose').resolves();
   });
 
@@ -87,24 +85,7 @@ suite('Extension Comprehensive', () => {
     clearLog();
 
     const saveLog = commands.find((c: any) => c[0] === 'figma-mcp-helper.log.save')?.[1];
-    assert.ok(saveLog);
-
-    // Test .json branch
-    vscode.window.showSaveDialog.resolves({ fsPath: '/test.json' });
-    await saveLog();
-    assert.ok(vscode.workspace.fs.writeFile.called);
-
-    // Test .txt branch
-    vscode.workspace.fs.writeFile.resetHistory();
-    vscode.window.showSaveDialog.resolves({ fsPath: '/test.txt' });
-    await saveLog();
-    assert.ok(vscode.workspace.fs.writeFile.called);
-
-    // Test cancelled (uri = undefined)
-    vscode.window.showSaveDialog.resolves(undefined);
-    vscode.workspace.fs.writeFile.resetHistory();
-    await saveLog();
-    assert.ok(!vscode.workspace.fs.writeFile.called);
+    assert.strictEqual(saveLog, undefined);
   });
 
   test('uri handler ignores non-remote-auth paths and reports callback failures', async () => {

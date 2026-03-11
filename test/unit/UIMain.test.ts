@@ -58,11 +58,8 @@ suite('UI Main Initialization', () => {
     MainModule.init();
 
     dispatch({ event: 'prompt.generateRequested' });
-    dispatch({
-      event: 'prompt.logAppend',
-      entry: { id: '1', timestamp: '', level: 'info', layer: 'prompt', message: 'request' },
-    });
-    dispatch({ event: 'prompt.logClear' });
+    dispatch({ event: 'agent.state', agent: 'gemini', model: 'gemini-2.0', hasApiKey: true });
+    dispatch({ event: 'agent.modelsResult', models: [{ id: 'gemini-2.0', name: 'Gemini 2.0' }] });
     dispatch({ event: 'prompt.streaming', progress: 30, text: 'hello' });
     dispatch({ event: 'prompt.result', code: 'const x = 1;' });
     dispatch({ event: 'prompt.estimateResult', tokens: 100, kb: 0.5 });

@@ -32,7 +32,8 @@ suite('PromptCommandHandler', () => {
     stateManager = new StateManager();
     stateManager.setAgent('claude');
     stateManager.setModel('claude-model');
-    stateManager.setLastMcpData({ fileId: 'F1' });
+    stateManager.setLastDesignContextData({ fileId: 'F1' });
+    stateManager.setLastMetadata({ componentSets: ['Button'] });
     stateManager.setLastScreenshot({ base64: 'abc123', mimeType: 'image/png' });
     handler = new PromptCommandHandler(
       webview as any,
@@ -176,6 +177,22 @@ suite('PromptCommandHandler', () => {
     assert.deepStrictEqual(capturedPayload.mcpData, { fileId: 'override' });
   });
 
+  test('generate can resolve metadata from state when requested', async () => {
+    let capturedPayload: any;
+    const agent = {
+      setApiKey: sandbox.stub().resolves(),
+      generateCode: async function* (payload: any) {
+        capturedPayload = payload;
+        yield 'chunk';
+      },
+    };
+    sandbox.stub(AgentFactory, 'getAgent').returns(agent as any);
+
+    await handler.generate({ outputFormat: 'html', mcpDataKind: 'metadata' });
+
+    assert.deepStrictEqual(capturedPayload.mcpData, { componentSets: ['Button'] });
+  });
+
   test('generate skips screenshot data for deepseek with a warning log', async () => {
     stateManager.setAgent('deepseek');
     stateManager.setModel('deepseek-chat');
@@ -193,12 +210,6 @@ suite('PromptCommandHandler', () => {
     await handler.generate({ outputFormat: 'html' });
 
     assert.strictEqual(capturedPayload.screenshotData, null);
-    assert.ok(
-      webview.postMessage.calledWithMatch({
-        event: 'prompt.logAppend',
-        entry: sinon.match({ message: 'Screenshot input skipped for the current agent' }),
-      }),
-    );
   });
 
   test('generate streams chunks and final result', async () => {
@@ -214,14 +225,7 @@ suite('PromptCommandHandler', () => {
     await handler.generate({ outputFormat: 'html' });
 
     assert.ok(editorIntegration.setGeneratedOutputFormat.calledWith('html'));
-    assert.ok(webview.postMessage.calledWithMatch({ event: 'prompt.logClear' }));
     assert.ok(editorIntegration.syncBrowserPreviewIfActive.calledWith('hello world', 'html'));
-    assert.ok(
-      webview.postMessage.calledWithMatch({
-        event: 'prompt.logAppend',
-        entry: sinon.match({ message: sinon.match(/Request sent to AI agent/) }),
-      }),
-    );
     assert.ok(editorIntegration.openInEditor.calledWith('hello world', 'html'));
     assert.ok(
       webview.postMessage.calledWithMatch({
@@ -265,12 +269,6 @@ suite('PromptCommandHandler', () => {
 
     await handler.generate({ outputFormat: 'html' });
 
-    assert.ok(
-      webview.postMessage.calledWithMatch({
-        event: 'prompt.logAppend',
-        entry: sinon.match({ message: sinon.match(/Generation failed before any output/) }),
-      }),
-    );
     assert.ok(
       webview.postMessage.calledWithMatch({
         event: 'prompt.error',
@@ -400,12 +398,7 @@ suite('PromptCommandHandler', () => {
 
     await handler.generate({ outputFormat: 'html' });
 
-    assert.ok(
-      webview.postMessage.calledWithMatch({
-        event: 'prompt.logAppend',
-        entry: sinon.match({ message: sinon.match(/Partial output opened in editor/) }),
-      }),
-    );
+    assert.ok(webview.postMessage.neverCalledWithMatch({ event: 'prompt.logAppend' }));
   });
 
   test('saveFile delegates to editor integration', async () => {

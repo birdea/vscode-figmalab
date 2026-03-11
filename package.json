@@ -96,11 +96,6 @@
         "command": "figma-mcp-helper.log.copy",
         "title": "%command.logCopy.title%",
         "icon": "$(copy)"
-      },
-      {
-        "command": "figma-mcp-helper.log.save",
-        "title": "%command.logSave.title%",
-        "icon": "$(save)"
       }
     ],
     "menus": {
@@ -124,11 +119,6 @@
           "command": "figma-mcp-helper.log.copy",
           "when": "view == figma-mcp-helper.log",
           "group": "navigation@2"
-        },
-        {
-          "command": "figma-mcp-helper.log.save",
-          "when": "view == figma-mcp-helper.log",
-          "group": "navigation@3"
         }
       ]
     },

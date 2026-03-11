@@ -291,7 +291,9 @@ suite('UI Components Consolidated', () => {
 
     test('metadata and variable defs buttons render immediately after screenshot', () => {
       const actionRow = document.querySelector('.btn-row.btn-row-space-between .row');
-      const buttonIds = Array.from(actionRow?.querySelectorAll('button') ?? []).map((button) => button.id);
+      const buttonIds = Array.from(actionRow?.querySelectorAll('button') ?? []).map(
+        (button) => button.id,
+      );
 
       assert.deepStrictEqual(buttonIds, [
         'btn-fetch',
@@ -465,6 +467,10 @@ suite('UI Components Consolidated', () => {
       layer.mount();
     });
 
+    test('mount requests agent state for model metrics', () => {
+      assert.ok(postMessageStub.calledWithMatch({ command: 'agent.getState' }));
+    });
+
     test('onGenerating sets progress bar width', () => {
       layer.onGenerating(50);
       const bar = document.getElementById('prompt-progress') as HTMLProgressElement | null;
@@ -472,21 +478,23 @@ suite('UI Components Consolidated', () => {
       assert.strictEqual(bar?.value, 50);
     });
 
-    test('appendLog and clearLog update prompt log area', () => {
-      layer.appendLog({
-        id: '1',
-        timestamp: '12:00:00Z',
-        level: 'info',
-        layer: 'prompt',
-        message: 'Request sent',
-        detail: 'html | claude',
-      });
-      const area = document.getElementById('prompt-log-area');
-      assert.ok(area?.textContent?.includes('Request sent'));
-      assert.ok(area?.textContent?.includes('html | claude'));
+    test('onEstimateResult updates split metric values', () => {
+      layer.onEstimateResult(1234, 2.5);
+      assert.strictEqual(document.getElementById('prompt-data-size')?.textContent, '2.5KB');
+      assert.strictEqual(
+        document.getElementById('prompt-estimated-tokens')?.textContent,
+        '~1,234 tok',
+      );
+    });
 
-      layer.clearLog();
-      assert.strictEqual(area?.textContent, '');
+    test('onModelsResult updates selected model max token display', () => {
+      layer.onAgentState('claude', 'sonnet', true);
+      postMessageStub.resetHistory();
+      layer.onModelsResult([{ id: 'sonnet', name: 'Sonnet', outputTokenLimit: 8192 }]);
+      assert.strictEqual(
+        document.getElementById('prompt-model-max-tokens')?.textContent,
+        '8,192 tok',
+      );
     });
 
     test('onResult updates notice and clears generating state', () => {
@@ -518,23 +526,25 @@ suite('UI Components Consolidated', () => {
       assert.ok(true);
     });
 
-    test('action buttons render below the generate row', () => {
+    test('secondary action buttons render below the primary toolbar', () => {
       const actionGroup = document.querySelector('.prompt-action-group');
-      const actionRows = actionGroup?.querySelectorAll('.btn-row');
+      const toolbar = actionGroup?.querySelector('.prompt-primary-toolbar');
+      const secondaryActions = actionGroup?.querySelector('.prompt-secondary-actions');
 
       assert.ok(actionGroup);
-      assert.strictEqual(actionRows?.length, 2);
-      assert.strictEqual(actionRows?.[0].querySelector('#btn-generate')?.id, 'btn-generate');
+      assert.ok(toolbar);
+      assert.ok(secondaryActions);
+      assert.strictEqual(toolbar?.querySelector('#btn-generate')?.id, 'btn-generate');
       assert.strictEqual(
-        actionRows?.[1].querySelector('#btn-open-generated-editor')?.id,
+        secondaryActions?.querySelector('#btn-open-generated-editor')?.id,
         'btn-open-generated-editor',
       );
       assert.strictEqual(
-        actionRows?.[1].querySelector('#btn-preview-open-panel')?.id,
+        secondaryActions?.querySelector('#btn-preview-open-panel')?.id,
         'btn-preview-open-panel',
       );
       assert.strictEqual(
-        actionRows?.[1].querySelector('#btn-preview-open-browser')?.id,
+        secondaryActions?.querySelector('#btn-preview-open-browser')?.id,
         'btn-preview-open-browser',
       );
     });
@@ -623,37 +633,42 @@ suite('UI Components Consolidated', () => {
     });
 
     test('onGenerateRequested validation', () => {
-      const logArea = document.getElementById('prompt-log-area') as HTMLPreElement;
-      logArea.textContent = 'old log';
-      (document.getElementById('use-mcp-data') as HTMLInputElement).checked = false;
+      (document.getElementById('use-metadata') as HTMLInputElement).checked = true;
       (document.getElementById('use-screenshot-data') as HTMLInputElement).checked = false;
       (document.getElementById('user-prompt') as HTMLTextAreaElement).value = 'Visible prompt';
       layer.onGenerateRequested();
-      assert.strictEqual(logArea.textContent, '');
       assert.ok(
         postMessageStub.calledWithMatch({
           command: 'prompt.generate',
           payload: sinon.match({
             userPrompt: 'Visible prompt',
-            mcpData: null,
+            mcpDataKind: 'metadata',
             screenshotData: null,
           }),
         }),
       );
     });
 
-    test('render includes screenshot toggle and visible output format prompt preview', () => {
+    test('render includes radio-based MCP selector, screenshot toggle, and visible output format prompt preview', () => {
+      const designContextToggle = document.getElementById('use-design-context');
+      const metadataToggle = document.getElementById('use-metadata');
       const screenshotToggle = document.getElementById('use-screenshot-data');
       const promptEditor = document.getElementById('user-prompt') as HTMLTextAreaElement | null;
       const formatPreview = document.getElementById(
         'format-prompt-preview',
       ) as HTMLTextAreaElement | null;
 
+      assert.ok(designContextToggle);
+      assert.ok(metadataToggle);
       assert.ok(screenshotToggle);
       assert.ok(promptEditor);
       assert.ok(promptEditor?.value.length);
       assert.ok(formatPreview);
       assert.ok(formatPreview?.value.includes('Generate TSX code'));
+      assert.strictEqual(
+        (document.querySelector('.minimal-options') as HTMLDetailsElement | null)?.open,
+        true,
+      );
       assert.strictEqual(document.getElementById('hidden-prompt'), null);
       assert.strictEqual(document.getElementById('use-user-prompt'), null);
     });

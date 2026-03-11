@@ -32,8 +32,7 @@ export class PromptCommandHandler {
     message: string,
     detail?: string,
   ) {
-    const entry = Logger.log(level, layer, message, detail);
-    this.post({ event: 'prompt.logAppend', entry });
+    Logger.log(level, layer, message, detail);
   }
 
   async generate(payload: PromptPayload) {
@@ -59,21 +58,21 @@ export class PromptCommandHandler {
         ? this.stateManager.getLastScreenshot()
         : payload.screenshotData;
     const supportsScreenshot = this.agentSupportsScreenshot(agent);
+    const resolvedMcpData = this.resolveMcpData(payload);
     const resolvedPayload = {
       ...payload,
       agent,
       model,
-      mcpData: payload.mcpData === undefined ? this.stateManager.getLastMcpData() : payload.mcpData,
+      mcpData: resolvedMcpData,
       screenshotData: supportsScreenshot ? requestedScreenshot : null,
     };
 
     Logger.info('prompt', `Generating ${resolvedPayload.outputFormat} code with ${agent}:${model}`);
-    this.post({ event: 'prompt.logClear' });
     this.postPromptLog(
       'info',
       'prompt',
       `Starting ${resolvedPayload.outputFormat.toUpperCase()} generation`,
-      `${agent}:${model || 'default'} | userPrompt=${resolvedPayload.userPrompt ? 'yes' : 'no'} | mcpData=${resolvedPayload.mcpData ? 'yes' : 'no'} | screenshot=${resolvedPayload.screenshotData ? 'yes' : 'no'}`,
+      `${agent}:${model || 'default'} | userPrompt=${resolvedPayload.userPrompt ? 'yes' : 'no'} | mcpData=${resolvedPayload.mcpData ? (payload.mcpDataKind ?? 'designContext') : 'no'} | screenshot=${resolvedPayload.screenshotData ? 'yes' : 'no'}`,
     );
     if (requestedScreenshot && !supportsScreenshot) {
       this.postPromptLog(
@@ -207,7 +206,7 @@ export class PromptCommandHandler {
     const builder = new PromptBuilder();
     const resolvedPayload = {
       ...payload,
-      mcpData: payload.mcpData === undefined ? this.stateManager.getLastMcpData() : payload.mcpData,
+      mcpData: this.resolveMcpData(payload),
       screenshotData:
         payload.screenshotData === undefined
           ? this.stateManager.getLastScreenshot()
@@ -276,6 +275,19 @@ export class PromptCommandHandler {
   private summarizeChunk(chunk: string): string {
     const singleLine = chunk.replace(/\s+/g, ' ').trim();
     return singleLine.length > 120 ? `${singleLine.slice(0, 117)}...` : singleLine;
+  }
+
+  private resolveMcpData(payload: PromptPayload): unknown {
+    if (payload.mcpData !== undefined) {
+      return payload.mcpData;
+    }
+    if (payload.mcpDataKind === null) {
+      return null;
+    }
+    if (payload.mcpDataKind === 'metadata') {
+      return this.stateManager.getLastMetadata();
+    }
+    return this.stateManager.getLastDesignContextData();
   }
 
   private agentSupportsScreenshot(agent: PromptPayload['agent']): boolean {

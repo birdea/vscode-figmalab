@@ -259,11 +259,13 @@ suite('FigmaCommandHandler', () => {
   test('clearData resets saved figma input and data', () => {
     stateManager.setLastMcpInput('abc');
     stateManager.setLastMcpData({ foo: 'bar' });
+    stateManager.setLastMetadata({ bar: 'baz' });
 
     handler.clearData();
 
     assert.strictEqual(stateManager.getLastMcpInput(), '');
     assert.strictEqual(stateManager.getLastMcpData(), null);
+    assert.strictEqual(stateManager.getLastMetadata(), null);
   });
 
   test('fetchData posts parse-only result when disconnected', async () => {
@@ -313,7 +315,13 @@ suite('FigmaCommandHandler', () => {
     await handler.fetchMetadata('https://figma.com/file/ABCDE/demo?node-id=1-2');
 
     assert.ok(mcpClient.getMetadata.calledWith('ABCDE', '1:2'));
-    assert.ok(editorIntegration.openInEditor.calledWith('{\n  "layers": [\n    {\n      "id": "1"\n    }\n  ]\n}', 'json'));
+    assert.deepStrictEqual(stateManager.getLastMetadata(), { layers: [{ id: '1' }] });
+    assert.ok(
+      editorIntegration.openInEditor.calledWith(
+        '{\n  "layers": [\n    {\n      "id": "1"\n    }\n  ]\n}',
+        'json',
+      ),
+    );
     assert.ok(
       webview.postMessage.calledWithMatch({
         event: 'figma.dataResult',

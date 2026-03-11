@@ -1,5 +1,11 @@
 import { vscode } from '../vscodeApi';
-import { LogEntry, OutputFormat, PromptPayload } from '../../../types';
+import {
+  AgentType,
+  ModelInfo,
+  OutputFormat,
+  PromptMcpDataKind,
+  PromptPayload,
+} from '../../../types';
 import { getDocumentLocale, t, UiLocale } from '../../../i18n';
 import { DEBOUNCE_MS } from '../../../constants';
 import { DEFAULT_PROMPT_TEXT, getFormatPromptPreview } from '../../../prompt/PromptBuilder';
@@ -11,27 +17,35 @@ export class PromptLayer {
   private requestId: string | null = null;
   private lastCode = '';
   private lastFormat: OutputFormat | undefined;
+  private currentAgent: AgentType = 'gemini';
+  private currentModel = '';
+  private modelCatalog: ModelInfo[] = [];
   private readonly locale: UiLocale = getDocumentLocale();
 
   render(): string {
     return `
 <section class="panel panel-compact">
   <div class="section-heading">
-      <div>
+    <div>
       <div class="panel-title">${this.msg('prompt.title')}</div>
-      <div class="section-status" id="prompt-progress-text">${this.msg('prompt.status.ready')}</div>
     </div>
   </div>
-  <div class="field-group">
-    <textarea id="user-prompt" class="prompt-template-textarea">${DEFAULT_PROMPT_TEXT}</textarea>
-  </div>
-  <details class="minimal-options">
+  <details class="minimal-options" open>
     <summary>${this.msg('prompt.options')}<i class="codicon codicon-chevron-right options-toggle-icon"></i></summary>
     <div class="field-group stack-gap-sm">
-      <div class="checkbox-row">
-        <input type="checkbox" id="use-mcp-data" checked />
-        <label for="use-mcp-data" class="label-inline">${this.msg('prompt.includeMcpData')}</label>
+      <label>${this.msg('prompt.includeMcpData')}</label>
+      <div class="choice-grid">
+        <label class="choice-card" for="use-design-context">
+          <input type="radio" id="use-design-context" name="prompt-mcp-data-kind" value="designContext" checked />
+          <span>${this.msg('prompt.includeDesignContext')}</span>
+        </label>
+        <label class="choice-card" for="use-metadata">
+          <input type="radio" id="use-metadata" name="prompt-mcp-data-kind" value="metadata" />
+          <span>${this.msg('prompt.includeMetadata')}</span>
+        </label>
       </div>
+    </div>
+    <div class="field-group stack-gap-sm">
       <div class="checkbox-row">
         <input type="checkbox" id="use-screenshot-data" checked />
         <label for="use-screenshot-data" class="label-inline">${this.msg('prompt.includeScreenshotData')}</label>
@@ -50,15 +64,35 @@ export class PromptLayer {
       <label for="format-prompt-preview">${this.msg('prompt.outputFormatPrompt')}</label>
       <textarea id="format-prompt-preview" class="prompt-format-preview" readonly>${getFormatPromptPreview('tsx')}</textarea>
     </div>
+    <div class="field-group stack-gap-sm">
+      <label for="user-prompt">${this.msg('prompt.userPrompt')}</label>
+      <textarea id="user-prompt" class="prompt-template-textarea">${DEFAULT_PROMPT_TEXT}</textarea>
+    </div>
   </details>
-  <div class="progress-row stack-gap-sm">
-    <span class="token-estimate" id="token-estimate">0.0KB / ~0 tok</span>
-    <progress class="progress-track" id="prompt-progress" max="100" value="0" aria-label="${this.msg('prompt.progress.aria')}"></progress>
+  <div class="prompt-metrics stack-gap-sm" id="token-estimate">
+    <div class="prompt-metric-card">
+      <span class="prompt-metric-label">${this.msg('prompt.metrics.data')}</span>
+      <strong class="prompt-metric-value" id="prompt-data-size">0.0KB</strong>
+    </div>
+    <div class="prompt-metric-card">
+      <span class="prompt-metric-label">${this.msg('prompt.metrics.estimate')}</span>
+      <strong class="prompt-metric-value" id="prompt-estimated-tokens">~0 tok</strong>
+    </div>
+    <div class="prompt-metric-card">
+      <span class="prompt-metric-label">${this.msg('prompt.metrics.max')}</span>
+      <strong class="prompt-metric-value" id="prompt-model-max-tokens">-</strong>
+    </div>
   </div>
   <div class="prompt-action-group">
-    <div class="btn-row">
-      <button class="primary" id="btn-generate"><i class="codicon codicon-play"></i>${this.msg('prompt.generate')}</button>
-      <button class="secondary hidden" id="btn-cancel-generate"><i class="codicon codicon-debug-stop"></i>${this.msg('prompt.cancel')}</button>
+    <div class="prompt-primary-toolbar">
+      <div class="btn-row prompt-generate-buttons">
+        <button class="primary" id="btn-generate"><i class="codicon codicon-play"></i>${this.msg('prompt.generate')}</button>
+        <button class="secondary hidden" id="btn-cancel-generate"><i class="codicon codicon-debug-stop"></i>${this.msg('prompt.cancel')}</button>
+      </div>
+      <div class="prompt-generate-status">
+        <div class="section-status prompt-inline-status" id="prompt-progress-text">${this.msg('prompt.status.ready')}</div>
+        <progress class="progress-track" id="prompt-progress" max="100" value="0" aria-label="${this.msg('prompt.progress.aria')}"></progress>
+      </div>
     </div>
     <div class="btn-row prompt-secondary-actions">
       <button class="secondary button-pseudo-disabled" id="btn-open-generated-editor" aria-disabled="true"><i class="codicon codicon-file-code"></i>${this.msg('prompt.openGeneratedEditor')}</button>
@@ -67,12 +101,6 @@ export class PromptLayer {
     </div>
   </div>
   <div class="notice hidden" id="prompt-notice"></div>
-  <details class="minimal-options stack-gap-sm" id="prompt-log-panel" open>
-    <summary>${this.msg('prompt.log.title')}</summary>
-    <div class="log-shell">
-      <pre class="log-terminal prompt-log-terminal" id="prompt-log-area"></pre>
-    </div>
-  </details>
 </section>
 `;
   }
@@ -80,11 +108,13 @@ export class PromptLayer {
   mount() {
     const userPromptEl = document.getElementById('user-prompt') as HTMLTextAreaElement;
     const outputFormatEl = document.getElementById('output-format') as HTMLSelectElement;
-    const useMcpDataEl = document.getElementById('use-mcp-data') as HTMLInputElement;
     const useScreenshotDataEl = document.getElementById('use-screenshot-data') as HTMLInputElement;
+    const mcpDataKindEls = document.querySelectorAll<HTMLInputElement>(
+      'input[name="prompt-mcp-data-kind"]',
+    );
 
     userPromptEl?.addEventListener('input', () => this.updateEstimate());
-    useMcpDataEl?.addEventListener('change', () => this.updateEstimate());
+    mcpDataKindEls.forEach((el) => el.addEventListener('change', () => this.updateEstimate()));
     useScreenshotDataEl?.addEventListener('change', () => this.updateEstimate());
     outputFormatEl?.addEventListener('change', () => {
       this.updateFormatPromptPreview(outputFormatEl.value as OutputFormat);
@@ -108,7 +138,9 @@ export class PromptLayer {
 
     this.updatePreviewButtonState();
     this.updateFormatPromptPreview((outputFormatEl?.value as OutputFormat | undefined) ?? 'tsx');
+    this.refreshModelMetrics();
     this.updateEstimate();
+    vscode.postMessage({ command: 'agent.getState' });
   }
 
   onGenerateRequested() {
@@ -119,23 +151,22 @@ export class PromptLayer {
 
     const userPromptEl = document.getElementById('user-prompt') as HTMLTextAreaElement | null;
     const outputFormatEl = document.getElementById('output-format') as HTMLSelectElement | null;
-    const useMcpDataEl = document.getElementById('use-mcp-data') as HTMLInputElement | null;
     const useScreenshotDataEl = document.getElementById(
       'use-screenshot-data',
     ) as HTMLInputElement | null;
-    if (!userPromptEl || !outputFormatEl || !useMcpDataEl || !useScreenshotDataEl) {
+    const mcpDataKind = this.getSelectedMcpDataKind();
+    if (!userPromptEl || !outputFormatEl || !useScreenshotDataEl || !mcpDataKind) {
       return;
     }
 
     const payload: PromptPayload = {
       userPrompt: userPromptEl.value.trim(),
-      mcpData: useMcpDataEl.checked ? undefined : null,
+      mcpDataKind,
       screenshotData: useScreenshotDataEl.checked ? undefined : null,
       outputFormat: outputFormatEl.value as OutputFormat,
       requestId: this.nextRequestId(),
     };
 
-    this.clearLog();
     this.lastCode = '';
     this.lastFormat = payload.outputFormat;
     this.previewReady = false;
@@ -208,22 +239,23 @@ export class PromptLayer {
   private updateEstimate() {
     if (this.debounceTimer) clearTimeout(this.debounceTimer);
     this.debounceTimer = setTimeout(() => {
-      const useMcpDataEl = document.getElementById('use-mcp-data') as HTMLInputElement | null;
       const useScreenshotDataEl = document.getElementById(
         'use-screenshot-data',
       ) as HTMLInputElement | null;
       const userPromptEl = document.getElementById('user-prompt') as HTMLTextAreaElement | null;
       const outputFormatEl = document.getElementById('output-format') as HTMLSelectElement | null;
-      const estimateEl = document.getElementById('token-estimate');
+      const mcpDataKind = this.getSelectedMcpDataKind();
 
-      if (!useMcpDataEl || !useScreenshotDataEl || !userPromptEl || !outputFormatEl || !estimateEl)
-        return;
+      if (!useScreenshotDataEl || !userPromptEl || !outputFormatEl || !mcpDataKind) return;
 
-      estimateEl.textContent = this.msg('prompt.notice.calculating');
+      this.setEstimateDisplay(
+        this.msg('prompt.notice.calculating'),
+        this.msg('prompt.notice.calculating'),
+      );
 
       const payload: PromptPayload = {
         userPrompt: userPromptEl.value.trim(),
-        mcpData: useMcpDataEl.checked ? undefined : null,
+        mcpDataKind,
         screenshotData: useScreenshotDataEl.checked ? undefined : null,
         outputFormat: outputFormatEl.value as OutputFormat,
       };
@@ -233,11 +265,22 @@ export class PromptLayer {
   }
 
   onEstimateResult(tokens: number, kb: number) {
-    const estimateEl = document.getElementById('token-estimate');
-    if (!estimateEl) return;
-    const kbStr = kb.toFixed(1);
-    const tokStr = tokens.toLocaleString();
-    estimateEl.textContent = `${kbStr}KB / ~${tokStr} tok`;
+    this.setEstimateDisplay(`${kb.toFixed(1)}KB`, `~${tokens.toLocaleString()} tok`);
+  }
+
+  onAgentState(agent: AgentType, model: string, hasApiKey: boolean) {
+    this.currentAgent = agent;
+    this.currentModel = model;
+    this.modelCatalog = [];
+    this.refreshModelMetrics();
+    if (hasApiKey) {
+      vscode.postMessage({ command: 'agent.listModels', agent });
+    }
+  }
+
+  onModelsResult(models: ModelInfo[]) {
+    this.modelCatalog = models;
+    this.refreshModelMetrics();
   }
 
   onGenerating(progress: number) {
@@ -329,22 +372,6 @@ export class PromptLayer {
     );
   }
 
-  appendLog(entry: LogEntry) {
-    const area = document.getElementById('prompt-log-area') as HTMLPreElement | null;
-    if (!area) return;
-
-    const line = this.formatLogEntry(entry);
-    area.textContent = `${area.textContent ?? ''}${area.textContent ? '\n' : ''}${line}`;
-    area.scrollTop = area.scrollHeight;
-  }
-
-  clearLog() {
-    const area = document.getElementById('prompt-log-area');
-    if (area) {
-      area.textContent = '';
-    }
-  }
-
   private setGeneratingState(generating: boolean) {
     this.isGenerating = generating;
     const generateBtn = document.getElementById('btn-generate') as HTMLButtonElement | null;
@@ -403,6 +430,38 @@ export class PromptLayer {
     previewEl.value = getFormatPromptPreview(format);
   }
 
+  private getSelectedMcpDataKind(): PromptMcpDataKind | null {
+    const selected = document.querySelector<HTMLInputElement>(
+      'input[name="prompt-mcp-data-kind"]:checked',
+    );
+    if (!selected) {
+      return null;
+    }
+    return selected.value as PromptMcpDataKind;
+  }
+
+  private setEstimateDisplay(dataSize: string, estimatedTokens: string) {
+    const dataSizeEl = document.getElementById('prompt-data-size');
+    const estimatedTokensEl = document.getElementById('prompt-estimated-tokens');
+    if (dataSizeEl) {
+      dataSizeEl.textContent = dataSize;
+    }
+    if (estimatedTokensEl) {
+      estimatedTokensEl.textContent = estimatedTokens;
+    }
+  }
+
+  private refreshModelMetrics() {
+    const modelMaxTokensEl = document.getElementById('prompt-model-max-tokens');
+    if (!modelMaxTokensEl) {
+      return;
+    }
+
+    const modelInfo = this.modelCatalog.find((entry) => entry.id === this.currentModel);
+    const maxTokens = modelInfo?.maxOutputTokens ?? modelInfo?.outputTokenLimit ?? null;
+    modelMaxTokensEl.textContent = maxTokens ? `${maxTokens.toLocaleString()} tok` : '-';
+  }
+
   private toFriendlyError(message: string): string {
     if (message.includes('No API key')) {
       return this.msg('prompt.error.noApiKey');
@@ -415,15 +474,5 @@ export class PromptLayer {
 
   private msg(key: string, params?: Record<string, string | number>) {
     return t(this.locale, key, params);
-  }
-
-  private formatLogEntry(entry: LogEntry): string {
-    const lines = [
-      `[${entry.timestamp}] [${entry.level.toUpperCase()}] [${entry.layer}] ${entry.message}`,
-    ];
-    if (entry.detail) {
-      lines.push(`  ${entry.detail}`);
-    }
-    return lines.join('\n');
   }
 }

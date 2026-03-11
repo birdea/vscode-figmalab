@@ -25,10 +25,11 @@ suite('PromptBuilder', () => {
     const payload: PromptPayload = {
       outputFormat: 'tsx',
       mcpData: 'Figma JSON data here',
+      mcpDataKind: 'designContext',
     };
     const prompt = builder.build(payload);
     assert.ok(prompt.includes('React functional component'));
-    assert.ok(prompt.includes('=== Figma Design Data (MCP) ==='));
+    assert.ok(prompt.includes('=== Figma Design Context (MCP) ==='));
     assert.ok(prompt.includes('Figma JSON data here'));
   });
 
@@ -36,6 +37,7 @@ suite('PromptBuilder', () => {
     const payload: PromptPayload = {
       outputFormat: 'tailwind',
       mcpData: { type: 'RECTANGLE', name: 'Button' },
+      mcpDataKind: 'designContext',
     };
     const prompt = builder.build(payload);
     assert.ok(prompt.includes('Tailwind CSS utility classes'));
@@ -48,11 +50,23 @@ suite('PromptBuilder', () => {
       outputFormat: 'html',
       userPrompt: 'Use a newspaper-like serif headline',
       mcpData: { frame: 'hero' },
+      mcpDataKind: 'designContext',
     });
 
     assert.ok(prompt.includes('=== Output Contract ==='));
-    assert.ok(prompt.includes('=== Figma Design Data (MCP) ==='));
+    assert.ok(prompt.includes('=== Figma Design Context (MCP) ==='));
     assert.ok(prompt.includes('Return only HTML code.'));
+  });
+
+  test('buildUserPrompt labels metadata separately when requested', () => {
+    const prompt = builder.buildUserPrompt({
+      outputFormat: 'html',
+      mcpData: { components: ['Button'] },
+      mcpDataKind: 'metadata',
+    });
+
+    assert.ok(prompt.includes('=== Figma Metadata (MCP) ==='));
+    assert.ok(prompt.includes('"components"'));
   });
 
   test('estimate tokens', () => {
@@ -78,11 +92,11 @@ suite('PromptBuilder', () => {
   test('handles null/undefined mcpData', () => {
     const payload1 = { outputFormat: 'html', mcpData: null } as any;
     const prompt1 = builder.build(payload1);
-    assert.strictEqual(prompt1.includes('Figma Design Data'), false);
+    assert.strictEqual(prompt1.includes('Figma Design Context'), false);
 
     const payload2 = { outputFormat: 'html', mcpData: undefined } as any;
     const prompt2 = builder.build(payload2);
-    assert.strictEqual(prompt2.includes('Figma Design Data'), false);
+    assert.strictEqual(prompt2.includes('Figma Design Context'), false);
   });
 
   test('includes edited prompt override at the top of the composed prompt', () => {

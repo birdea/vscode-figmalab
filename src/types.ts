@@ -6,6 +6,7 @@ export type LogLevel = 'info' | 'warn' | 'error' | 'success';
 export type LayerType = 'figma' | 'agent' | 'prompt' | 'editor' | 'system';
 export type PreviewTarget = 'panel' | 'browser';
 export type FigmaDataResultKind = 'designContext' | 'parsedInput' | 'metadata' | 'variableDefs';
+export type PromptMcpDataKind = 'designContext' | 'metadata';
 
 // Log entry
 export interface LogEntry {
@@ -55,6 +56,7 @@ export interface ScreenshotAsset {
 export interface PromptPayload {
   userPrompt?: string;
   mcpData?: unknown;
+  mcpDataKind?: PromptMcpDataKind | null;
   screenshotData?: ScreenshotAsset | null;
   outputFormat: OutputFormat;
   model?: string;
@@ -117,8 +119,6 @@ export type HostToWebviewMessage =
   | { event: 'agent.modelsResult'; models: ModelInfo[] }
   | { event: 'prompt.generateRequested' }
   | { event: 'prompt.streaming'; progress: number; text?: string }
-  | { event: 'prompt.logAppend'; entry: LogEntry }
-  | { event: 'prompt.logClear' }
   | { event: 'prompt.previewOpened'; requested: PreviewTarget; opened: PreviewTarget }
   | {
       event: 'prompt.result';

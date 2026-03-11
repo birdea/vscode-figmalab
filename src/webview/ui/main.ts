@@ -81,14 +81,14 @@ export function init() {
       layer.mount();
       bindMessageHandler((msg) => {
         switch (msg.event) {
+          case 'agent.modelsResult':
+            layer.onModelsResult(msg.models);
+            break;
+          case 'agent.state':
+            layer.onAgentState(msg.agent, msg.model, msg.hasApiKey);
+            break;
           case 'prompt.generateRequested':
             layer.onGenerateRequested();
-            break;
-          case 'prompt.logAppend':
-            layer.appendLog(msg.entry);
-            break;
-          case 'prompt.logClear':
-            layer.clearLog();
             break;
           case 'prompt.previewOpened':
             layer.onPreviewOpened(msg.requested, msg.opened);

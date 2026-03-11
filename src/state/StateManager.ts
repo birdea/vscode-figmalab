@@ -3,7 +3,8 @@ import { AgentType, ScreenshotAsset } from '../types';
 export class StateManager {
   private currentAgent: AgentType = 'gemini';
   private currentModel = '';
-  private lastMcpData: unknown = null;
+  private lastDesignContextData: unknown = null;
+  private lastMetadata: unknown = null;
   private lastMcpInput = '';
   private lastScreenshot: ScreenshotAsset | null = null;
 
@@ -24,16 +25,28 @@ export class StateManager {
     this.currentModel = model;
   }
 
-  getLastMcpData(): unknown {
-    return this.lastMcpData;
+  getLastDesignContextData(): unknown {
+    return this.lastDesignContextData;
   }
 
-  setLastMcpData(data: unknown) {
-    this.lastMcpData = data;
+  setLastDesignContextData(data: unknown) {
+    this.lastDesignContextData = data;
   }
 
-  clearLastMcpData() {
-    this.lastMcpData = null;
+  clearLastDesignContextData() {
+    this.lastDesignContextData = null;
+  }
+
+  getLastMetadata(): unknown {
+    return this.lastMetadata;
+  }
+
+  setLastMetadata(data: unknown) {
+    this.lastMetadata = data;
+  }
+
+  clearLastMetadata() {
+    this.lastMetadata = null;
   }
 
   getLastMcpInput(): string {
@@ -58,6 +71,18 @@ export class StateManager {
 
   clearLastScreenshot() {
     this.lastScreenshot = null;
+  }
+
+  getLastMcpData(): unknown {
+    return this.getLastDesignContextData();
+  }
+
+  setLastMcpData(data: unknown) {
+    this.setLastDesignContextData(data);
+  }
+
+  clearLastMcpData() {
+    this.clearLastDesignContextData();
   }
 
   resetAgentState() {

@@ -183,7 +183,7 @@ export class FigmaCommandHandler {
   async fetchData(input: string) {
     const parsed = parseMcpData(input);
     this.stateManager.setLastMcpInput(input);
-    this.stateManager.setLastMcpData(parsed.raw);
+    this.stateManager.setLastDesignContextData(parsed.raw);
 
     if (this.activeMode === 'remote') {
       await this.fetchRemoteData(input, parsed);
@@ -193,7 +193,7 @@ export class FigmaCommandHandler {
     if (this.mcpClient.isConnected() && parsed.fileId) {
       try {
         const data = await this.mcpClient.getDesignContext(parsed.fileId, parsed.nodeId);
-        this.stateManager.setLastMcpData(data);
+        this.stateManager.setLastDesignContextData(data);
         const formatted = this.formatDataForEditor(data, 'figma-design-data.json');
         await this.editorIntegration.openInEditor(
           formatted.content,
@@ -280,7 +280,8 @@ export class FigmaCommandHandler {
 
   clearData() {
     this.stateManager.clearLastMcpInput();
-    this.stateManager.clearLastMcpData();
+    this.stateManager.clearLastDesignContextData();
+    this.stateManager.clearLastMetadata();
     this.stateManager.clearLastScreenshot();
   }
 
@@ -332,7 +333,6 @@ export class FigmaCommandHandler {
   ): Promise<void> {
     const parsed = parseMcpData(input);
     this.stateManager.setLastMcpInput(input);
-    this.stateManager.setLastMcpData(parsed.raw);
 
     if (this.activeMode === 'remote') {
       this.post({
@@ -363,7 +363,7 @@ export class FigmaCommandHandler {
 
     try {
       const data = await options.fetcher(parsed.fileId, parsed.nodeId);
-      this.stateManager.setLastMcpData(data);
+      this.stateManager.setLastMetadata(data);
       const formatted = this.formatDataForEditor(data, options.fileName);
       await this.editorIntegration.openInEditor(
         formatted.content,

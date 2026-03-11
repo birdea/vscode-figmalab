@@ -8,7 +8,6 @@
   "command.promptGenerate.title": "Generate Code",
   "command.logClear.title": "Clear Logs",
   "command.logCopy.title": "Copy Logs",
-  "command.logSave.title": "Save Logs",
   "configuration.title": "Figma MCP Helper",
   "configuration.defaultAgent.description": "Default AI agent to use",
   "configuration.defaultModel.description": "Default model ID for the selected agent (synced from the Agent panel)",
