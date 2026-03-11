@@ -204,10 +204,7 @@ export class FigmaCommandHandler {
         this.post({ event: 'figma.dataResult', data, kind: 'designContext' });
       } catch (e) {
         const errMessage = toErrorMessage(e);
-        Logger.error(
-          'figma',
-          `MCP design context fetch failed for fileId=${parsed.fileId}, nodeId=${parsed.nodeId}: ${errMessage}`,
-        );
+        this.logFigmaFetchFailure('Design Context', parsed.fileId, parsed.nodeId, errMessage);
         this.post({
           event: 'figma.dataFetchError',
           message: this.toFriendlyFetchMessage(errMessage),
@@ -376,9 +373,11 @@ export class FigmaCommandHandler {
       this.post({ event: 'figma.dataResult', data, kind: options.kind });
     } catch (e) {
       const errMessage = toErrorMessage(e);
-      Logger.error(
-        'figma',
-        `${options.kind} fetch failed for fileId=${parsed.fileId}, nodeId=${parsed.nodeId}: ${errMessage}`,
+      this.logFigmaFetchFailure(
+        options.kind === 'metadata' ? 'Metadata' : 'Variable Defs',
+        parsed.fileId,
+        parsed.nodeId,
+        errMessage,
       );
       this.post({
         event: 'error',
@@ -440,5 +439,19 @@ export class FigmaCommandHandler {
     } catch {
       return undefined;
     }
+  }
+
+  private logFigmaFetchFailure(
+    actionName: string,
+    fileId: string,
+    nodeId: string,
+    errMessage: string,
+  ) {
+    const detail = `fileId=${fileId || '-'}, nodeId=${nodeId || '-'} | ${errMessage}`;
+    const lowerMessage = errMessage.toLowerCase();
+    const message = lowerMessage.includes('timeout')
+      ? `${actionName} request timed out while waiting for the MCP server`
+      : `${actionName} request failed`;
+    Logger.error('figma', message, detail);
   }
 }

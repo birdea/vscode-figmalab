@@ -378,10 +378,18 @@ suite('FigmaCommandHandler', () => {
   });
 
   test('fetchData maps timeout errors to friendly message', async () => {
+    const loggerErrorStub = sandbox.stub(Logger, 'error');
     mcpClient.getDesignContext.rejects(new Error('Request timeout exceeded'));
 
     await handler.fetchData('https://figma.com/file/ABCDE/demo?node-id=1-2');
 
+    assert.ok(
+      loggerErrorStub.calledWith(
+        'figma',
+        'Design Context request timed out while waiting for the MCP server',
+        sinon.match(/fileId=ABCDE, nodeId=1:2 \| Request timeout exceeded/),
+      ),
+    );
     assert.ok(
       webview.postMessage.calledWithMatch({
         event: 'figma.dataFetchError',
