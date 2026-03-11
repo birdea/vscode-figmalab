@@ -78,25 +78,27 @@ export class PromptLayer {
     </div>
   </details>
   <div class="prompt-metrics stack-gap-sm" id="token-estimate">
-    <div class="prompt-metric-card">
-      <span class="prompt-metric-label">${this.msg('prompt.metrics.data')}</span>
-      <strong class="prompt-metric-value" id="prompt-data-size">0.0KB</strong>
-    </div>
-    <div class="prompt-metric-card">
-      <span class="prompt-metric-label">${this.msg('prompt.metrics.estimate')}</span>
-      <strong class="prompt-metric-value" id="prompt-estimated-tokens">~0 tok</strong>
-    </div>
-    <div class="prompt-metric-card">
-      <span class="prompt-metric-label">${this.msg('prompt.metrics.maxInput')}</span>
-      <strong class="prompt-metric-value" id="prompt-model-max-input-tokens">-</strong>
-    </div>
-    <div class="prompt-metric-card">
-      <span class="prompt-metric-label">${this.msg('prompt.metrics.maxOutput')}</span>
-      <strong class="prompt-metric-value" id="prompt-model-max-output-tokens">-</strong>
-    </div>
-    <div class="prompt-metric-card">
-      <span class="prompt-metric-label">${this.msg('prompt.metrics.contextWindow')}</span>
-      <strong class="prompt-metric-value" id="prompt-model-context-window">-</strong>
+    <div class="prompt-metrics-board">
+      <div class="prompt-metric-cell">
+        <span class="prompt-metric-label">${this.msg('prompt.metrics.data')}</span>
+        <strong class="prompt-metric-value" id="prompt-data-size">0.0KB</strong>
+      </div>
+      <div class="prompt-metric-cell">
+        <span class="prompt-metric-label">${this.msg('prompt.metrics.estimate')}</span>
+        <strong class="prompt-metric-value" id="prompt-estimated-tokens">~0 tok</strong>
+      </div>
+      <div class="prompt-metric-cell">
+        <span class="prompt-metric-label">${this.msg('prompt.metrics.maxInput')}</span>
+        <strong class="prompt-metric-value" id="prompt-model-max-input-tokens">-</strong>
+      </div>
+      <div class="prompt-metric-cell">
+        <span class="prompt-metric-label">${this.msg('prompt.metrics.maxOutput')}</span>
+        <strong class="prompt-metric-value" id="prompt-model-max-output-tokens">-</strong>
+      </div>
+      <div class="prompt-metric-cell">
+        <span class="prompt-metric-label">${this.msg('prompt.metrics.contextWindow')}</span>
+        <strong class="prompt-metric-value" id="prompt-model-context-window">-</strong>
+      </div>
     </div>
   </div>
   <div class="prompt-action-group">

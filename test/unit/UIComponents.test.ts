@@ -485,6 +485,7 @@ suite('UI Components Consolidated', () => {
         document.getElementById('prompt-estimated-tokens')?.textContent,
         '~1,234 tok',
       );
+      assert.ok(document.querySelector('.prompt-metrics-board'));
     });
 
     test('onModelsResult updates selected model max token display', () => {

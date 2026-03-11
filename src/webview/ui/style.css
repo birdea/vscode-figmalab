@@ -281,22 +281,34 @@ textarea:disabled {
 }
 
 .prompt-metrics {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  display: block;
 }
 
-.prompt-metric-card {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 10px;
-  font-size: 11px;
-  font-weight: 400;
-  line-height: 1.4;
-  color: var(--vscode-descriptionForeground);
+.prompt-metrics-board {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
   border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 45%, transparent);
   border-radius: var(--figmalab-radius);
+  background: color-mix(
+    in srgb,
+    var(--vscode-panel-border) 40%,
+    transparent
+  );
+  overflow: hidden;
+}
+
+.prompt-metric-cell {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px 8px;
+  font-size: 10px;
+  line-height: 1.2;
+  color: var(--vscode-descriptionForeground);
   background: color-mix(
     in srgb,
     var(--vscode-editorWidget-background, var(--vscode-editor-background)) 62%,
@@ -305,14 +317,25 @@ textarea:disabled {
 }
 
 .prompt-metric-label {
+  display: inline-flex;
+  align-items: center;
+  flex: 1 1 auto;
   font-size: inherit;
   color: inherit;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .prompt-metric-value {
-  font-size: inherit;
-  font-weight: inherit;
-  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .btn-row-space-between {
@@ -635,7 +658,7 @@ a:hover {
 }
 
 @media (max-width: 720px) {
-  .prompt-metrics {
+  .prompt-metrics-board {
     grid-template-columns: 1fr;
   }
 
