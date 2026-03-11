@@ -385,6 +385,11 @@ label {
 
 .notice.error {
   border-color: color-mix(in srgb, var(--vscode-editorError-foreground) 35%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--vscode-editorError-foreground) 10%,
+    var(--vscode-editorWidget-background, var(--vscode-editor-background))
+  );
   color: var(--vscode-editorError-foreground);
 }
 
