@@ -200,27 +200,34 @@ textarea:disabled {
 }
 
 .prompt-primary-toolbar {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
   gap: 12px;
 }
 
 .prompt-generate-buttons {
+  grid-column: 1;
   flex: 0 0 auto;
 }
 
 .prompt-generate-status {
-  flex: 1;
-  min-width: 160px;
+  grid-column: 2;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   align-items: flex-start;
 }
 
 .prompt-inline-status {
   margin-top: 0;
+}
+
+.prompt-primary-progress {
+  display: block;
+  width: 100%;
+  min-width: 0;
 }
 
 .prompt-secondary-actions {
@@ -480,28 +487,25 @@ label {
 }
 
 .progress-track {
-  appearance: none;
+  overflow: hidden;
   width: 100%;
   min-width: 120px;
-  height: 3px;
-  border: 0;
-  background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  height: 6px;
+  border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 55%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--vscode-editorWidget-background, var(--vscode-editor-background)) 88%,
+    var(--vscode-panel-border)
+  );
   border-radius: var(--figmalab-radius);
 }
 
-.progress-track::-webkit-progress-bar {
-  background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
-  border-radius: var(--figmalab-radius);
-}
-
-.progress-track::-webkit-progress-value {
+.progress-fill {
+  width: 0;
+  height: 100%;
   background: var(--vscode-progressBar-background, var(--vscode-button-background));
   border-radius: var(--figmalab-radius);
-}
-
-.progress-track::-moz-progress-bar {
-  background: var(--vscode-progressBar-background, var(--vscode-button-background));
-  border-radius: var(--figmalab-radius);
+  transition: width 0.12s ease-out;
 }
 
 /* Log terminal */
@@ -627,15 +631,16 @@ a:hover {
   }
 
   .prompt-primary-toolbar {
-    flex-direction: column;
-    align-items: stretch;
+    grid-template-columns: 1fr;
   }
 
   .prompt-generate-buttons {
+    grid-column: 1;
     width: 100%;
   }
 
   .prompt-generate-status {
+    grid-column: 1;
     width: 100%;
   }
 }

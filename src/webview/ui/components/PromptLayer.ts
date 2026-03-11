@@ -107,7 +107,17 @@ export class PromptLayer {
       </div>
       <div class="prompt-generate-status">
         <div class="section-status prompt-inline-status" id="prompt-progress-text">${this.msg('prompt.status.ready')}</div>
-        <progress class="progress-track" id="prompt-progress" max="100" value="0" aria-label="${this.msg('prompt.progress.aria')}"></progress>
+        <div
+          class="progress-track prompt-primary-progress"
+          id="prompt-progress"
+          role="progressbar"
+          aria-label="${this.msg('prompt.progress.aria')}"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+        >
+          <div class="progress-fill" id="prompt-progress-fill"></div>
+        </div>
       </div>
     </div>
     <div class="btn-row prompt-secondary-actions">
@@ -357,11 +367,16 @@ export class PromptLayer {
   }
 
   private setProgressState(progress: number, statusText: string) {
-    const progressBar = document.getElementById('prompt-progress') as HTMLProgressElement | null;
+    const progressBar = document.getElementById('prompt-progress');
+    const progressFill = document.getElementById('prompt-progress-fill');
     const progressText = document.getElementById('prompt-progress-text');
 
+    const safeProgress = Math.max(0, Math.min(100, progress));
     if (progressBar) {
-      progressBar.value = Math.max(0, Math.min(100, progress));
+      progressBar.setAttribute('aria-valuenow', String(safeProgress));
+    }
+    if (progressFill instanceof HTMLElement) {
+      progressFill.style.width = `${safeProgress}%`;
     }
     if (progressText) {
       progressText.textContent = statusText;

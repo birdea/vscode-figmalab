@@ -473,9 +473,11 @@ suite('UI Components Consolidated', () => {
 
     test('onGenerating sets progress bar width', () => {
       layer.onGenerating(50);
-      const bar = document.getElementById('prompt-progress') as HTMLProgressElement | null;
+      const bar = document.getElementById('prompt-progress');
+      const fill = document.getElementById('prompt-progress-fill') as HTMLDivElement | null;
       assert.ok(bar);
-      assert.strictEqual(bar?.value, 50);
+      assert.strictEqual(bar?.getAttribute('aria-valuenow'), '50');
+      assert.strictEqual(fill?.style.width, '50%');
     });
 
     test('onEstimateResult updates split metric values', () => {
