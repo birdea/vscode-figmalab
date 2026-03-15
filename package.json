@@ -418,7 +418,7 @@
     "@anthropic-ai/sdk": "^0.78.0",
     "@google/generative-ai": "^0.24.1",
     "@vitejs/plugin-react": "^5.1.0",
-    "@vitejs/plugin-vue": "^6.0.1",
+    "@vitejs/plugin-vue": "^6.0.5",
     "@vscode/codicons": "^0.0.44",
     "esbuild": "^0.27.3",
     "react": "^19.2.4",
